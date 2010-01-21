@@ -1,0 +1,9 @@
+ROWS
+458
+HASH
+715625
+PRESET
+1
+SELECT q.text FROM questions AS q WHERE q.text > 'stuff' 
+QUERIES
+SELECT q.text FROM questions AS q WHERE q.text > 'w' 

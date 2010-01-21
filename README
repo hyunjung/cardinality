@@ -1,0 +1,219 @@
+===============================
+Overview of the task
+===============================
+
+You have to implement a distributed query engine.
+
+Given a parsed SQL query, you have to return the right results as fast as possible. The data is stored on disk, the indexes are all in memory. The SQL queries will always have the following form:
+
+SELECT alias_name.field_name, ...
+FROM table_name AS alias_name, ...
+WHERE condition1 AND ... AND conditionN
+
+A condition may be either:
+  - alias_name.field_name = fixed value
+  - alias_name.field_name > fixed value
+  - alias_name.field_name1 = alias_name.field_name2
+
+The data is distributed on multiple nodes, and can be replicated. The implementation of the indexes is provided and cannot be changed. Up to 50 queries will be sent at the same time by 50 different threads, but only the total amount of time will be measured. You do not have to take care of the partitioning, replication or creation of the indexes: these are done before the beginning of the benchmark of your client.
+
+Before the actual start of the benchmarks, you are given a predefined number of seconds to run some preprocessing on the data. You are also given a set of queries which is representative of the benchmark to help you run the preprocessing.
+
+===============================
+Getting started
+===============================
+
+There are 7 methods to implement. There are fully described in ./include/client.h.
+
+We added to the task two sample implementations to help you understand how it should work:
+  - ./client/TrivialClient.cpp: does nothing and always fails
+  - ./client/SimpleClient.cpp: fetch all the data from the slaves in memory, and run the query
+These clients are not fully working clients but they will pass some tests.
+
+You can compile them with:
+make buildLib
+
+These examples will be compiled in two libraries: ./objs/TrivialClient.so and ./objs/SimpleClient.so
+You then have to build the benchmark on top of these libraries with:
+make buildBench
+
+In ./dataBench you will find 3 simple test sets. You may run these tests with a command that looks like:
+./objs/mainTrivialClient dataBench/Test1 local
+./objs/mainSimpleClient dataBench/Test2 local
+
+You can also have a look at the diagrams in ./docs/phase*.png that explains how the methods are called. 
+
+You are now ready to start!
+
+===============================
+Queries
+===============================
+
+Here is a description of the benchmarks that we are going to run on your code. We will not disclose the actual code of the benchmarks. A benchmark tool and a set of tests are available with the task, you may use it to test your implementation. The code and description of the unit-tests will not be disclosed. The results will be checked for every benchmark and a submission that returns a single wrong answer will be rejected.
+
+There will be two "stages". You should be able to pass the first stage while testing on your own computer. The evaluation infrastructure where you will be able to submit your code and check whether it passes each stage will be made available on February, 6, 2010. Once you pass the first stage, you will be given resources to test your program on a real cluster.
+
+During the pretreatment phase, you will be given a set of queries. You are guaranteed all the queries that will be run during the benchmark will be in this set, only the fixed values may change. There will be up to 10 queries in that set per benchmark.
+
+Stage 1:
+
+For all tests of stage 1, you may assume that a partition always cover the entire table, and that the data is not replicated.
+
+  - Various local and distributed unit-tests to ensure your submission is correct.
+    - If you pass the unit-tests, we will start the benchmarks.
+
+  - Benchmarks:
+    - On a single node, selects with an equal condition on the primary key
+    - On a single node, selects with an equal condition on an indexed field
+    - On a single node, 2 to 5 joins on tables of different size
+    - On a single node, 1 join and a "greater than" condition on an indexed field
+    - On three nodes, one join on two tables of different size, the two tables being on two different nodes
+
+Stage 2:
+
+Tables are now stored on multiple nodes. Part of a table, or the whole table may be replicated on multiple nodes. Queries will be sent in parallel up to 50 simultaneous connections.
+
+  - Benchmarks:
+    - Selects with an equal condition on the primary key, the values being uniformly distributed
+    - Selects with an equal condition on the primary key, the values being non-uniformly distributed
+    - Multiple joins on tables separated on different nodes 
+
+===============================
+Nodes
+===============================
+
+There are two types of nodes: the master and the slaves.
+
+Only one method will be executed on the slaves: startSlave.
+Several methods will be executed on the master: startPreTreatmentMaster, createConnection, performQuery, fetchRow, closeConnection, closeProcess.
+
+===============================
+Testing
+===============================
+
+You are given a sample implementation of a benchmark to test your clients.
+
+There are two modes to execute this benchmark, either "local" or "distant".
+  - If you run in mode "local", you have to make sure that all the partitions are located on the node you are running the benchmark.
+  - If you run in mode "distant", you have to make sure that all the code have been replicated on the slaves, and that you can ssh the slaves without password.
+You do not have to take care of it on our evaluation servers, it will be taken care of.
+
+You will be allowed to evaluate your submission on the final benchmark. If your submission succeed, we will output your total response time for the test. The delay for a response will vary between 0 and 4 hours.
+
+===============================
+Data
+===============================
+
+There may be some changes in the figures of this section in the weeks to come.
+
+The data is already partitioned, already replicated and the indexes are created before the beginning of the benchmark.
+The index being in memory, you are guaranteed that the set of primary keys of a single partition will always fit in 2GB. The index are loaded in memory before the beginning of the pretreatment.
+The total size of a table can be from a few KB, up to 100GB. There can be up to 100 tables and up to 1000 columns per table.
+The data is stored in non binary flat files. The separator between records is '\n', between fields is '|'. You are guaranteed that the data will always be properly formatted. The data will always be encoded in ASCII.
+A field can contain either a 4-bytes integer or a string which length can be up to 101 bytes ('\0' included).
+You are allocated 10GB on the disk on each node, in the directory /tmp/clientSpace.
+
+A table will always have a primary key, this primary key will always be indexed, the data on disk will always be sorted along that primary key.
+
+===============================
+Indexes
+===============================
+
+The indexes contain an offset on the disk. Given a key, they allow you to access the data faster than going through the entire files. Once you have open a file with open(), you can reach that offset with lseek().
+
+The indexes are transactional in-memory index. The indexes are thread-safe. You do not have to understand the implementation of the index to use them. However here are a few facts that you may want to know:
+- the indexes are in-memory and as fast as a hash-table (read is in O(1))
+- the indexes are thread-safe, however two transactions cannot access the same index on the same field at the same time, one of them will wait for the other to commit its transaction: making a full scan of the index will lock the index.
+
+See "Using the indexes" for more details.
+
+===============================
+Ranking
+===============================
+
+All your source code will be read, so we will ask you to provide some documentation to help us understand your submission. However, the submissions will be ranked only according to their performance against the final benchmarks.
+
+===============================
+Directories
+===============================
+
+  - ./client: contains the code of a sample fully-working client. Your task is to make that client as fast as possible. You may use all the code of the example, part of it, or nothing of it.
+  - ./include: prototypes of all the functions you have to implement in your client, and others you may want to use
+  - ./bench: testing programs to benchmark your algorithm. You do not have to use it, and you are guaranteed that the final benchmark will be different, but you may want to give it a try, it can save you some time.
+  - ./lib: additional functions and methods that you may find useful. It also contains the code of the index, that you will be using. You do not need to read the code of the index, but you will not be allowed to change it (your client will be compiled with a precompiled library).
+  - ./logs: logs of the execution of the sample clients on a local box
+  - ./dataBench: data for your benchmarks
+  - ./unitTest: unittests for the benchmark tool and the examples
+  - ./dataUnitTest: data for the unit tests
+  - ./objs: contain all compiled code
+
+===============================
+Libraries
+===============================
+
+  - Your code will be executed in a standard Unix environment. We will not provide extra libraries. However you are allowed to add or use some MIT/BSD-compatible open source code or MIT/BSD-compatible open source libraries within your submission, provided that the total size of your submission is under 5 Mo. You will have to agree to release your code under the MIT or BSD open source license after the contest.
+
+===============================
+Tricks
+===============================
+
+Computer science is all about changing the rules. For this task, you are given a lot of freedom to find some new tricks, some new techniques to improve the performance of your algorithm. Some tricks are legitimate, some are not. Since we do not know what kind of ideas you may come up with, we will not try to make a list of all the tricks that are allowed or not allowed. You will not be disqualified for using an illegitimate trick, but we will ask you to remove it before considering your final submission.
+
+Here is the way we will judge if a trick is legitimate or not: if this task was a real-life product, would it make sens?
+
+And here is an example:
+  - Trick: optimizing my algorithm for a uniform key distribution
+    - Legitimate, because a lot of real-life problems have keys uniformly distributed
+  - Trick: reverse engineering of the random function to predict the output
+    - Not legitimate, because it would not work on a real-life problem.
+
+
+===============================
+Test sets
+===============================
+
+You can use this structure of test set, but you do not have too. We strongly encourage you to develop your own test set and test files.
+
+The current benchmark engine run with test sets that are in ./dataBench.
+Each directory contains two files:
+  - query: describes the query
+  - structure: describes the data
+
+The query file contains the number total of rows that should be returned, and a hash that should match. And then a list of queries.
+The structure file contains the list of the nodes with their ids (numbered from 0) and the list of tables with their following partitions.
+
+===============================
+Using the indexes
+===============================
+
+====
+Here is the way to check for an key in the index (you do not need transaction to do a lookup):
+====
+
+Index * index;
+openIndex("mytable.mycolumn", &index);
+
+Record record1, record2;
+record1.val = valueOfMyKey1; 
+record2.val = valueOfMyKey2; 
+
+get(index, NULL, &record1);
+get(index, NULL, &record2);
+
+====
+Here is the way to do a full scan of the table:
+====
+
+Index * index;
+Transaction * txn;
+
+openIndex("mytable.mycolumn", &index);
+
+Record record1;
+record1.val = valueOfMyKey1; 
+
+beginTransaction(&txn);
+get(index, NULL, &record1);
+while(getNext(index, txn, &record1) != DB_END)
+  do stuff
+commitTransaction(&txn);

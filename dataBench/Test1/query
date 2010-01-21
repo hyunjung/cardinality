@@ -1,0 +1,11 @@
+ROWS
+15
+HASH
+288
+PRESET
+1
+SELECT primes._id, primes.value FROM primes AS primes, odds AS odds WHERE primes._id = odds.value
+QUERIES
+SELECT primes._id, primes.value FROM primes AS primes, odds AS odds WHERE primes._id = odds.value
+SELECT primes._id, primes.value FROM primes AS primes, odds AS odds WHERE primes._id = odds.value
+SELECT primes._id, primes.value FROM primes AS primes, odds AS odds WHERE primes._id = odds.value

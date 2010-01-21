@@ -1,0 +1,26 @@
+
+DELAY
+30
+
+NODE
+127.0.0.1
+
+NODE
+12.7.0.1
+
+TABLE
+primes 3
+_id int
+value int
+_country string
+PARTITIONS 1
+0 
+
+TABLE
+odds 2
+_id int
+value int
+PARTITIONS 2
+0 
+1 
+

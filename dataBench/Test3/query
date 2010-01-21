@@ -1,0 +1,9 @@
+ROWS
+4
+HASH
+44132
+PRESET
+1
+SELECT q.text FROM questions AS q, points AS p WHERE q._id = p._id
+QUERIES
+SELECT q.text FROM questions AS q, points AS p WHERE q._id = p._id

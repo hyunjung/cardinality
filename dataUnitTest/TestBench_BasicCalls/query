@@ -1,0 +1,11 @@
+ROWS
+10
+HASH
+153
+PRESET
+2
+SELECT primes.value,primes.test FROM primes AS primes, odds AS notsoodds WHERE primes.id = odds.value AND primes.id > 6 AND primes.value > 'veryfunny' AND primes.truc = 'genzmer'
+SELECT primes.value FROM primes AS primes, odds AS notsoodds WHERE primes.id = odds.value AND primes.id > 6 AND primes.value > 'clems n\'est pas la' AND primes.truc = 'clement genzmer'
+QUERIES
+SELECT primes.value,primes.test FROM primes AS primes, odds AS notsoodds WHERE primes.id = odds.value AND primes.id > 6 AND primes.value > 'veryfunny' AND primes.truc = 'genzmer'
+SELECT primes.value FROM primes AS primes, odds AS notsoodds WHERE primes.id = odds.value AND primes.id > 6 AND primes.value > 'clems n\'est pas la' AND primes.truc = 'clement genzmer'

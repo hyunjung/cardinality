@@ -1,0 +1,26 @@
+
+DELAY
+3
+
+NODE
+127.0.0.1
+
+NODE
+127.0.0.1
+
+TABLE
+questions 3
+_id string
+_day string
+text string
+PARTITIONS 1
+0 
+
+TABLE
+points 2
+_id string
+points int
+PARTITIONS 2
+0 
+1
+
