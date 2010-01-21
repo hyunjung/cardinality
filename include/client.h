@@ -153,7 +153,7 @@ struct Table
  * The intersection of two partitions does not have to be empty:
  * A record can be in multiple partitions, the data may be replicated.
  * 
- * Multiple partitions of the same table can be on the same node
+ * Multiple partitions of the same table cannot be on the same node
  *
  * A partition will always contain at least two elements.
  *
@@ -177,7 +177,7 @@ struct Partition
  * For testing purpose, two different nodes can have the same ip (127.0.0.1)
  * but never the same iNode.
  *
- * The number of node will always be strictly inferior to 100.
+ * The number of node will always be less than 100.
  * You are allowed to use the ports only from 10000 to 19999 included.
  *
  * The iNode goes from 0 to (NbNodes-1). A node does not necessarily holds data.
@@ -237,7 +237,7 @@ struct Queries
  * preset is a sample set of queries; all queries run will be of this form,
  * though constant values may change.
  *
- * The number of seconds granted will always superior or equal to 1.
+ * The number of seconds granted will always be between 1 and 60.
  *
  * The benchmark will not wait for this call to return. The exact order
  * of the pretreatment calls ( master, slaves ) is unpredictable.
@@ -267,7 +267,7 @@ struct Connection ;
  * A performQuery will never be executed before a DB_END is returned by fetchRow
  * ( except for the first execution or the connection ).
  *
- * The number of simultaneous connections will always be inferior to 100.
+ * The number of simultaneous connections will always be less than 50.
  *
  * These connections are independent from the eventual connections 
  * between master and slaves that you will have to create yourself.

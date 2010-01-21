@@ -15,7 +15,7 @@ A condition may be either:
   - alias_name.field_name > fixed value
   - alias_name.field_name1 = alias_name.field_name2
 
-The data is distributed on multiple nodes, and can be replicated. The implementation of the indexes is provided and cannot be changed. Up to 50 queries will be sent at the same time by 50 different threads, but only the total amount of time will be measured. You do not have to take care of the partitioning, replication or creation of the indexes: these are done before the beginning of the benchmark of your client.
+The data is distributed on multiple nodes, and can be replicated. The distribution of data is horizontal: a given row of a table is never fragmented. The implementation of the indexes is provided and cannot be changed. Up to 50 queries will be sent at the same time by 50 different threads, but only the total amount of time will be measured. You do not have to take care of the partitioning, replication or creation of the indexes: these are done before the beginning of the benchmark of your client.
 
 Before the actual start of the benchmarks, you are given a predefined number of seconds to run some preprocessing on the data. You are also given a set of queries which is representative of the benchmark to help you run the preprocessing.
 
@@ -76,7 +76,7 @@ Tables are now stored on multiple nodes. Part of a table, or the whole table may
   - Benchmarks:
     - Selects with an equal condition on the primary key, the values being uniformly distributed
     - Selects with an equal condition on the primary key, the values being non-uniformly distributed
-    - Multiple joins on tables separated on different nodes 
+    - Any type of queries on tables separated on different nodes 
 
 ===============================
 Nodes
@@ -110,7 +110,7 @@ The data is already partitioned, already replicated and the indexes are created 
 The index being in memory, you are guaranteed that the set of primary keys of a single partition will always fit in 2GB. The index are loaded in memory before the beginning of the pretreatment.
 The total size of a table can be from a few KB, up to 100GB. There can be up to 100 tables and up to 1000 columns per table.
 The data is stored in non binary flat files. The separator between records is '\n', between fields is '|'. You are guaranteed that the data will always be properly formatted. The data will always be encoded in ASCII.
-A field can contain either a 4-bytes integer or a string which length can be up to 101 bytes ('\0' included).
+A field can contain either a 4-bytes integer or a string which length can be up to 1001 bytes ('\0' included).
 You are allocated 10GB on the disk on each node, in the directory /tmp/clientSpace.
 
 A table will always have a primary key, this primary key will always be indexed, the data on disk will always be sorted along that primary key.

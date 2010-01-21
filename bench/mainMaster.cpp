@@ -128,15 +128,17 @@ int main(int argc, char ** argv)
         int n = data.tables[t].partitions[p].iNode ;
         if( data.tables[t].fieldsName[f][0] == '_' )
         {
+          char fullFieldName[500] ;
+          sprintf(fullFieldName,"%s.%s", data.tables[t].tableName, data.tables[t].fieldsName[f]) ;
           if( n == 0 )
           {
-            createIndex( data.tables[t].fieldsName[f], data.tables[t].partitions[p].fileName, f, data.tables[t].fieldsType[f] ) ;     
+            createIndex( fullFieldName, data.tables[t].partitions[p].fileName, f, data.tables[t].fieldsType[f] ) ;     
           }
           else
           {
             string command = "CREATE INDEX" ;
             sendString(&ports,n,command.c_str()) ;
-            sendString(&ports,n,data.tables[t].fieldsName[f]) ;
+            sendString(&ports,n,fullFieldName) ;
             sendString(&ports,n,data.tables[t].partitions[p].fileName) ;
             sendInt(&ports,n, data.tables[t].fieldsType[f] ) ;
             sendInt(&ports,n,f);

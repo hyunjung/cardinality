@@ -1,0 +1,18 @@
+---------------------------------------------------------------------
+Release 1.1 (January 12, 2009)
+---------------------------------------------------------------------
+- Bug fix in the naming of the index (bench/mainMaster.cpp)
+- Bug fix in the return value of the openIndex function (lib/index/index.h)
+- Precisions in the documentation (README, include/client.h):
+  * Multiple partitions of the same table cannot be on the same node.
+  * The maximum pretreatment time is 60 seconds.
+  * Number of simultaneous connections < 50.
+  * Last benchmark: any type of queries.
+  * Strings are up to 1000 characters long.
+  * A given row of a table is never fragmented.
+  * Typos.
+
+---------------------------------------------------------------------
+Release 1.0 (December 13, 2009)
+---------------------------------------------------------------------
+Initial release.

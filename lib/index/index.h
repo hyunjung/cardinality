@@ -521,7 +521,10 @@ public:
   ErrCode openIndex(const char *name, Index **idxState)
   {
     *idxState = hs.get(name) ;
-    return SUCCESS ;
+    if( *idxState == NULL )
+      return DB_DNE ;
+    else
+      return SUCCESS ;
   }
  
   /**
