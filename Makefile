@@ -3,6 +3,17 @@ FLAGS = -fPIC
 LIBS = -ldl -pthread
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
+FLAGS := $(FLAGS) -g -O2
+MYOBJS = objs/Client.o objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/NLJoin.o
+
+all: objs/mainClient objs/mainSlaveClient
+
+objs/Client.so: $(MYOBJS)
+	$(CC) $(FLAGS) -shared $(MYOBJS) -o $@
+
+$(MYOBJS): objs/%.o: client/%.cpp $(patsubst objs/%, client/%, $(MYOBJS:.o=.h))
+	$(CC) $(FLAGS) -Wall -Weffc++ -Wold-style-cast -c $< -o $@
+
 buildLib:objs/SimpleClient.so objs/TrivialClient.so $(OBJS) 
 buildBench: objs/mainSimpleClient objs/mainSlaveSimpleClient objs/mainTrivialClient objs/mainSlaveTrivialClient
  
