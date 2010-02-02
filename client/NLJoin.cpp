@@ -8,6 +8,10 @@ NLJoin::NLJoin(const Query *q, boost::shared_ptr<Operator> l, boost::shared_ptr<
 {
 }
 
+NLJoin::NLJoin()
+{
+}
+
 NLJoin::~NLJoin()
 {
 }

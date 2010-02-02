@@ -11,6 +11,11 @@ Join::Join(const Query *q, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan
     initFilter(q);
 }
 
+Join::Join()
+    : leftChild(), rightChild(), reloadLeft(true), leftTuple(), joinConds()
+{
+}
+
 Join::~Join()
 {
 }

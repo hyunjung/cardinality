@@ -9,6 +9,7 @@ namespace op {
 class SeqScan: public Scan {
 public:
     SeqScan(const Query *, const char *, const Table *, const char *);
+    SeqScan();
     ~SeqScan();
 
     RC open();
@@ -20,8 +21,15 @@ public:
 private:
     SeqScan(const SeqScan &);
     SeqScan& operator=(const SeqScan &);
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+        ar & boost::serialization::base_object<Scan>(*this);
+    }
 };
 
 }
+
+BOOST_SERIALIZATION_SHARED_PTR(op::SeqScan);
 
 #endif

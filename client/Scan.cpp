@@ -6,11 +6,17 @@ using namespace op;
 
 
 Scan::Scan(const Query *q, const char *_alias, const Table *_table, const char *_fileName)
-    : alias(_alias), lenAlias(strlen(_alias)), table(_table), fileName(_fileName),
-      ifs(), lineBuffer(new char[4096]), eqConds(), gtConds(), joinConds()
+    : alias(_alias), table(_table), fileName(_fileName),
+      ifs(), lineBuffer(new char[4096]), gteqConds(), joinConds()
 {
     initProject(q);
     initFilter(q);
+}
+
+Scan::Scan()
+    : alias(), table(NULL), fileName(),
+      ifs(), lineBuffer(new char[4096]), gteqConds(), joinConds()
+{
 }
 
 Scan::~Scan()
@@ -21,15 +27,17 @@ void Scan::initFilter(const Query *q)
 {
     for (int i = 0; i < q->nbRestrictionsEqual; ++i) {
         if (hasCol(q->restrictionEqualFields[i])) {
-            eqConds.push_back(std::make_pair(getInputColID(q->restrictionEqualFields[i]),
-                                             &q->restrictionEqualValues[i]));
+            gteqConds.push_back(boost::make_tuple(getInputColID(q->restrictionEqualFields[i]),
+                                                  &q->restrictionEqualValues[i],
+                                                  EQ));
         }
     }
 
     for (int i = 0; i < q->nbRestrictionsGreaterThan; ++i) {
         if (hasCol(q->restrictionGreaterThanFields[i])) {
-            gtConds.push_back(std::make_pair(getInputColID(q->restrictionGreaterThanFields[i]),
-                                             &q->restrictionGreaterThanValues[i]));
+            gteqConds.push_back(boost::make_tuple(getInputColID(q->restrictionGreaterThanFields[i]),
+                                                  &q->restrictionGreaterThanValues[i],
+                                                  GT));
         }
     }
 
@@ -44,21 +52,23 @@ void Scan::initFilter(const Query *q)
 
 bool Scan::execFilter(Tuple &tuple) const
 {
-    for (size_t i = 0; i < eqConds.size(); ++i) {
-        if ((eqConds[i].second->type == INT
-             && eqConds[i].second->intVal != static_cast<uint32_t>(atoi(tuple[eqConds[i].first])))
-            || (eqConds[i].second->type == STRING
-                && strcmp(eqConds[i].second->charVal, tuple[eqConds[i].first]) != 0)) {
-            return false;
-        }
-    }
+    for (size_t i = 0; i < gteqConds.size(); ++i) {
+        int cmp = (gteqConds[i].get<1>()->type == INT) ?
+                  (gteqConds[i].get<1>()->intVal - static_cast<uint32_t>(atoi(tuple[gteqConds[i].get<0>()]))) :
+                  (strcmp(gteqConds[i].get<1>()->charVal, tuple[gteqConds[i].get<0>()]));
 
-    for (size_t i = 0; i < gtConds.size(); ++i) {
-        if ((gtConds[i].second->type == INT
-             && gtConds[i].second->intVal >= static_cast<uint32_t>(atoi(tuple[gtConds[i].first])))
-            || (gtConds[i].second->type == STRING
-                && strcmp(gtConds[i].second->charVal, tuple[gtConds[i].first]) >= 0)) {
-            return false;
+        switch (gteqConds[i].get<2>()) {
+        case EQ:
+            if (cmp != 0) {
+                return false;
+            }
+            break;
+
+        case GT:
+            if (cmp >= 0) {
+                return false;
+            }
+            break;
         }
     }
 
@@ -85,7 +95,7 @@ void Scan::execProject(Tuple &inputTuple, Tuple &outputTuple) const
 
 bool Scan::hasCol(const char *col) const
 {
-    return col[lenAlias] == '.' && memcmp(col, alias, lenAlias) == 0;
+    return col[alias.size()] == '.' && memcmp(col, alias.data(), alias.size()) == 0;
 }
 
 ColID Scan::getInputColID(const char *col) const

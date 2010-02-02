@@ -5,6 +5,13 @@
 #include <map>
 #include <string>
 #include <iostream>
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/assume_abstract.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/shared_ptr.hpp>
 #include "../include/client.h"
 
 
@@ -42,8 +49,17 @@ protected:
 private:
     Operator(const Operator &);
     Operator& operator=(const Operator &);
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+        ar & selectedInputColIDs;
+        ar & outputColToColID;
+    }
 };
 
 }
+
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Operator);
+BOOST_SERIALIZATION_SHARED_PTR(op::Operator);
 
 #endif

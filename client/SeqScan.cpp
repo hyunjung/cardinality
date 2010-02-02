@@ -9,13 +9,17 @@ SeqScan::SeqScan(const Query *q, const char *_alias, const Table *_table, const 
 {
 }
 
+SeqScan::SeqScan()
+{
+}
+
 SeqScan::~SeqScan()
 {
 }
 
 RC SeqScan::open()
 {
-    ifs.open(fileName);
+    ifs.open(fileName.c_str());
     return 0;
 }
 
@@ -34,11 +38,12 @@ RC SeqScan::getNext(Tuple &tuple)
 
         char *c = lineBuffer.get();
         temp.clear();
-        for (int i = 0; i < table->nbFields; ++i) {
+        while (true) {
             temp.push_back(c);
-            if ((c = strchr(c + 1, '|'))) {
-                *c++ = 0;
+            if (!(c = strchr(c + 1, '|'))) {
+                break;
             }
+            *c++ = 0;
         }
 
         if (execFilter(temp)) {
@@ -57,8 +62,7 @@ RC SeqScan::close()
 void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "SeqScan ";
-    os << table->tableName << " as " << alias << "    ";
+    os << "SeqScan " << alias << "    ";
     printOutputCols(os);
     os << std::endl;
 }

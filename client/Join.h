@@ -1,8 +1,6 @@
 #ifndef JOIN_H
 #define JOIN_H
 
-#include <boost/shared_ptr.hpp>
-#include <boost/tuple/tuple.hpp>
 #include "Operator.h"
 #include "Scan.h"
 
@@ -12,6 +10,7 @@ namespace op {
 class Join: public Operator {
 public:
     Join(const Query *, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>);
+    Join();
     virtual ~Join();
 
     bool hasCol(const char *) const;
@@ -34,8 +33,19 @@ protected:
 private:
     Join(const Join &);
     Join& operator=(const Join &);
+
+    friend class boost::serialization::access;
+    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+        ar & boost::serialization::base_object<Operator>(*this);
+        ar & leftChild;
+        ar & rightChild;
+        ar & joinConds;
+    }
 };
 
 }
+
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Join);
+BOOST_SERIALIZATION_SHARED_PTR(op::Join);
 
 #endif
