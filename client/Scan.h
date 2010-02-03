@@ -5,6 +5,7 @@
 #include <boost/tuple/tuple.hpp>
 #include <boost/shared_array.hpp>
 #include "Operator.h"
+#include "Value.h"
 
 
 namespace op {
@@ -64,13 +65,6 @@ void serialize(Archive &ar, boost::tuple<T1, T2, T3> &t, const unsigned int ver)
     ar & t.get<0>();
     ar & t.get<1>();
     ar & t.get<2>();
-}
-
-template<class Archive>
-void serialize(Archive &ar, Value &v, const unsigned int ver) {
-    ar & v.type;
-    ar & v.intVal;
-    ar & v.charVal;
 }
 
 }}
