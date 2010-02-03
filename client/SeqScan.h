@@ -8,7 +8,7 @@ namespace op {
 
 class SeqScan: public Scan {
 public:
-    SeqScan(const Query *, const char *, const Table *, const char *);
+    SeqScan(const NodeID, const char *, const char *, const Table *, const Query *);
     SeqScan();
     ~SeqScan();
 
@@ -30,6 +30,6 @@ private:
 
 }
 
-BOOST_SERIALIZATION_SHARED_PTR(op::SeqScan);
+BOOST_SERIALIZATION_SHARED_PTR(op::SeqScan)
 
 #endif

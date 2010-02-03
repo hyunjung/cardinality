@@ -1,10 +1,10 @@
 CC = g++
 FLAGS = -fPIC
-LIBS = -ldl -pthread -lboost_serialization-mt
+LIBS = -ldl -pthread -lboost_serialization-mt -lboost_system-mt
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
 FLAGS := $(FLAGS) -g -O2
-MYOBJS = objs/Client.o objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/NLJoin.o
+MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/NLJoin.o objs/Remote.o objs/Client.o
 
 all: objs/mainClient objs/mainSlaveClient
 

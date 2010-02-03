@@ -1,11 +1,18 @@
 #include <algorithm>
+#include <set>
 #include "Operator.h"
 #include "../include/client.h"
 
 using namespace op;
 
 
-Operator::Operator(): selectedInputColIDs(), outputColToColID()
+Operator::Operator(const NodeID n)
+    : nodeID(n), selectedInputColIDs()
+{
+}
+
+Operator::Operator()
+    : nodeID(0), selectedInputColIDs()
 {
 }
 
@@ -13,33 +20,41 @@ Operator::~Operator()
 {
 }
 
+NodeID Operator::getNodeID() const
+{
+    return nodeID;
+}
+
 size_t Operator::numOutputCols() const
 {
     return selectedInputColIDs.size();
 }
 
-int Operator::getOutputColID(const char *col) const
+ColID Operator::getOutputColID(const char *col) const
 {
-    return outputColToColID.find(std::string(col))->second;
+    return std::find(selectedInputColIDs.begin(), selectedInputColIDs.end(), getInputColID(col))
+           - selectedInputColIDs.begin();
 }
 
 void Operator::initProject(const Query *q)
 {
+    std::set<std::string> selectedCols;
+
     for (int i = 0; i < q->nbOutputFields; ++i) {
         if (hasCol(q->outputFields[i])
-            && outputColToColID.count(std::string(q->outputFields[i])) == 0) {
-            outputColToColID[std::string(q->outputFields[i])] = numOutputCols();
+            && selectedCols.count(std::string(q->outputFields[i])) == 0) {
+            selectedCols.insert(std::string(q->outputFields[i]));
             selectedInputColIDs.push_back(getInputColID(q->outputFields[i]));
         }
     }
     for (int i = 0; i < q->nbJoins; ++i) {
         if (hasCol(q->joinFields1[i]) && !hasCol(q->joinFields2[i])
-            && outputColToColID.count(std::string(q->joinFields1[i])) == 0) {
-            outputColToColID[std::string(q->joinFields1[i])] = numOutputCols();
+            && selectedCols.count(std::string(q->joinFields1[i])) == 0) {
+            selectedCols.insert(std::string(q->joinFields1[i]));
             selectedInputColIDs.push_back(getInputColID(q->joinFields1[i]));
         } else if (hasCol(q->joinFields2[i]) && !hasCol(q->joinFields1[i])
-                   && outputColToColID.count(std::string(q->joinFields2[i])) == 0) {
-            outputColToColID[std::string(q->joinFields2[i])] = numOutputCols();
+                   && selectedCols.count(std::string(q->joinFields2[i])) == 0) {
+            selectedCols.insert(std::string(q->joinFields2[i]));
             selectedInputColIDs.push_back(getInputColID(q->joinFields2[i]));
         }
     }
@@ -47,8 +62,4 @@ void Operator::initProject(const Query *q)
 
 void Operator::printOutputCols(std::ostream &os) const
 {
-    std::map<std::string, int>::const_iterator it;
-    for (it = outputColToColID.begin(); it != outputColToColID.end(); ++it) {
-        os << it->first << " ";
-    }
 }

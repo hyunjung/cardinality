@@ -9,7 +9,7 @@ namespace op {
 
 class Join: public Operator {
 public:
-    Join(const Query *, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>);
+    Join(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>, const Query *);
     Join();
     virtual ~Join();
 
@@ -24,11 +24,10 @@ protected:
 
     boost::shared_ptr<Operator> leftChild;
     boost::shared_ptr<Scan> rightChild;
+    std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
 
     bool reloadLeft;
     Tuple leftTuple;
-
-    std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
 
 private:
     Join(const Join &);
@@ -45,7 +44,7 @@ private:
 
 }
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Join);
-BOOST_SERIALIZATION_SHARED_PTR(op::Join);
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Join)
+BOOST_SERIALIZATION_SHARED_PTR(op::Join)
 
 #endif

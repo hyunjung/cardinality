@@ -3,8 +3,8 @@
 using namespace op;
 
 
-NLJoin::NLJoin(const Query *q, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r)
-    : Join(q, l, r)
+NLJoin::NLJoin(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r, const Query *q)
+    : Join(n, l, r, q)
 {
 }
 
@@ -58,7 +58,7 @@ RC NLJoin::close()
 void NLJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "NLJoin ";
+    os << "NLJoin@" << getNodeID() << "    ";
     printOutputCols(os);
     os << std::endl;
 

@@ -8,7 +8,7 @@ namespace op {
 
 class NLJoin: public Join {
 public:
-    NLJoin(const Query *, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>);
+    NLJoin(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>, const Query *);
     NLJoin();
     ~NLJoin();
 
@@ -30,6 +30,6 @@ private:
 
 }
 
-BOOST_SERIALIZATION_SHARED_PTR(op::NLJoin);
+BOOST_SERIALIZATION_SHARED_PTR(op::NLJoin)
 
 #endif

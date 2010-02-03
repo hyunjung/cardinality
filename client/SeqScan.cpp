@@ -4,8 +4,8 @@
 using namespace op;
 
 
-SeqScan::SeqScan(const Query *q, const char *_alias, const Table *_table, const char *_fileName)
-    : Scan(q, _alias, _table, _fileName)
+SeqScan::SeqScan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
+    : Scan(n, f, a, t, q)
 {
 }
 
@@ -20,6 +20,9 @@ SeqScan::~SeqScan()
 RC SeqScan::open()
 {
     ifs.open(fileName.c_str());
+    if (ifs.fail()) {
+        throw std::runtime_error("ifstream.open() failed");
+    }
     return 0;
 }
 
@@ -62,7 +65,7 @@ RC SeqScan::close()
 void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "SeqScan " << alias << "    ";
+    os << "SeqScan@" << getNodeID() << " " << fileName << "    ";
     printOutputCols(os);
     os << std::endl;
 }

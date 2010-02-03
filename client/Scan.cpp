@@ -1,21 +1,20 @@
-#include <stdexcept>
 #include <cstring>
 #include "Scan.h"
 
 using namespace op;
 
 
-Scan::Scan(const Query *q, const char *_alias, const Table *_table, const char *_fileName)
-    : alias(_alias), table(_table), fileName(_fileName),
-      ifs(), lineBuffer(new char[4096]), gteqConds(), joinConds()
+Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
+    : Operator(n), fileName(f), gteqConds(), joinConds(),
+      alias(a), table(t), ifs(), lineBuffer(new char[4096])
 {
     initProject(q);
     initFilter(q);
 }
 
 Scan::Scan()
-    : alias(), table(NULL), fileName(),
-      ifs(), lineBuffer(new char[4096]), gteqConds(), joinConds()
+    : fileName(), gteqConds(), joinConds(),
+      alias(), table(NULL), ifs(), lineBuffer(new char[4096])
 {
 }
 

@@ -4,15 +4,15 @@
 using namespace op;
 
 
-Join::Join(const Query *q, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r)
-    : leftChild(l), rightChild(r), reloadLeft(true), leftTuple(), joinConds()
+Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r, const Query *q)
+    : Operator(n), leftChild(l), rightChild(r), joinConds(), reloadLeft(true), leftTuple()
 {
     initProject(q);
     initFilter(q);
 }
 
 Join::Join()
-    : leftChild(), rightChild(), reloadLeft(true), leftTuple(), joinConds()
+    : leftChild(), rightChild(), joinConds(), reloadLeft(true), leftTuple()
 {
 }
 

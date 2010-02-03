@@ -16,7 +16,7 @@ enum CompOp {
 
 class Scan: public Operator {
 public:
-    Scan(const Query *, const char *, const Table *, const char *);
+    Scan(const NodeID, const char *, const char *, const Table *, const Query *);
     Scan();
     virtual ~Scan();
 
@@ -29,14 +29,14 @@ protected:
     bool execFilter(Tuple &) const;
     void execProject(Tuple &, Tuple &) const;
 
-    const std::string alias;
-    const Table *table;
     const std::string fileName;
-    std::ifstream ifs;
-    boost::shared_array<char> lineBuffer;
-
     std::vector<boost::tuple<ColID, Value *, CompOp> > gteqConds;
     std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
+
+    const std::string alias;
+    const Table *table;
+    std::ifstream ifs;
+    boost::shared_array<char> lineBuffer;
 
 private:
     Scan(const Scan &);
@@ -45,7 +45,6 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
-        ar & const_cast<std::string &>(alias);
         ar & const_cast<std::string &>(fileName);
         ar & gteqConds;
         ar & joinConds;
@@ -54,8 +53,8 @@ private:
 
 }
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Scan);
-BOOST_SERIALIZATION_SHARED_PTR(op::Scan);
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Scan)
+BOOST_SERIALIZATION_SHARED_PTR(op::Scan)
 
 namespace boost {
 namespace serialization {
