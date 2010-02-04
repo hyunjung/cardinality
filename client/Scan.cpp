@@ -6,7 +6,7 @@ using namespace op;
 
 Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
     : Operator(n), fileName(f), gteqConds(), joinConds(),
-      alias(a), table(t), ifs(), lineBuffer(new char[4096])
+      alias(a), table(t), file(), lineBuffer(new char[4096])
 {
     initProject(q);
     initFilter(q);
@@ -14,7 +14,7 @@ Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Q
 
 Scan::Scan()
     : fileName(), gteqConds(), joinConds(),
-      alias(), table(NULL), ifs(), lineBuffer(new char[4096])
+      alias(), table(NULL), file(), lineBuffer(new char[4096])
 {
 }
 

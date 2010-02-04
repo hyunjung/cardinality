@@ -18,6 +18,9 @@ public:
 
     void print(std::ostream &, const int) const;
 
+protected:
+    const char *pos;
+
 private:
     SeqScan(const SeqScan &);
     SeqScan& operator=(const SeqScan &);

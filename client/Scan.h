@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <boost/tuple/tuple.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/shared_array.hpp>
 #include "Operator.h"
 #include "Value.h"
@@ -36,7 +37,11 @@ protected:
 
     const std::string alias;
     const Table *table;
-    std::ifstream ifs;
+#ifndef USE_STD_IFSTREAM_FOR_SCAN
+    boost::iostreams::mapped_file_source file;
+#else
+    std::ifstream file;
+#endif
     boost::shared_array<char> lineBuffer;
 
 private:

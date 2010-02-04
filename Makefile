@@ -1,6 +1,6 @@
 CC = g++
 FLAGS = -fPIC
-LIBS = -ldl -pthread -lboost_serialization-mt -lboost_system-mt
+LIBS = -ldl -pthread -lboost_serialization -lboost_system -lboost_iostreams
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
 FLAGS := $(FLAGS) -g -O2
