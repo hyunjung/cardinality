@@ -1,9 +1,9 @@
 CC = g++
-FLAGS = -fPIC
+FLAGS = -fPIC -O2 -g
 LIBS = -ldl -pthread -lboost_serialization -lboost_system -lboost_iostreams
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
-FLAGS := $(FLAGS) -g -O2
+MYFLAGS = -Wall -I.
 MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/NLJoin.o objs/Remote.o objs/Client.o
 
 all: objs/mainClient objs/mainSlaveClient
@@ -11,8 +11,17 @@ all: objs/mainClient objs/mainSlaveClient
 objs/Client.so: $(MYOBJS)
 	$(CC) $(FLAGS) -shared $(MYOBJS) -o $@
 
-$(MYOBJS): objs/%.o: client/%.cpp $(patsubst objs/%, client/%, $(MYOBJS:.o=.h))
-	$(CC) $(FLAGS) -Wall -Weffc++ -Wold-style-cast -c $< -o $@
+-include $(MYOBJS:.o=.d)
+
+objs/%.d: client/%.cpp
+	@set -e; \
+	 rm -f $@; \
+	 $(CC) $(MYFLAGS) -MM -MT $(@:.d=.o) $< > $@.$$$$; \
+	 sed 's,\($*\)\.o[ :]*,\1.o $@: ,g' $@.$$$$ > $@; \
+	 rm -f $@.$$$$
+
+$(MYOBJS): objs/%.o:
+	$(CC) $(FLAGS) $(MYFLAGS) -c $< -o $@
 
 buildLib:objs/SimpleClient.so objs/TrivialClient.so $(OBJS) 
 buildBench: objs/mainSimpleClient objs/mainSlaveSimpleClient objs/mainTrivialClient objs/mainSlaveTrivialClient
