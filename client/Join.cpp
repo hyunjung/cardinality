@@ -1,4 +1,3 @@
-#include <cstring>
 #include "Join.h"
 
 using namespace op;

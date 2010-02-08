@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <set>
 #include "Operator.h"
-#include "../include/client.h"
 
 using namespace op;
 

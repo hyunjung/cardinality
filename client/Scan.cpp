@@ -1,4 +1,3 @@
-#include <cstring>
 #include "Scan.h"
 
 using namespace op;

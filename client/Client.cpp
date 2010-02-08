@@ -1,4 +1,3 @@
-#include <cstring>
 #include <boost/archive/binary_iarchive.hpp>
 #include "../include/client.h"
 #include "Client.h"

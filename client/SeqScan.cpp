@@ -1,4 +1,3 @@
-#include <cstring>
 #include "SeqScan.h"
 
 using namespace op;
