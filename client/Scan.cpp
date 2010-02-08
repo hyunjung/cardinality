@@ -49,6 +49,28 @@ void Scan::initFilter(const Query *q)
     }
 }
 
+const char * Scan::splitLine(const char *pos, char *buf, Tuple &temp) const
+{
+    const char *eol = strchr(pos, '\n');
+    if (pos == eol) {
+        throw std::runtime_error("invalid file");
+    }
+    memcpy(buf, pos, eol - pos);
+    buf[eol - pos] = '\0';
+
+    char *c = buf;
+    temp.clear();
+    while (true) {
+        temp.push_back(c);
+        if (!(c = strchr(c + 1, '|'))) {
+            break;
+        }
+        *c++ = 0;
+    }
+
+    return eol + 1;
+}
+
 bool Scan::execFilter(Tuple &tuple) const
 {
     for (size_t i = 0; i < gteqConds.size(); ++i) {
