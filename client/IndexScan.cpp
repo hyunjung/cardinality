@@ -12,13 +12,13 @@ IndexScan::~IndexScan()
 {
 }
 
-RC IndexScan::open()
+RC IndexScan::Open()
 {
     ifs.open(fileName);
     return (ifs.is_open()) ? 0 : -1;
 }
 
-RC IndexScan::getNext(Tuple &tuple)
+RC IndexScan::GetNext(Tuple &tuple)
 {
     std::string lineBuffer;
     Tuple temp;

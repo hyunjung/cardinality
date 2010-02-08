@@ -18,7 +18,7 @@ SeqScan::~SeqScan()
 {
 }
 
-RC SeqScan::open()
+RC SeqScan::Open()
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     file.open(fileName);
@@ -32,7 +32,7 @@ RC SeqScan::open()
     return 0;
 }
 
-RC SeqScan::getNext(Tuple &tuple)
+RC SeqScan::GetNext(Tuple &tuple)
 {
     Tuple temp;
 
@@ -75,7 +75,7 @@ RC SeqScan::getNext(Tuple &tuple)
 #endif
 }
 
-RC SeqScan::close()
+RC SeqScan::Close()
 {
     file.close();
     return 0;

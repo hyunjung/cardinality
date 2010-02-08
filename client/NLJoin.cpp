@@ -16,43 +16,43 @@ NLJoin::~NLJoin()
 {
 }
 
-RC NLJoin::open()
+RC NLJoin::Open()
 {
     reloadLeft = true;
-    return leftChild->open();
+    return leftChild->Open();
 }
 
-RC NLJoin::getNext(Tuple &tuple)
+RC NLJoin::GetNext(Tuple &tuple)
 {
     Tuple rightTuple;
 
     while (true) {
         if (reloadLeft) {
             leftTuple.clear();
-            if (leftChild->getNext(leftTuple)) {
+            if (leftChild->GetNext(leftTuple)) {
                 return -1;
             }
             reloadLeft = false;
-            rightChild->open();
+            rightChild->Open();
         }
 
-        while (!rightChild->getNext(rightTuple)) {
+        while (!rightChild->GetNext(rightTuple)) {
             if (execFilter(leftTuple, rightTuple)) {
                 execProject(leftTuple, rightTuple, tuple);
                 return 0;
             }
         }
 
-        rightChild->close();
+        rightChild->Close();
         reloadLeft = true;
     }
 
     return 0;
 }
 
-RC NLJoin::close()
+RC NLJoin::Close()
 {
-    return leftChild->close();
+    return leftChild->Close();
 }
 
 void NLJoin::print(std::ostream &os, const int tab) const

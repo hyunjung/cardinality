@@ -12,9 +12,9 @@ public:
     SeqScan();
     ~SeqScan();
 
-    RC open();
-    RC getNext(Tuple &);
-    RC close();
+    RC Open();
+    RC GetNext(Tuple &);
+    RC Close();
 
     void print(std::ostream &, const int) const;
 

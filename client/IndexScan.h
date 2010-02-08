@@ -11,9 +11,9 @@ public:
     IndexScan(const Query *, const char *, const Table *, const char *);
     ~IndexScan();
 
-    RC open();
-    RC getNext(Tuple &);
-    RC close();
+    RC Open();
+    RC GetNext(Tuple &);
+    RC Close();
 
     void print(std::ostream &, const int) const;
 

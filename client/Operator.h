@@ -24,9 +24,9 @@ public:
     Operator();
     virtual ~Operator();
 
-    virtual RC open() = 0;
-    virtual RC getNext(Tuple &) = 0;
-    virtual RC close() = 0;
+    virtual RC Open() = 0;
+    virtual RC GetNext(Tuple &) = 0;
+    virtual RC Close() = 0;
 
     virtual void print(std::ostream &, const int = 0) const = 0;
     virtual bool hasCol(const char *) const = 0;

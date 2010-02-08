@@ -14,9 +14,9 @@ public:
     Remote();
     ~Remote();
 
-    RC open();
-    RC getNext(Tuple &);
-    RC close();
+    RC Open();
+    RC GetNext(Tuple &);
+    RC Close();
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;

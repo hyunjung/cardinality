@@ -24,7 +24,7 @@ Remote::~Remote()
 {
 }
 
-RC Remote::open()
+RC Remote::Open()
 {
     tcpstream.connect(ipAddress, boost::lexical_cast<std::string>(30000 + child->getNodeID()));
     if (tcpstream.fail()) {
@@ -40,7 +40,7 @@ RC Remote::open()
     return 0;
 }
 
-RC Remote::getNext(Tuple &tuple)
+RC Remote::GetNext(Tuple &tuple)
 {
     if (tcpstream.eof()) {
         return -1;
@@ -63,7 +63,7 @@ RC Remote::getNext(Tuple &tuple)
     return 0;
 }
 
-RC Remote::close()
+RC Remote::Close()
 {
     tcpstream.close();
     return 0;

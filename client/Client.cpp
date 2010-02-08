@@ -40,8 +40,8 @@ void startSlave(const Node *masterNode, const Node *currentNode)
         boost::shared_ptr<op::Operator> root;
         ia >> root;
 
-        root->open();
-        while (!root->getNext(tuple)) {
+        root->Open();
+        while (!root->GetNext(tuple)) {
             for (size_t i = 0; i < tuple.size(); i++) {
                 if (i == tuple.size() - 1) {
                     tcpstream << tuple[i] << std::endl;
@@ -50,7 +50,7 @@ void startSlave(const Node *masterNode, const Node *currentNode)
                 }
             }
         }
-        root->close();
+        root->Close();
     }
 }
 
@@ -92,13 +92,13 @@ void performQuery(Connection *conn, const Query *q)
     }
 
     conn->root->print(std::cout);
-    conn->root->open();
+    conn->root->Open();
 }
 
 ErrCode fetchRow(Connection *conn, Value *values)
 {
-    if (conn->root->getNext(conn->tuple)) {
-        conn->root->close();
+    if (conn->root->GetNext(conn->tuple)) {
+        conn->root->Close();
         return DB_END;
     }
 
