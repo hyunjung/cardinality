@@ -4,7 +4,7 @@ LIBS = -ldl -pthread -lboost_serialization -lboost_system -lboost_iostreams
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
 MYFLAGS = -Wall -I.
-MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/NLJoin.o objs/Remote.o objs/Client.o
+MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/IndexScan.o objs/NLJoin.o objs/Remote.o objs/Client.o
 
 all: objs/mainClient objs/mainSlaveClient
 

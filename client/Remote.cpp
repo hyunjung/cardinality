@@ -3,6 +3,7 @@
 #include "Remote.h"
 #include "NLJoin.h"
 #include "SeqScan.h"
+#include "IndexScan.h"
 
 using namespace op;
 
@@ -34,6 +35,7 @@ RC Remote::Open()
     boost::archive::binary_oarchive oa(tcpstream);
     oa.register_type(static_cast<op::NLJoin *>(NULL));
     oa.register_type(static_cast<op::SeqScan *>(NULL));
+    oa.register_type(static_cast<op::IndexScan *>(NULL));
     oa.register_type(static_cast<op::Remote *>(NULL));
 
     oa << child;

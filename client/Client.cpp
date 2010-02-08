@@ -3,6 +3,7 @@
 #include "../include/client.h"
 #include "Client.h"
 #include "SeqScan.h"
+#include "IndexScan.h"
 #include "NLJoin.h"
 #include "Remote.h"
 
@@ -35,6 +36,7 @@ void startSlave(const Node *masterNode, const Node *currentNode)
         boost::archive::binary_iarchive ia(tcpstream);
         ia.register_type(static_cast<op::NLJoin *>(NULL));
         ia.register_type(static_cast<op::SeqScan *>(NULL));
+        ia.register_type(static_cast<op::IndexScan *>(NULL));
         ia.register_type(static_cast<op::Remote *>(NULL));
 
         boost::shared_ptr<op::Operator> root;
@@ -75,7 +77,11 @@ void performQuery(Connection *conn, const Query *q)
         std::string tableName(q->tableNames[i]);
         Table *table = sTables[tableName];
         Partition *part = &table->partitions[0];
-        right = boost::shared_ptr<op::Scan>(new op::SeqScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+        try {
+            right = boost::shared_ptr<op::Scan>(new op::IndexScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+        } catch (std::runtime_error &e) {
+            right = boost::shared_ptr<op::Scan>(new op::SeqScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+        }
         if (i == 0) {
             conn->root = right;
         } else {
@@ -107,13 +113,19 @@ ErrCode fetchRow(Connection *conn, Value *values)
         values[i].type = conn->root->getColType(conn->q->outputFields[i]);
         if (values[i].type == INT) {
             values[i].intVal = static_cast<uint32_t>(atoi(conn->tuple[cid]));
-//          std::cout << values[i].intVal << "|";
+#ifdef PRINT_TUPLES
+            std::cout << values[i].intVal << "|";
+#endif
         } else {
             strcpy(values[i].charVal, conn->tuple[cid]);
-//          std::cout << values[i].charVal << "|";
+#ifdef PRINT_TUPLES
+            std::cout << values[i].charVal << "|";
+#endif
         }
     }
-//  std::cout << std::endl;
+#ifdef PRINT_TUPLES
+    std::cout << std::endl;
+#endif
 
     return SUCCESS;
 }
