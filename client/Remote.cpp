@@ -1,5 +1,5 @@
 #include <boost/lexical_cast.hpp>
-#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 #include "Remote.h"
 #include "NLJoin.h"
 #include "SeqScan.h"
@@ -31,7 +31,7 @@ RC Remote::Open()
         throw std::runtime_error("tcp::iostream.connect() failed");
     }
 
-    boost::archive::text_oarchive oa(tcpstream);
+    boost::archive::binary_oarchive oa(tcpstream);
     oa.register_type(static_cast<op::NLJoin *>(NULL));
     oa.register_type(static_cast<op::SeqScan *>(NULL));
     oa.register_type(static_cast<op::Remote *>(NULL));

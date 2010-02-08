@@ -1,5 +1,5 @@
 #include <cstring>
-#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
 #include "../include/client.h"
 #include "Client.h"
 #include "SeqScan.h"
@@ -32,7 +32,7 @@ void startSlave(const Node *masterNode, const Node *currentNode)
     while (true) {
         tcp::iostream tcpstream;
         acceptor.accept(*tcpstream.rdbuf());
-        boost::archive::text_iarchive ia(tcpstream);
+        boost::archive::binary_iarchive ia(tcpstream);
         ia.register_type(static_cast<op::NLJoin *>(NULL));
         ia.register_type(static_cast<op::SeqScan *>(NULL));
         ia.register_type(static_cast<op::Remote *>(NULL));
