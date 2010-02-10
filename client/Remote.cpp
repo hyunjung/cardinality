@@ -11,7 +11,7 @@ using namespace op;
 Remote::Remote(const NodeID n, boost::shared_ptr<Operator> c, const char *i)
     : Operator(n), child(c), ipAddress(i), tcpstream(), lineBuffer(new char[4096])
 {
-    for (ColID i = 0; i < child->numOutputCols(); i++) {
+    for (size_t i = 0; i < child->numOutputCols(); ++i) {
         selectedInputColIDs.push_back(i);
     }
 }

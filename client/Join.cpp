@@ -53,7 +53,7 @@ void Join::execProject(Tuple &leftTuple, Tuple &rightTuple, Tuple &outputTuple) 
     outputTuple.clear();
 
     for (size_t i = 0; i < numOutputCols(); ++i) {
-        if (selectedInputColIDs[i] < leftChild->numOutputCols()) {
+        if (selectedInputColIDs[i] < static_cast<ColID>(leftChild->numOutputCols())) {
             outputTuple.push_back(leftTuple[selectedInputColIDs[i]]);
         } else {
             outputTuple.push_back(rightTuple[selectedInputColIDs[i] - leftChild->numOutputCols()]);

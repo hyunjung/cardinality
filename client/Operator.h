@@ -13,8 +13,8 @@
 namespace op {
 
 typedef int RC;
-typedef unsigned int ColID;
-typedef unsigned int NodeID;
+typedef int ColID;
+typedef int NodeID;
 typedef std::vector<const char *> Tuple;
 
 
