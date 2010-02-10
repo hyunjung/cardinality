@@ -35,17 +35,34 @@ IndexScan::~IndexScan()
 {
 }
 
-RC IndexScan::Open()
+RC IndexScan::Open(const char *)
 {
+    file.open(fileName);
+    openIndex(indexCol.c_str(), &index);
+
     record.val.type = value->type;
     record.val.intVal = value->intVal;
     if (value->type == STRING) {
         strcpy(record.val.charVal, value->charVal);
     }
 
-    file.open(fileName);
+    beginTransaction(&txn);
+    getNotCalled = true;
+    checkIndexCond = true;
 
-    openIndex(indexCol.c_str(), &index);
+    return 0;
+}
+
+RC IndexScan::ReScan(const char *)
+{
+    commitTransaction(txn);
+
+    record.val.type = value->type;
+    record.val.intVal = value->intVal;
+    if (value->type == STRING) {
+        strcpy(record.val.charVal, value->charVal);
+    }
+
     beginTransaction(&txn);
     getNotCalled = true;
     checkIndexCond = true;
@@ -121,7 +138,6 @@ RC IndexScan::Close()
 {
     commitTransaction(txn);
     closeIndex(index);
-
     file.close();
 
     return 0;

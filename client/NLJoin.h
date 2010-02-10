@@ -12,7 +12,7 @@ public:
     NLJoin();
     ~NLJoin();
 
-    RC Open();
+    RC Open(const char * = NULL);
     RC GetNext(Tuple &);
     RC Close();
 

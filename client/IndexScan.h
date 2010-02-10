@@ -13,7 +13,8 @@ public:
     IndexScan();
     ~IndexScan();
 
-    RC Open();
+    RC Open(const char * = NULL);
+    RC ReScan(const char * = NULL);
     RC GetNext(Tuple &);
     RC Close();
 

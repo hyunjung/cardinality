@@ -16,7 +16,7 @@ NLJoin::~NLJoin()
 {
 }
 
-RC NLJoin::Open()
+RC NLJoin::Open(const char *)
 {
     reloadLeft = true;
     return leftChild->Open();

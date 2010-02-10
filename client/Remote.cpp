@@ -25,7 +25,7 @@ Remote::~Remote()
 {
 }
 
-RC Remote::Open()
+RC Remote::Open(const char *)
 {
     tcpstream.connect(ipAddress, boost::lexical_cast<std::string>(30000 + child->getNodeID()));
     if (tcpstream.fail()) {

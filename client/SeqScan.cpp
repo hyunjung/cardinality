@@ -17,7 +17,7 @@ SeqScan::~SeqScan()
 {
 }
 
-RC SeqScan::Open()
+RC SeqScan::Open(const char *)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     file.open(fileName);
@@ -27,6 +27,16 @@ RC SeqScan::Open()
     if (file.fail()) {
         throw std::runtime_error("ifstream.open() failed");
     }
+#endif
+    return 0;
+}
+
+RC SeqScan::ReScan(const char *)
+{
+#ifndef USE_STD_IFSTREAM_FOR_SCAN
+    pos = file.begin();
+#else
+    file.seekg(0, std::ios::beg);
 #endif
     return 0;
 }

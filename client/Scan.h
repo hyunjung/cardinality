@@ -1,9 +1,13 @@
 #ifndef SCAN_H
 #define SCAN_H
 
-#include <fstream>
 #include <boost/tuple/tuple.hpp>
+#ifndef USE_STD_IFSTREAM_FOR_SCAN
 #include <boost/iostreams/device/mapped_file.hpp>
+#else
+#include <fstream>
+#include <cstring>
+#endif
 #include <boost/shared_array.hpp>
 #include "Operator.h"
 #include "Value.h"
@@ -21,6 +25,8 @@ public:
     Scan(const NodeID, const char *, const char *, const Table *, const Query *);
     Scan();
     virtual ~Scan();
+
+    virtual RC ReScan(const char * = NULL) = 0;
 
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;

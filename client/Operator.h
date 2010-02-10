@@ -24,7 +24,7 @@ public:
     Operator();
     virtual ~Operator();
 
-    virtual RC Open() = 0;
+    virtual RC Open(const char * = NULL) = 0;
     virtual RC GetNext(Tuple &) = 0;
     virtual RC Close() = 0;
 
