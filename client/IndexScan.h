@@ -9,7 +9,8 @@ namespace op {
 
 class IndexScan: public Scan {
 public:
-    IndexScan(const NodeID, const char *, const char *, const Table *, const Query *);
+    IndexScan(const NodeID, const char *, const char *,
+              const Table *, const Query *, const char * = NULL);
     IndexScan();
     ~IndexScan();
 
@@ -22,6 +23,7 @@ public:
 
 protected:
     std::string indexCol;
+    ValueType indexColType;
     CompOp compOp;
     Value *value;
 
@@ -30,6 +32,8 @@ protected:
     Record record;
     bool getNotCalled;
     bool checkIndexCond;
+    uint32_t keyIntVal;
+    const char *keyCharVal;
 
 private:
     IndexScan(const IndexScan &);
@@ -39,6 +43,7 @@ private:
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Scan>(*this);
         ar & indexCol;
+        ar & indexColType;
         ar & compOp;
         ar & value;
     }

@@ -3,15 +3,18 @@
 using namespace op;
 
 
-Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r, const Query *q)
-    : Operator(n), leftChild(l), rightChild(r), joinConds(), reloadLeft(true), leftTuple()
+Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
+           const Query *q, const int x)
+    : Operator(n), leftChild(l), rightChild(r), joinConds(),
+      reloadLeft(), leftTuple()
 {
     initProject(q);
-    initFilter(q);
+    initFilter(q, x);
 }
 
 Join::Join()
-    : leftChild(), rightChild(), joinConds(), reloadLeft(true), leftTuple()
+    : leftChild(), rightChild(), joinConds(),
+      reloadLeft(), leftTuple()
 {
 }
 
@@ -19,9 +22,12 @@ Join::~Join()
 {
 }
 
-void Join::initFilter(const Query *q)
+void Join::initFilter(const Query *q, const int x)
 {
     for (int i = 0; i < q->nbJoins; ++i) {
+        if (i == x) { // this condition is evaluated by IndexScan
+            continue;
+        }
         if (rightChild->hasCol(q->joinFields1[i]) && leftChild->hasCol(q->joinFields2[i])) {
             joinConds.push_back(boost::make_tuple(leftChild->getOutputColID(q->joinFields2[i]),
                                                   rightChild->getOutputColID(q->joinFields1[i]),

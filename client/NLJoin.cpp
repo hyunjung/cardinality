@@ -3,12 +3,17 @@
 using namespace op;
 
 
-NLJoin::NLJoin(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r, const Query *q)
-    : Join(n, l, r, q)
+NLJoin::NLJoin(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
+               const Query *q, const int x, const char *idxJoinCol)
+    : Join(n, l, r, q, x), idxJoinColID(NOT_INDEX_JOIN)
 {
+    if (idxJoinCol) {
+        idxJoinColID = getInputColID(idxJoinCol);
+    }
 }
 
 NLJoin::NLJoin()
+    : idxJoinColID(NOT_INDEX_JOIN)
 {
 }
 
@@ -33,7 +38,8 @@ RC NLJoin::GetNext(Tuple &tuple)
                 return -1;
             }
             reloadLeft = false;
-            rightChild->Open();
+            rightChild->Open((idxJoinColID == NOT_INDEX_JOIN) ? NULL
+                                                              : leftTuple[idxJoinColID]);
         }
 
         while (!rightChild->GetNext(rightTuple)) {

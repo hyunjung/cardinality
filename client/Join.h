@@ -9,7 +9,8 @@ namespace op {
 
 class Join: public Operator {
 public:
-    Join(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>, const Query *);
+    Join(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>,
+         const Query *, const int = -1);
     Join();
     virtual ~Join();
 
@@ -18,7 +19,7 @@ public:
     ValueType getColType(const char *) const;
 
 protected:
-    void initFilter(const Query *q);
+    void initFilter(const Query *q, const int);
     bool execFilter(Tuple &, Tuple &) const;
     void execProject(Tuple &, Tuple &, Tuple &) const;
 

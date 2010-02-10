@@ -65,6 +65,13 @@ void closeConnection(Connection *conn)
     delete conn;
 }
 
+static inline bool HASIDXCOL(const char *col, const char *alias)
+{
+    int aliasLen = strlen(alias);
+    return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
+           && !memcmp(col, alias, aliasLen);
+}
+
 void performQuery(Connection *conn, const Query *q)
 {
     conn->q = q;
@@ -76,24 +83,65 @@ void performQuery(Connection *conn, const Query *q)
         std::string tableName(q->tableNames[i]);
         Table *table = sTables[tableName];
         Partition *part = &table->partitions[0];
-        try {
-            right = boost::shared_ptr<op::Scan>(new op::IndexScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
-        } catch (std::runtime_error &e) {
-            right = boost::shared_ptr<op::Scan>(new op::SeqScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
-        }
+
         if (i == 0) {
+            try {
+                right = boost::shared_ptr<op::Scan>(
+                        new op::IndexScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+            } catch (std::runtime_error &e) {
+                right = boost::shared_ptr<op::Scan>(
+                        new op::SeqScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+            }
             conn->root = right;
+
         } else {
-            if (conn->root->getNodeID() == right->getNodeID()) {
-                conn->root = boost::shared_ptr<op::Operator>(new op::NLJoin(right->getNodeID(), conn->root, right, q));
-            } else {
-                conn->root = boost::shared_ptr<op::Operator>(new op::Remote(right->getNodeID(), conn->root, sNodes->nodes[right->getNodeID()].ip));
-                conn->root = boost::shared_ptr<op::Operator>(new op::NLJoin(right->getNodeID(), conn->root, right, q));
+            // add Remote operator if needed
+            if (conn->root->getNodeID() != part->iNode) {
+                conn->root = boost::shared_ptr<op::Operator>(
+                             new op::Remote(part->iNode, conn->root, sNodes->nodes[part->iNode].ip));
+            }
+
+            int j;
+
+            // NLIJ
+            for (j = 0; j < q->nbJoins; ++j) {
+                if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i]) && conn->root->hasCol(q->joinFields2[j])) {
+                    right = boost::shared_ptr<op::Scan>(
+                            new op::IndexScan(part->iNode, part->fileName, q->aliasNames[i],
+                                              table, q, q->joinFields1[j]));
+                    conn->root = boost::shared_ptr<op::Operator>(
+                                 new op::NLJoin(right->getNodeID(), conn->root, right,
+                                                q, j, q->joinFields2[j]));
+                    break;
+                }
+                if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i]) && conn->root->hasCol(q->joinFields1[j])) {
+                    right = boost::shared_ptr<op::Scan>(
+                            new op::IndexScan(part->iNode, part->fileName, q->aliasNames[i],
+                                              table, q, q->joinFields2[j]));
+                    conn->root = boost::shared_ptr<op::Operator>(
+                                 new op::NLJoin(right->getNodeID(), conn->root, right,
+                                                q, j, q->joinFields1[j]));
+                    break;
+                }
+            }
+
+            // NLJ
+            if (j == q->nbJoins) {
+                try {
+                    right = boost::shared_ptr<op::Scan>(
+                            new op::IndexScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+                } catch (std::runtime_error &e) {
+                    right = boost::shared_ptr<op::Scan>(
+                            new op::SeqScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
+                }
+                conn->root = boost::shared_ptr<op::Operator>(
+                             new op::NLJoin(right->getNodeID(), conn->root, right, q));
             }
         }
     }
     if (conn->root->getNodeID() != 0) {
-        conn->root = boost::shared_ptr<op::Operator>(new op::Remote(0, conn->root, sNodes->nodes[conn->root->getNodeID()].ip));
+        conn->root = boost::shared_ptr<op::Operator>(
+                     new op::Remote(0, conn->root, sNodes->nodes[conn->root->getNodeID()].ip));
     }
 
     conn->root->print(std::cout);
