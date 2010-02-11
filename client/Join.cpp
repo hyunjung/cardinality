@@ -6,7 +6,7 @@ using namespace op;
 Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
            const Query *q, const int x)
     : Operator(n), leftChild(l), rightChild(r), joinConds(),
-      reloadLeft(), leftTuple()
+      state(), leftTuple()
 {
     initProject(q);
     initFilter(q, x);
@@ -14,7 +14,7 @@ Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan
 
 Join::Join()
     : leftChild(), rightChild(), joinConds(),
-      reloadLeft(), leftTuple()
+      state(), leftTuple()
 {
 }
 

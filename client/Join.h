@@ -27,7 +27,7 @@ protected:
     boost::shared_ptr<Scan> rightChild;
     std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
 
-    bool reloadLeft;
+    enum { RIGHT_OPEN, RIGHT_RESCAN, RIGHT_GETNEXT } state;
     Tuple leftTuple;
 
 private:
