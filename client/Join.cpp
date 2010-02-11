@@ -5,16 +5,14 @@ using namespace op;
 
 Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
            const Query *q, const int x)
-    : Operator(n), leftChild(l), rightChild(r), joinConds(),
-      state(), leftTuple()
+    : Operator(n), leftChild(l), rightChild(r), joinConds()
 {
     initProject(q);
     initFilter(q, x);
 }
 
 Join::Join()
-    : leftChild(), rightChild(), joinConds(),
-      state(), leftTuple()
+    : leftChild(), rightChild(), joinConds()
 {
 }
 

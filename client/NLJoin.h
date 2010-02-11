@@ -23,6 +23,9 @@ protected:
     ColID idxJoinColID;
     static const ColID NOT_INDEX_JOIN = -1;
 
+    enum { RIGHT_OPEN, RIGHT_RESCAN, RIGHT_GETNEXT } state;
+    Tuple leftTuple;
+
 private:
     NLJoin(const NLJoin &);
     NLJoin& operator=(const NLJoin &);
