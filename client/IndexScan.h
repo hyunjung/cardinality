@@ -26,11 +26,12 @@ protected:
     ValueType indexColType;
     CompOp compOp;
     Value *value;
+    bool unique;
 
     Index *index;
     TxnState *txn;
     Record record;
-    bool getNotCalled;
+    enum { INDEX_GET, INDEX_DONE, INDEX_GETNEXT } state;
     bool checkIndexCond;
     uint32_t keyIntVal;
     const char *keyCharVal;
@@ -46,6 +47,7 @@ private:
         ar & indexColType;
         ar & compOp;
         ar & value;
+        ar & unique;
     }
 };
 
