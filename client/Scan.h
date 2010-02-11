@@ -34,8 +34,8 @@ public:
 
 protected:
     void initFilter(const Query *q);
-    bool execFilter(Tuple &) const;
-    void execProject(Tuple &, Tuple &) const;
+    bool execFilter(const Tuple &) const;
+    void execProject(const Tuple &, Tuple &) const;
     const char *splitLine(const char *, char *, Tuple &) const;
 
     const std::string fileName;

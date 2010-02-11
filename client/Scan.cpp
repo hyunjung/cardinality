@@ -70,7 +70,7 @@ const char * Scan::splitLine(const char *pos, char *buf, Tuple &temp) const
     return eol + 1;
 }
 
-bool Scan::execFilter(Tuple &tuple) const
+bool Scan::execFilter(const Tuple &tuple) const
 {
     for (size_t i = 0; i < gteqConds.size(); ++i) {
         int cmp = (gteqConds[i].get<1>()->type == INT) ?
@@ -104,7 +104,7 @@ bool Scan::execFilter(Tuple &tuple) const
     return true;
 }
 
-void Scan::execProject(Tuple &inputTuple, Tuple &outputTuple) const
+void Scan::execProject(const Tuple &inputTuple, Tuple &outputTuple) const
 {
     outputTuple.clear();
 

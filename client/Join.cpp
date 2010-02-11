@@ -38,7 +38,7 @@ void Join::initFilter(const Query *q, const int x)
     }
 }
 
-bool Join::execFilter(Tuple &leftTuple, Tuple &rightTuple) const
+bool Join::execFilter(const Tuple &leftTuple, const Tuple &rightTuple) const
 {
     for (size_t i = 0; i < joinConds.size(); ++i) {
         if ((joinConds[i].get<2>() == INT
@@ -52,7 +52,7 @@ bool Join::execFilter(Tuple &leftTuple, Tuple &rightTuple) const
     return true;
 }
 
-void Join::execProject(Tuple &leftTuple, Tuple &rightTuple, Tuple &outputTuple) const
+void Join::execProject(const Tuple &leftTuple, const Tuple &rightTuple, Tuple &outputTuple) const
 {
     outputTuple.clear();
 

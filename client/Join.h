@@ -20,8 +20,8 @@ public:
 
 protected:
     void initFilter(const Query *q, const int);
-    bool execFilter(Tuple &, Tuple &) const;
-    void execProject(Tuple &, Tuple &, Tuple &) const;
+    bool execFilter(const Tuple &, const Tuple &) const;
+    void execProject(const Tuple &, const Tuple &, Tuple &) const;
 
     boost::shared_ptr<Operator> leftChild;
     boost::shared_ptr<Scan> rightChild;
