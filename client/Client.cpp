@@ -4,6 +4,7 @@
 #include "SeqScan.h"
 #include "IndexScan.h"
 #include "NLJoin.h"
+#include "NBJoin.h"
 #include "Remote.h"
 
 
@@ -34,6 +35,7 @@ void startSlave(const Node *masterNode, const Node *currentNode)
         acceptor.accept(*tcpstream.rdbuf());
         boost::archive::binary_iarchive ia(tcpstream);
         ia.register_type(static_cast<op::NLJoin *>(NULL));
+        ia.register_type(static_cast<op::NBJoin *>(NULL));
         ia.register_type(static_cast<op::SeqScan *>(NULL));
         ia.register_type(static_cast<op::IndexScan *>(NULL));
         ia.register_type(static_cast<op::Remote *>(NULL));
@@ -125,7 +127,7 @@ void performQuery(Connection *conn, const Query *q)
                 }
             }
 
-            // NLJ
+            // NBJ
             if (j == q->nbJoins) {
                 try {
                     right = boost::shared_ptr<op::Scan>(
@@ -135,7 +137,7 @@ void performQuery(Connection *conn, const Query *q)
                             new op::SeqScan(part->iNode, part->fileName, q->aliasNames[i], table, q));
                 }
                 conn->root = boost::shared_ptr<op::Operator>(
-                             new op::NLJoin(right->getNodeID(), conn->root, right, q));
+                             new op::NBJoin(right->getNodeID(), conn->root, right, q));
             }
         }
     }

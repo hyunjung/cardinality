@@ -2,6 +2,7 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include "Remote.h"
 #include "NLJoin.h"
+#include "NBJoin.h"
 #include "SeqScan.h"
 #include "IndexScan.h"
 
@@ -34,6 +35,7 @@ RC Remote::Open(const char *)
 
     boost::archive::binary_oarchive oa(tcpstream);
     oa.register_type(static_cast<op::NLJoin *>(NULL));
+    oa.register_type(static_cast<op::NBJoin *>(NULL));
     oa.register_type(static_cast<op::SeqScan *>(NULL));
     oa.register_type(static_cast<op::IndexScan *>(NULL));
     oa.register_type(static_cast<op::Remote *>(NULL));
