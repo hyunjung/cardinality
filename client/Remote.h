@@ -10,7 +10,9 @@ namespace op {
 
 class Remote: public Operator {
 public:
-    Remote(const NodeID, boost::shared_ptr<Operator>, const char *);
+    typedef boost::shared_ptr<Remote> Ptr;
+
+    Remote(const NodeID, Operator::Ptr, const char *);
     Remote();
     ~Remote();
 
@@ -24,7 +26,7 @@ public:
     ValueType getColType(const char *) const;
 
 protected:
-    boost::shared_ptr<Operator> child;
+    Operator::Ptr child;
     const std::string ipAddress;
 
     boost::asio::ip::tcp::iostream tcpstream;

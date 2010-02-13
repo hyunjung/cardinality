@@ -9,7 +9,9 @@ namespace op {
 
 class Join: public Operator {
 public:
-    Join(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>,
+    typedef boost::shared_ptr<Join> Ptr;
+
+    Join(const NodeID, Operator::Ptr, Scan::Ptr,
          const Query *, const int = -1);
     Join();
     virtual ~Join();
@@ -23,8 +25,8 @@ protected:
     bool execFilter(const Tuple &, const Tuple &) const;
     void execProject(const Tuple &, const Tuple &, Tuple &) const;
 
-    boost::shared_ptr<Operator> leftChild;
-    boost::shared_ptr<Scan> rightChild;
+    Operator::Ptr leftChild;
+    Scan::Ptr rightChild;
     std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
 
 private:

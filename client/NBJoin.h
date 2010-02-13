@@ -9,7 +9,9 @@ namespace op {
 
 class NBJoin: public Join {
 public:
-    NBJoin(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>,
+    typedef boost::shared_ptr<NBJoin> Ptr;
+
+    NBJoin(const NodeID, Operator::Ptr, Scan::Ptr,
            const Query *);
     NBJoin();
     ~NBJoin();

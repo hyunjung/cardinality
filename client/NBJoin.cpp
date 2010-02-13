@@ -7,7 +7,7 @@
 using namespace op;
 
 
-NBJoin::NBJoin(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
+NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
       state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),

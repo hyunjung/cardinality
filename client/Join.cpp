@@ -3,7 +3,7 @@
 using namespace op;
 
 
-Join::Join(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
+Join::Join(const NodeID n, Operator::Ptr l, Scan::Ptr r,
            const Query *q, const int x)
     : Operator(n), leftChild(l), rightChild(r), joinConds()
 {

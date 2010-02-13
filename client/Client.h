@@ -7,7 +7,7 @@ struct Connection
     ~Connection() {};
 
     const Query *q;
-    boost::shared_ptr<op::Operator> root;
+    op::Operator::Ptr root;
     op::Tuple tuple;
 
 private:

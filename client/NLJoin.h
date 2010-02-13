@@ -8,7 +8,9 @@ namespace op {
 
 class NLJoin: public Join {
 public:
-    NLJoin(const NodeID, boost::shared_ptr<Operator>, boost::shared_ptr<Scan>,
+    typedef boost::shared_ptr<NLJoin> Ptr;
+
+    NLJoin(const NodeID, Operator::Ptr, Scan::Ptr,
            const Query *, const int = -1, const char * = NULL);
     NLJoin();
     ~NLJoin();

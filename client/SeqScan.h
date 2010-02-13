@@ -8,6 +8,8 @@ namespace op {
 
 class SeqScan: public Scan {
 public:
+    typedef boost::shared_ptr<SeqScan> Ptr;
+
     SeqScan(const NodeID, const char *, const char *, const Table *, const Query *);
     SeqScan();
     ~SeqScan();

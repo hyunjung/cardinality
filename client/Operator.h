@@ -20,6 +20,8 @@ typedef std::vector<const char *> Tuple;
 
 class Operator {
 public:
+    typedef boost::shared_ptr<Operator> Ptr;
+
     Operator(const NodeID);
     Operator();
     virtual ~Operator();

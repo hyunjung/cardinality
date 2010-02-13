@@ -9,6 +9,8 @@ namespace op {
 
 class IndexScan: public Scan {
 public:
+    typedef boost::shared_ptr<IndexScan> Ptr;
+
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const Query *, const char * = NULL);
     IndexScan();

@@ -3,7 +3,7 @@
 using namespace op;
 
 
-NLJoin::NLJoin(const NodeID n, boost::shared_ptr<Operator> l, boost::shared_ptr<Scan> r,
+NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
     : Join(n, l, r, q, x), idxJoinColID(NOT_INDEX_JOIN)
 {

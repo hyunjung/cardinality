@@ -9,7 +9,7 @@
 using namespace op;
 
 
-Remote::Remote(const NodeID n, boost::shared_ptr<Operator> c, const char *i)
+Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
     : Operator(n), child(c), ipAddress(i), tcpstream(), lineBuffer(new char[4096])
 {
     for (size_t i = 0; i < child->numOutputCols(); ++i) {
