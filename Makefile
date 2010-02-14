@@ -1,15 +1,17 @@
 CC = g++
 FLAGS = -fPIC -O2 -g
-LIBS = -ldl -pthread -lboost_serialization -lboost_system -lboost_iostreams
+LIBS = -ldl -pthread
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
-MYFLAGS = -Wall -I.
+MYFLAGS = -Wall -I/u/hyunjung/boost_1_42_0
 MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/IndexScan.o objs/NLJoin.o objs/NBJoin.o objs/Remote.o objs/Client.o
+MYLIBS = libboost_serialization.a libboost_system.a libboost_iostreams.a
+MYLIBS := $(addprefix /u/hyunjung/boost_1_42_0/stage/lib/, $(MYLIBS))
 
 all: objs/mainClient objs/mainSlaveClient
 
 objs/Client.so: $(MYOBJS)
-	$(CC) $(FLAGS) -shared $(MYOBJS) -o $@
+	$(CC) $(FLAGS) -shared $(MYOBJS) $(MYLIBS) -o $@
 
 -include $(MYOBJS:.o=.d)
 
@@ -22,6 +24,10 @@ objs/%.d: client/%.cpp
 
 $(MYOBJS): objs/%.o:
 	$(CC) $(FLAGS) $(MYFLAGS) -c $< -o $@
+
+zip: objs/Client.so
+	strip objs/Client.so -o objs/Client-`date +%F-%H%M`.so
+	zip objs/Client-`date +%F-%H%M`.zip Makefile client/*
 
 buildLib:objs/SimpleClient.so objs/TrivialClient.so $(OBJS) 
 buildBench: objs/mainSimpleClient objs/mainSlaveSimpleClient objs/mainTrivialClient objs/mainSlaveTrivialClient
