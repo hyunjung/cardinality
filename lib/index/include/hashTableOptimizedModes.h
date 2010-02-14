@@ -95,11 +95,10 @@ class HashTable
   int64_t evalAverage()
   {
     BigInt aver ;
-    
     for( int s = 0 ; s < size ; s ++ )
       {   
 	Key * el = hashTab[s] ;
-	while( el != NULL )
+        while( el != NULL )
 	  {
 	    aver.add(el->hashKey) ;
 	    el = el->next ;
@@ -159,7 +158,6 @@ class HashTable
   void optimize()
   {
     float domainFull =  ( ((float) nbEl)/((float) domain) ) ;
-
     if( ! warpMode )
       warpMode = ( domainFull > WARP_MODE_THRESHOLD ) ;
     domain = 0 ;
@@ -196,9 +194,11 @@ class HashTable
     if( warpMode )
       {
 	average = evalAverage() ;
-	int64_t minDist = min( average, MAX_INT_KEY - average ) ;
-	deviation = min( evalDeviation(average), minDist / 2 ) ;
-
+	//int64_t minDist = min( average, MAX_INT_KEY - average ) ;
+	//deviation = min( evalDeviation(average), minDist / 2 ) ;
+	deviation = evalDeviation(average) ;
+        //cout << minDist/2 << endl ;
+        //cout << average  << " " << deviation << endl ;
 	Key ** newHashTab = new Key*[size*2] ;
 	
 	Hsize ++ ;

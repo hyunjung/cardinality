@@ -1,4 +1,16 @@
 ---------------------------------------------------------------------
+Release 1.2 (February 14, 2009)
+---------------------------------------------------------------------
+- Bug fix in the ordering of the index (lib/index/include/keyHashTest.h)
+- Improvement in the optimizaion of the hash table in the index
+  (lib/index/include/hashTableOptimizedModes.h)
+- Slightly better implementation of SimpleClient
+  (client/SimpleClient.cpp, client/SimpleClient.h):
+  * prevent concurrent accesses to tables in performQuery
+  * handle all kinds of selections
+  * results is now dynamically allocated
+
+---------------------------------------------------------------------
 Release 1.1 (January 12, 2009)
 ---------------------------------------------------------------------
 - Bug fix in the naming of the index (bench/mainMaster.cpp)

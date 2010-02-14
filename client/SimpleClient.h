@@ -29,8 +29,8 @@ struct Connection
   // Temporary object that stored the mapping between column and values
   map<string,Value> temp ; 
 
-  // Results, there is a maximum of 2000 output records, and 10 columns
-  Value results[2000][10] ;
+  // Results, dynamically allocated 
+  std::vector<std::vector<Value > > results;
 };
 
 /**

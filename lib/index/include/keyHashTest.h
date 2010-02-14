@@ -157,7 +157,7 @@ public:
     int64_t r = k->hashKey - hashKey ;
     if( r == 0 )
       {
-	r = strcmp( k->key, key ) ;
+	r = strcmp( key, k->key ) ;
 	if( r == 0 )
 	  {	    
 	    r = k->payload - payload ;
@@ -172,7 +172,7 @@ public:
     int64_t r = k->hashKey - hashKey ;
     if( r == 0 )
       {
-	r = strcmp( k->key, key ) ;
+	r = strcmp( key, k->key ) ;
       }
     return r ;
   }

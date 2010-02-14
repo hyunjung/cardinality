@@ -7,6 +7,8 @@
 #include <cstring>
 #include "SimpleClient.h"
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void startPreTreatmentMaster( int nbSeconds, const Nodes * nodes, const Data * data, const Queries * preset )
 {
   sNodes = nodes ;
@@ -62,12 +64,15 @@ void closeConnection( Connection * connection)
 
 void performQuery( Connection * connection, const Query * q )
 {
+  pthread_mutex_lock(&mutex);
   connection->q = q ;
   connection->iResult = 0 ;
   connection->nbResult = 0 ;
 
   // Read the data, and write the results in the connection object
   readFromTables(connection,q,0);
+  pthread_mutex_unlock(&mutex);
+
 }
 
 ErrCode fetchRow( Connection * connection, Value * values )
@@ -133,11 +138,19 @@ void readFromTables( Connection * c, const Query * q, int iTable )
       }
 
     for( int ci = 0 ; ci < q->nbRestrictionsGreaterThan ; ci ++ )
-      if( compareValue( c->temp[ string(q->restrictionGreaterThanFields[ci]) ], q->restrictionGreaterThanValues[ci] ) < 0 )
+    {
+      if( compareValue( c->temp[ string(q->restrictionGreaterThanFields[ci]) ], q->restrictionGreaterThanValues[ci] ) <= 0 )
         condition = false ;
+    }
     
+    for( int ci = 0 ; ci < q->nbRestrictionsEqual ; ci ++ )
+      if( compareValue( c->temp[ string(q->restrictionEqualFields[ci]) ], q->restrictionEqualValues[ci] ) != 0 )
+        condition = false ;
+
     if( condition )
     {
+      std::vector<Value> v(10); // Max 10 column per tuple
+      c->results.push_back(v);
       for( int o = 0 ; o < q->nbOutputFields ; o ++ )
       {
         c->results[c->nbResult][o] = c->temp[ string( q->outputFields[o] ) ] ;
