@@ -1,7 +1,7 @@
 #ifndef NBJOIN_H
 #define NBJOIN_H
 
-#include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include "Join.h"
 
 
@@ -28,8 +28,8 @@ protected:
     std::vector<Tuple> leftTuples;
     std::vector<Tuple>::const_iterator leftTuplesIt;
     Tuple rightTuple;
-    boost::shared_array<char> mainBuffer;
-    boost::shared_array<char> overflowBuffer;
+    boost::scoped_array<char> mainBuffer;
+    boost::scoped_array<char> overflowBuffer;
 
 private:
     NBJoin(const NBJoin &);

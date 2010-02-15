@@ -8,7 +8,7 @@
 #include <fstream>
 #include <cstring>
 #endif
-#include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include "Operator.h"
 #include "Value.h"
 
@@ -52,7 +52,7 @@ protected:
 #else
     std::ifstream file;
 #endif
-    boost::shared_array<char> lineBuffer;
+    boost::scoped_array<char> lineBuffer;
 
 private:
     Scan(const Scan &);

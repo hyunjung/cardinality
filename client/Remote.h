@@ -2,7 +2,7 @@
 #define REMOTE_H
 
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/shared_array.hpp>
+#include <boost/scoped_array.hpp>
 #include "Operator.h"
 
 
@@ -30,7 +30,7 @@ protected:
     const std::string ipAddress;
 
     boost::asio::ip::tcp::iostream tcpstream;
-    boost::shared_array<char> lineBuffer;
+    boost::scoped_array<char> lineBuffer;
 
 private:
     Remote(const Remote &);
