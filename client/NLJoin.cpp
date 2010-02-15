@@ -70,8 +70,8 @@ RC NLJoin::Close()
 void NLJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "NLJoin@" << getNodeID() << "    ";
-    printOutputCols(os);
+    os << "NLJoin@" << getNodeID();
+    os << " [" << selectedInputColIDs.size() << "] ";
     os << std::endl;
 
     leftChild->print(os, tab + 1);

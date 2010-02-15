@@ -98,7 +98,7 @@ RC SeqScan::Close()
 void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "SeqScan@" << getNodeID() << " " << fileName << "    ";
-    printOutputCols(os);
+    os << "SeqScan@" << getNodeID() << " " << fileName;
+    os << " [" << selectedInputColIDs.size() << "] ";
     os << std::endl;
 }

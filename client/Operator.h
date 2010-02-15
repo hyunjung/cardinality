@@ -41,7 +41,6 @@ public:
 
 protected:
     void initProject(const Query *q);
-    void printOutputCols(std::ostream &) const;
 
     const NodeID nodeID;
     std::vector<ColID> selectedInputColIDs;

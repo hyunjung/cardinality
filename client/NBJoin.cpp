@@ -122,8 +122,8 @@ RC NBJoin::Close()
 void NBJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "NBJoin@" << getNodeID() << "    ";
-    printOutputCols(os);
+    os << "NBJoin@" << getNodeID();
+    os << " [" << selectedInputColIDs.size() << "] ";
     os << std::endl;
 
     leftChild->print(os, tab + 1);

@@ -58,7 +58,3 @@ void Operator::initProject(const Query *q)
         }
     }
 }
-
-void Operator::printOutputCols(std::ostream &os) const
-{
-}

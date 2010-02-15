@@ -193,7 +193,8 @@ void IndexScan::print(std::ostream &os, const int tab) const
     } else if (value->type == INT) {
         os << value->intVal;
     } else { // STRING
-        os << value->charVal;
+        os << "'" << value->charVal << "'";
     }
+    os << " [" << selectedInputColIDs.size() << "] ";
     os << std::endl;
 }
