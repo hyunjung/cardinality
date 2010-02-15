@@ -4,16 +4,16 @@ using namespace op;
 
 
 Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
-    : Operator(n), fileName(f), gteqConds(), joinConds(),
-      alias(a), table(t), file(), lineBuffer(new char[4096])
+    : Operator(n), fileName(f), gteqConds(), joinConds(), numInputCols(t->nbFields),
+      alias(a), table(t), file(), lineBuffer()
 {
     initProject(q);
     initFilter(q);
 }
 
 Scan::Scan()
-    : fileName(), gteqConds(), joinConds(),
-      alias(), table(NULL), file(), lineBuffer(new char[4096])
+    : fileName(), gteqConds(), joinConds(), numInputCols(),
+      alias(), table(NULL), file(), lineBuffer()
 {
 }
 

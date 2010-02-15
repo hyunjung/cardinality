@@ -54,6 +54,8 @@ IndexScan::~IndexScan()
 
 RC IndexScan::Open(const char *leftValue)
 {
+    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * numInputCols]);
+
     file.open(fileName);
     openIndex(indexCol.c_str(), &index);
 
@@ -171,6 +173,7 @@ RC IndexScan::Close()
     commitTransaction(txn);
     closeIndex(index);
     file.close();
+    lineBuffer.reset();
 
     return 0;
 }

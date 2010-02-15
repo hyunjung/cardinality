@@ -6,11 +6,12 @@
 #include "SeqScan.h"
 #include "IndexScan.h"
 
+
 using namespace op;
 
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
-    : Operator(n), child(c), ipAddress(i), tcpstream(), lineBuffer(new char[4096])
+    : Operator(n), child(c), ipAddress(i), tcpstream(), lineBuffer()
 {
     for (size_t i = 0; i < child->numOutputCols(); ++i) {
         selectedInputColIDs.push_back(i);
@@ -18,7 +19,7 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
 }
 
 Remote::Remote()
-    : child(), ipAddress(), tcpstream(), lineBuffer(new char[4096])
+    : child(), ipAddress(), tcpstream(), lineBuffer()
 {
 }
 
@@ -28,17 +29,19 @@ Remote::~Remote()
 
 RC Remote::Open(const char *)
 {
+    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * child->numOutputCols()]);
+
     tcpstream.connect(ipAddress, boost::lexical_cast<std::string>(30000 + child->getNodeID()));
     if (tcpstream.fail()) {
         throw std::runtime_error("tcp::iostream.connect() failed");
     }
 
     boost::archive::binary_oarchive oa(tcpstream);
-    oa.register_type(static_cast<op::NLJoin *>(NULL));
-    oa.register_type(static_cast<op::NBJoin *>(NULL));
-    oa.register_type(static_cast<op::SeqScan *>(NULL));
-    oa.register_type(static_cast<op::IndexScan *>(NULL));
-    oa.register_type(static_cast<op::Remote *>(NULL));
+    oa.register_type(static_cast<NLJoin *>(NULL));
+    oa.register_type(static_cast<NBJoin *>(NULL));
+    oa.register_type(static_cast<SeqScan *>(NULL));
+    oa.register_type(static_cast<IndexScan *>(NULL));
+    oa.register_type(static_cast<Remote *>(NULL));
 
     oa << child;
     return 0;
@@ -49,7 +52,7 @@ RC Remote::GetNext(Tuple &tuple)
     if (tcpstream.eof()) {
         return -1;
     }
-    tcpstream.getline(lineBuffer.get(), 4096);
+    tcpstream.getline(lineBuffer.get(), (MAX_VARCHAR_LEN + 1) * child->numOutputCols());
     if (*lineBuffer.get() == '\0') {
         return -1;
     }
@@ -70,6 +73,8 @@ RC Remote::GetNext(Tuple &tuple)
 RC Remote::Close()
 {
     tcpstream.close();
+    lineBuffer.reset();
+
     return 0;
 }
 

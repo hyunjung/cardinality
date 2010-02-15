@@ -19,6 +19,8 @@ SeqScan::~SeqScan()
 
 RC SeqScan::Open(const char *)
 {
+    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * numInputCols]);
+
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     file.open(fileName);
     pos = file.begin();
@@ -87,6 +89,8 @@ RC SeqScan::GetNext(Tuple &tuple)
 RC SeqScan::Close()
 {
     file.close();
+    lineBuffer.reset();
+
     return 0;
 }
 

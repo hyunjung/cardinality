@@ -11,13 +11,13 @@ NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
       state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
-      mainBuffer(new char[NBJOIN_BUFSIZE]), overflowBuffer()
+      mainBuffer(), overflowBuffer()
 {
 }
 
 NBJoin::NBJoin()
     : state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
-      mainBuffer(new char[NBJOIN_BUFSIZE]), overflowBuffer()
+      mainBuffer(), overflowBuffer()
 {
 }
 
@@ -27,6 +27,7 @@ NBJoin::~NBJoin()
 
 RC NBJoin::Open(const char *)
 {
+    mainBuffer.reset(new char[NBJOIN_BUFSIZE]);
     state = RIGHT_OPEN;
     return leftChild->Open();
 }
@@ -113,6 +114,8 @@ RC NBJoin::GetNext(Tuple &tuple)
 
 RC NBJoin::Close()
 {
+    mainBuffer.reset();
+    overflowBuffer.reset();
     return leftChild->Close();
 }
 

@@ -43,6 +43,7 @@ protected:
     const std::string fileName;
     std::vector<boost::tuple<ColID, Value *, CompOp> > gteqConds;
     std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
+    const int numInputCols;
 
     const std::string alias;
     const Table *table;
@@ -63,6 +64,7 @@ private:
         ar & const_cast<std::string &>(fileName);
         ar & gteqConds;
         ar & joinConds;
+        ar & const_cast<int &>(numInputCols);
     }
 };
 
