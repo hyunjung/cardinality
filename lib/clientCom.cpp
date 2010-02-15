@@ -26,14 +26,22 @@ void openPorts( const Nodes * nodes, Ports * ports, int basePort)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
-    assert( bind(sockfd, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) >= 0) ;
+
+    cout << "Bind on "<< portno << endl ;
+
+    int attempt ; 
+    for( attempt = 0 ; attempt < 30 and bind(sockfd, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0 ; attempt ++ ) 
+    {
+      sleep(2) ;
+    }
+
+    assert( attempt < 30 ) ;
+
     listen(sockfd,1);
 
     clilen = sizeof(cli_addr);
 
-    #if DEBUG >= 2
     cout << "Accept on "<< portno << endl ;
-    #endif
 
     ports->sockfd[ nodes->nodes[n].iNode ] = accept(sockfd, (struct sockaddr *) &cli_addr, (socklen_t*) &clilen);
   }
@@ -58,12 +66,12 @@ void connectPorts(const Node * masterNode, const Node * currentNode, Ports * por
   cout << "Connect on "<< portno << endl ;
 
   int attempt ; 
-  for( attempt = 0 ; attempt < 5 and connect(sockfd, (sockaddr*)&serv_addr,sizeof(serv_addr)) < 0 ; attempt ++ ) 
+  for( attempt = 0 ; attempt < 30 and connect(sockfd, (sockaddr*)&serv_addr,sizeof(serv_addr)) < 0 ; attempt ++ ) 
   {
-    sleep(1) ;
+    sleep(2) ;
   }
 
-  assert( attempt < 5 ) ;
+  assert( attempt < 30 ) ;
 
   ports->sockfd[0] = sockfd ;
 }
