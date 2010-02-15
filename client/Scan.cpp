@@ -48,17 +48,21 @@ void Scan::initFilter(const Query *q)
     }
 }
 
-const char * Scan::splitLine(const char *pos, char *buf, Tuple &temp) const
+const char * Scan::splitLine(const char *pos, const char *eof, char *buf, Tuple &temp) const
 {
-    const char *eol = strchr(pos, '\n');
-    if (pos == eol) {
-        throw std::runtime_error("invalid file");
+    const char *eol = static_cast<const char *>(memchr(pos, '\n', eof - pos));
+    eol = (eol == NULL) ? eof : eol;
+
+    temp.clear();
+
+    if (eol == pos) {
+        return eol + 1;
     }
+
     memcpy(buf, pos, eol - pos);
     buf[eol - pos] = '\0';
 
     char *c = buf;
-    temp.clear();
     while (true) {
         temp.push_back(c);
         if (!(c = strchr(c + 1, '|'))) {
@@ -72,6 +76,10 @@ const char * Scan::splitLine(const char *pos, char *buf, Tuple &temp) const
 
 bool Scan::execFilter(const Tuple &tuple) const
 {
+    if (tuple.size() != static_cast<size_t>(numInputCols)) {
+        return false;
+    }
+
     for (size_t i = 0; i < gteqConds.size(); ++i) {
         int cmp = (gteqConds[i].get<1>()->type == INT) ?
                   (gteqConds[i].get<1>()->intVal - static_cast<uint32_t>(atoi(tuple[gteqConds[i].get<0>()]))) :

@@ -49,7 +49,8 @@ RC SeqScan::GetNext(Tuple &tuple)
 
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     while (pos < file.end()) {
-        pos = splitLine(pos, lineBuffer.get(), temp);
+        pos = splitLine(pos, file.end(),
+                        lineBuffer.get(), temp);
 
         if (execFilter(temp)) {
             execProject(temp, tuple);

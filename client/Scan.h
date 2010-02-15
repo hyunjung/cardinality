@@ -38,7 +38,7 @@ protected:
     void initFilter(const Query *q);
     bool execFilter(const Tuple &) const;
     void execProject(const Tuple &, Tuple &) const;
-    const char *splitLine(const char *, char *, Tuple &) const;
+    const char *splitLine(const char *, const char *, char *, Tuple &) const;
 
     const std::string fileName;
     std::vector<boost::tuple<ColID, Value *, CompOp> > gteqConds;

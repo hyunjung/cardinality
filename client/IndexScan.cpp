@@ -115,7 +115,8 @@ RC IndexScan::GetNext(Tuple &tuple)
                 if (unique) {
                     state = INDEX_DONE;
                 }
-                splitLine(file.begin() + record.address, lineBuffer.get(), temp);
+                splitLine(file.begin() + record.address, file.end(),
+                          lineBuffer.get(), temp);
 
                 if (execFilter(temp)) {
                     execProject(temp, tuple);
@@ -155,7 +156,8 @@ RC IndexScan::GetNext(Tuple &tuple)
                 }
             }
 
-            splitLine(file.begin() + record.address, lineBuffer.get(), temp);
+            splitLine(file.begin() + record.address, file.end(),
+                      lineBuffer.get(), temp);
 
             if (execFilter(temp)) {
                 execProject(temp, tuple);
