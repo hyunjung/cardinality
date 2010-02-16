@@ -47,6 +47,13 @@ public:
       v.charVal[16] = 0x0; 
       insertRecord(idx, NULL, (Key*) &v, i); 
     } 
+  
+    Value v; 
+    strcpy(v.charVal, "091");
+    insertRecord(idx, NULL, (Key*) &v, 12); 
+    strcpy(v.charVal, "0835");
+    insertRecord(idx, NULL, (Key*) &v, 12); 
+
     TxnState *txn; 
     Record record; 
     beginTransaction(&txn); 

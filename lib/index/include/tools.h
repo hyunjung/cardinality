@@ -98,21 +98,19 @@ int64_t hashKeyToolFull(const char * key)
 {
   int64_t hash = 0 ;
   int c = 0 ;
-  for( ; c < 10 ; c ++ )
+  for( ; c < 8 ; c ++ )
     {
       char k = key[c] ;
       if( k == '\0' )
 	break ;
-      int64_t v = ptov[ key[c] ] ;
-      hash = hash*53 + (int64_t) v ;
+      hash = hash*256 + (int64_t) k ;
     }
 
-  for( ; c < 10 ; c ++ )
-    hash = hash*53 ;
-
-  int64_t keyOut = ( hash / 20 ) << 10 ;
+  //cout << hash << endl ;
+  for( ; c < 8 ; c ++ )
+    hash = hash*256 ;
   
-  return keyOut ;
+  return hash ;
 }
 
 int32_t hashKeyTool( int32_t key)
