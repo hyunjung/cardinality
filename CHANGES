@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------
+Release 1.5 (February 16, 2009)
+---------------------------------------------------------------------
+- Wait for the end of startPretreatmentMaster to start the query load
+  (bench/mainMaster.cpp, include/client.h)
+
+---------------------------------------------------------------------
 Release 1.4 (February 16, 2009)
 ---------------------------------------------------------------------
 - Additional fix to the ordering of the index for strings of

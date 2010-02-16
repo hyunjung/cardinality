@@ -239,8 +239,13 @@ struct Queries
  *
  * The number of seconds granted will always be between 1 and 60.
  *
- * The benchmark will not wait for this call to return. The exact order
- * of the pretreatment calls ( master, slaves ) is unpredictable.
+ * The benchmark does wait for the call to startPretreatmentMaster
+ * to return before starting the query load. However, if this call takes
+ * more than the granted number of seconds, the excess time is measured as
+ * part of the benchmark time.
+ *
+ * The exact order of the pretreatment calls ( master, slaves ) is
+ * unpredictable.
  *
  * This method will be executed on the master node.
  */
@@ -248,7 +253,8 @@ void startPreTreatmentMaster( int nbSeconds, const Nodes * nodes, const Data * d
 
 /**
  * This method will be executed on all the other nodes.
- * This is the only call to a method on the slaves.
+ * This is the only call to a method on the slaves and should typically
+ * not return before the very end of the query load
  */
 void startSlave( const Node * masterNode, const Node * currentNode);
 

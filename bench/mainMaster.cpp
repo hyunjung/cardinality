@@ -43,7 +43,7 @@ static void *startTreatment(void *arg)
   }
 }
 
-void startThreadedPretreatment(int nbSeconds, Ports * ports, Nodes * nodes, Data * data, Queries * preset )
+pthread_t startThreadedPretreatment(int nbSeconds, Ports * ports, Nodes * nodes, Data * data, Queries * preset )
 {
   tc.nbSeconds = nbSeconds ;
   tc.ports = ports ;
@@ -54,6 +54,8 @@ void startThreadedPretreatment(int nbSeconds, Ports * ports, Nodes * nodes, Data
   pthread_t *threads = new pthread_t[ nodes->nbNodes ] ;
   for( int n = 0 ; n < nodes->nbNodes ; n ++ )
     pthread_create(&threads[n], NULL, startTreatment, reinterpret_cast<void*>(static_cast<uintptr_t>(n))) ;
+
+  return threads[0];
 }
 
 
@@ -152,8 +154,15 @@ int main(int argc, char ** argv)
   #endif
 
   // Start the prelaunch on the master
-  startThreadedPretreatment( nbSeconds, &ports, &nodes, &data , &preset );
+  pthread_t masterPretreatmentThread = 
+    startThreadedPretreatment( nbSeconds, &ports, &nodes, &data , &preset );
   sleep(nbSeconds) ;
+  struct timezone tz;
+  struct timeval start, end ;
+  gettimeofday(&start,&tz);
+
+  // Wait for the master pretreatment thread to end before going on
+  pthread_join(masterPretreatmentThread,NULL);
 
   Connection * connection = createConnection() ;
 
@@ -161,10 +170,6 @@ int main(int argc, char ** argv)
   cout << "End pretreatment" << endl ;
   cout << "Start queries" << endl ;
   #endif
-
-  struct timezone tz;
-  struct timeval start, end ;
-  gettimeofday(&start,&tz);
 
   int64_t hash = 0 ;
   int nbRows = 0 ;
