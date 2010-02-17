@@ -100,7 +100,7 @@ void performQuery(Connection *conn, const Query *q)
             // add Remote operator if needed
             if (conn->root->getNodeID() != part->iNode) {
                 conn->root = op::Operator::Ptr(
-                             new op::Remote(part->iNode, conn->root, sNodes->nodes[part->iNode].ip));
+                             new op::Remote(part->iNode, conn->root, sNodes->nodes[conn->root->getNodeID()].ip));
             }
 
             int j;
