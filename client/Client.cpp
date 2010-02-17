@@ -1,4 +1,4 @@
-#include <boost/archive/binary_iarchive.hpp>
+#include <boost/thread.hpp>
 #include "../include/client.h"
 #include "Client.h"
 #include "SeqScan.h"
@@ -6,55 +6,30 @@
 #include "NLJoin.h"
 #include "NBJoin.h"
 #include "Remote.h"
+#include "Server.h"
 
 
 static const Nodes *sNodes;
-static const Data *sData;
 static std::map<std::string, Table * > sTables;
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data, const Queries *preset)
 {
     sNodes = nodes;
-    sData = data;
 
     for (int i = 0; i < data->nbTables; ++i) {
         sTables[std::string(data->tables[i].tableName)] = &data->tables[i];
     }
+
+    // TODO: *ps will be leaked
+    Server *ps = new Server(17000);
+    boost::thread t(boost::bind(&Server::run, ps));
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)
 {
-    using boost::asio::ip::tcp;
-    boost::asio::io_service io_service;
-    tcp::acceptor acceptor(io_service, tcp::endpoint(tcp::v4(), 30000 + currentNode->iNode));
-
-    op::Tuple tuple;
-
-    while (true) {
-        tcp::iostream tcpstream;
-        acceptor.accept(*tcpstream.rdbuf());
-        boost::archive::binary_iarchive ia(tcpstream);
-        ia.register_type(static_cast<op::NLJoin *>(NULL));
-        ia.register_type(static_cast<op::NBJoin *>(NULL));
-        ia.register_type(static_cast<op::SeqScan *>(NULL));
-        ia.register_type(static_cast<op::IndexScan *>(NULL));
-        ia.register_type(static_cast<op::Remote *>(NULL));
-
-        op::Operator::Ptr root;
-        ia >> root;
-
-        root->Open();
-        while (!root->GetNext(tuple)) {
-            for (size_t i = 0; i < tuple.size(); i++) {
-                if (i == tuple.size() - 1) {
-                    tcpstream << tuple[i] << std::endl;
-                } else {
-                    tcpstream << tuple[i] << "|";
-                }
-            }
-        }
-        root->Close();
-    }
+    // TODO: *ps will be leaked
+    Server *ps = new Server(17000 + currentNode->iNode);
+    boost::thread t(boost::bind(&Server::run, ps));
 }
 
 Connection *createConnection()

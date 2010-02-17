@@ -29,9 +29,10 @@ Remote::~Remote()
 
 RC Remote::Open(const char *)
 {
-    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * child->numOutputCols()]);
+    lineBuffer.reset(new char[std::max(static_cast<size_t>(1),
+                                       (MAX_VARCHAR_LEN + 1) * child->numOutputCols())]);
 
-    tcpstream.connect(ipAddress, boost::lexical_cast<std::string>(30000 + child->getNodeID()));
+    tcpstream.connect(ipAddress, boost::lexical_cast<std::string>(17000 + child->getNodeID()));
     if (tcpstream.fail()) {
         throw std::runtime_error("tcp::iostream.connect() failed");
     }
@@ -49,16 +50,15 @@ RC Remote::Open(const char *)
 
 RC Remote::GetNext(Tuple &tuple)
 {
-    if (tcpstream.eof()) {
-        return -1;
-    }
-    tcpstream.getline(lineBuffer.get(), (MAX_VARCHAR_LEN + 1) * child->numOutputCols());
+    tuple.clear();
+    tcpstream.getline(lineBuffer.get(),
+                      std::max(static_cast<size_t>(1),
+                               (MAX_VARCHAR_LEN + 1) * child->numOutputCols()));
     if (*lineBuffer.get() == '\0') {
-        return -1;
+        return (tcpstream.eof()) ? -1 : 0;
     }
 
     char *c = lineBuffer.get();
-    tuple.clear();
     while (true) {
         tuple.push_back(c);
         if (!(c = strchr(c + 1, '|'))) {

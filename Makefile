@@ -4,8 +4,8 @@ LIBS = -ldl -pthread
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
 MYFLAGS = -Wall -I/u/hyunjung/boost_1_42_0
-MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/IndexScan.o objs/NLJoin.o objs/NBJoin.o objs/Remote.o objs/Client.o
-MYLIBS = libboost_serialization.a libboost_system.a libboost_iostreams.a
+MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/IndexScan.o objs/NLJoin.o objs/NBJoin.o objs/Remote.o objs/Client.o objs/Server.o
+MYLIBS = libboost_serialization.a libboost_system.a libboost_iostreams.a libboost_thread.a
 MYLIBS := $(addprefix /u/hyunjung/boost_1_42_0/stage/lib/, $(MYLIBS))
 
 all: objs/mainClient objs/mainSlaveClient
