@@ -5,7 +5,7 @@ using namespace op;
 
 Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
     : Operator(n), fileName(f), gteqConds(), joinConds(), numInputCols(t->nbFields),
-      alias(a), table(t), file(), lineBuffer()
+      alias(a), table(t), file()
 {
     initProject(q);
     initFilter(q);
@@ -13,7 +13,7 @@ Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Q
 
 Scan::Scan()
     : fileName(), gteqConds(), joinConds(), numInputCols(),
-      alias(), table(NULL), file(), lineBuffer()
+      alias(), table(NULL), file()
 {
 }
 
@@ -25,53 +25,44 @@ void Scan::initFilter(const Query *q)
 {
     for (int i = 0; i < q->nbRestrictionsEqual; ++i) {
         if (hasCol(q->restrictionEqualFields[i])) {
-            gteqConds.push_back(boost::make_tuple(getInputColID(q->restrictionEqualFields[i]),
-                                                  &q->restrictionEqualValues[i],
-                                                  EQ));
+            gteqConds.push_back(
+                boost::make_tuple(getInputColID(q->restrictionEqualFields[i]),
+                                  &q->restrictionEqualValues[i],
+                                  EQ));
         }
     }
 
     for (int i = 0; i < q->nbRestrictionsGreaterThan; ++i) {
         if (hasCol(q->restrictionGreaterThanFields[i])) {
-            gteqConds.push_back(boost::make_tuple(getInputColID(q->restrictionGreaterThanFields[i]),
-                                                  &q->restrictionGreaterThanValues[i],
-                                                  GT));
+            gteqConds.push_back(
+                boost::make_tuple(getInputColID(q->restrictionGreaterThanFields[i]),
+                                  &q->restrictionGreaterThanValues[i],
+                                  GT));
         }
     }
 
     for (int i = 0; i < q->nbJoins; ++i) {
         if (hasCol(q->joinFields1[i]) && hasCol(q->joinFields2[i])) {
-            joinConds.push_back(boost::make_tuple(getInputColID(q->joinFields1[i]),
-                                                  getInputColID(q->joinFields2[i]),
-                                                  table->fieldsType[getInputColID(q->joinFields1[i])]));
+            joinConds.push_back(
+                boost::make_tuple(getInputColID(q->joinFields1[i]),
+                                  getInputColID(q->joinFields2[i]),
+                                  table->fieldsType[getInputColID(q->joinFields1[i])]));
         }
     }
 }
 
-const char * Scan::splitLine(const char *pos, const char *eof, char *buf, Tuple &temp) const
+const char * Scan::splitLine(const char *pos, const char *eof, Tuple &temp) const
 {
-    const char *eol = static_cast<const char *>(memchr(pos, '\n', eof - pos));
-    eol = (eol == NULL) ? eof : eol;
-
     temp.clear();
 
-    if (eol == pos) {
-        return eol + 1;
+    for (int i = 0; i < numInputCols; ++i) {
+        const char *delim = static_cast<const char *>(
+                                memchr(pos, (i == numInputCols - 1) ? '\n' : '|', eof - pos));
+        temp.push_back(std::make_pair(pos, delim - pos));
+        pos = delim + 1;
     }
 
-    memcpy(buf, pos, eol - pos);
-    buf[eol - pos] = '\0';
-
-    char *c = buf;
-    while (true) {
-        temp.push_back(c);
-        if (!(c = strchr(c + 1, '|'))) {
-            break;
-        }
-        *c++ = 0;
-    }
-
-    return eol + 1;
+    return pos;
 }
 
 bool Scan::execFilter(const Tuple &tuple) const
@@ -81,31 +72,49 @@ bool Scan::execFilter(const Tuple &tuple) const
     }
 
     for (size_t i = 0; i < gteqConds.size(); ++i) {
-        int cmp = (gteqConds[i].get<1>()->type == INT) ?
-                  (gteqConds[i].get<1>()->intVal - static_cast<uint32_t>(atoi(tuple[gteqConds[i].get<0>()]))) :
-                  (strcmp(gteqConds[i].get<1>()->charVal, tuple[gteqConds[i].get<0>()]));
-
-        switch (gteqConds[i].get<2>()) {
-        case EQ:
-            if (cmp != 0) {
+        if (gteqConds[i].get<1>()->type == INT) {
+            int cmp = gteqConds[i].get<1>()->intVal
+                      - static_cast<uint32_t>(atoi(tuple[gteqConds[i].get<0>()].first));
+            if ((gteqConds[i].get<2>() == EQ && cmp != 0)
+                || (gteqConds[i].get<2>() == GT && cmp >= 0)) {
                 return false;
             }
-            break;
-
-        case GT:
-            if (cmp >= 0) {
-                return false;
+        } else { // STRING
+            if (gteqConds[i].get<2>() == EQ) {
+                if ((gteqConds[i].get<1>()->intVal
+                     != tuple[gteqConds[i].get<0>()].second)
+                    || (memcmp(gteqConds[i].get<1>()->charVal,
+                               tuple[gteqConds[i].get<0>()].first,
+                               tuple[gteqConds[i].get<0>()].second) != 0)) {
+                    return false;
+                }
+            } else { // GT
+                int cmp = memcmp(gteqConds[i].get<1>()->charVal,
+                                 tuple[gteqConds[i].get<0>()].first,
+                                 std::min(gteqConds[i].get<1>()->intVal,
+                                          tuple[gteqConds[i].get<0>()].second));
+                if (cmp > 0
+                    || (cmp == 0 && gteqConds[i].get<1>()->intVal >= tuple[gteqConds[i].get<0>()].second)) {
+                    return false;
+                }
             }
-            break;
         }
     }
 
     for (size_t i = 0; i < joinConds.size(); ++i) {
-        if ((joinConds[i].get<2>() == INT
-             && atoi(tuple[joinConds[i].get<0>()]) != atoi(tuple[joinConds[i].get<1>()]))
-            || (joinConds[i].get<2>() == STRING
-                && strcmp(tuple[joinConds[i].get<0>()], tuple[joinConds[i].get<1>()]) != 0)) {
-            return false;
+        if (joinConds[i].get<2>() == INT) {
+            if (atoi(tuple[joinConds[i].get<0>()].first)
+                != atoi(tuple[joinConds[i].get<1>()].first)) {
+                return false;
+            }
+        } else { // STRING
+            if ((tuple[joinConds[i].get<0>()].second
+                 != tuple[joinConds[i].get<1>()].second)
+                || (memcmp(tuple[joinConds[i].get<0>()].first,
+                           tuple[joinConds[i].get<1>()].first,
+                           tuple[joinConds[i].get<1>()].second) != 0)) {
+                return false;
+            }
         }
     }
 

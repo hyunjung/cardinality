@@ -27,7 +27,7 @@ Remote::~Remote()
 {
 }
 
-RC Remote::Open(const char *)
+RC Remote::Open(const char *, const uint32_t)
 {
     lineBuffer.reset(new char[std::max(static_cast<size_t>(1),
                                        (MAX_VARCHAR_LEN + 1) * child->numOutputCols())]);
@@ -58,13 +58,14 @@ RC Remote::GetNext(Tuple &tuple)
         return (tcpstream.eof()) ? -1 : 0;
     }
 
-    char *c = lineBuffer.get();
-    while (true) {
-        tuple.push_back(c);
-        if (!(c = strchr(c + 1, '|'))) {
-            break;
-        }
-        *c++ = 0;
+    const char *pos = lineBuffer.get();
+    const char *eof = lineBuffer.get() + strlen(lineBuffer.get()) + 1;
+
+    for (size_t i = 0; i < child->numOutputCols(); ++i) {
+        const char *delim = static_cast<const char *>(
+                                memchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|', eof - pos));
+        tuple.push_back(std::make_pair(pos, delim - pos));
+        pos = delim + 1;
     }
 
     return 0;

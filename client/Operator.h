@@ -15,7 +15,9 @@ namespace op {
 typedef int RC;
 typedef int ColID;
 typedef int NodeID;
-typedef std::vector<const char *> Tuple;
+
+// pointer and length for each value
+typedef std::vector<std::pair<const char *, uint32_t> > Tuple;
 
 
 class Operator {
@@ -26,7 +28,7 @@ public:
     Operator();
     virtual ~Operator();
 
-    virtual RC Open(const char * = NULL) = 0;
+    virtual RC Open(const char * = NULL, const uint32_t = 0) = 0;
     virtual RC GetNext(Tuple &) = 0;
     virtual RC Close() = 0;
 

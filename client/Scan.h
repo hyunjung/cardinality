@@ -7,8 +7,8 @@
 #else
 #include <fstream>
 #include <cstring>
-#endif
 #include <boost/scoped_array.hpp>
+#endif
 #include "Operator.h"
 #include "Value.h"
 
@@ -28,7 +28,7 @@ public:
     Scan();
     virtual ~Scan();
 
-    virtual RC ReScan(const char * = NULL) = 0;
+    virtual RC ReScan(const char * = NULL, const uint32_t = 0) = 0;
 
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
@@ -38,7 +38,7 @@ protected:
     void initFilter(const Query *q);
     bool execFilter(const Tuple &) const;
     void execProject(const Tuple &, Tuple &) const;
-    const char *splitLine(const char *, const char *, char *, Tuple &) const;
+    const char *splitLine(const char *, const char *, Tuple &) const;
 
     const std::string fileName;
     std::vector<boost::tuple<ColID, Value *, CompOp> > gteqConds;
@@ -51,8 +51,8 @@ protected:
     boost::iostreams::mapped_file_source file;
 #else
     std::ifstream file;
-#endif
     boost::scoped_array<char> lineBuffer;
+#endif
 
 private:
     Scan(const Scan &);

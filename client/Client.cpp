@@ -53,6 +53,21 @@ void performQuery(Connection *conn, const Query *q)
 {
     conn->q = q;
 
+    // for string values, set intVal as length
+    for (int j = 0; j < q->nbRestrictionsEqual; ++j) {
+        Value *v = &q->restrictionEqualValues[j];
+        if (v->type == STRING) {
+            v->intVal = strlen(v->charVal);
+        }
+    }
+    for (int j = 0; j < q->nbRestrictionsGreaterThan; ++j) {
+        Value *v = &q->restrictionGreaterThanValues[j];
+        if (v->type == STRING) {
+            v->intVal = strlen(v->charVal);
+        }
+    }
+
+
     op::Scan::Ptr right;
 
     // construct an execution tree
@@ -136,12 +151,13 @@ ErrCode fetchRow(Connection *conn, Value *values)
         op::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
         values[i].type = conn->root->getColType(conn->q->outputFields[i]);
         if (values[i].type == INT) {
-            values[i].intVal = static_cast<uint32_t>(atoi(conn->tuple[cid]));
+            values[i].intVal = static_cast<uint32_t>(atoi(conn->tuple[cid].first));
 #ifdef PRINT_TUPLES
             std::cout << values[i].intVal << "|";
 #endif
         } else {
-            strcpy(values[i].charVal, conn->tuple[cid]);
+            memcpy(values[i].charVal, conn->tuple[cid].first, conn->tuple[cid].second);
+            values[i].charVal[conn->tuple[cid].second] = '\0';
 #ifdef PRINT_TUPLES
             std::cout << values[i].charVal << "|";
 #endif

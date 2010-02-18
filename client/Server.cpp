@@ -49,10 +49,9 @@ static void handle_query(tcpstream_ptr conn)
     root->Open();
     while (!root->GetNext(tuple)) {
         for (size_t i = 0; i < tuple.size(); i++) {
-            if (i == tuple.size() - 1) {
-                *conn << tuple[i];
-            } else {
-                *conn << tuple[i] << "|";
+            conn->write(tuple[i].first, tuple[i].second);
+            if (i < tuple.size() - 1) {
+                conn->put('|');
             }
         }
         *conn << std::endl;

@@ -3,7 +3,8 @@
 using namespace op;
 
 
-SeqScan::SeqScan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
+SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
+                 const Table *t, const Query *q)
     : Scan(n, f, a, t, q), pos(NULL)
 {
 }
@@ -17,10 +18,8 @@ SeqScan::~SeqScan()
 {
 }
 
-RC SeqScan::Open(const char *)
+RC SeqScan::Open(const char *, const uint32_t)
 {
-    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * numInputCols]);
-
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     file.open(fileName);
     pos = file.begin();
@@ -33,7 +32,7 @@ RC SeqScan::Open(const char *)
     return 0;
 }
 
-RC SeqScan::ReScan(const char *)
+RC SeqScan::ReScan(const char *, const uint32_t)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     pos = file.begin();
@@ -49,8 +48,7 @@ RC SeqScan::GetNext(Tuple &tuple)
 
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     while (pos < file.end()) {
-        pos = splitLine(pos, file.end(),
-                        lineBuffer.get(), temp);
+        pos = splitLine(pos, file.end(), temp);
 
         if (execFilter(temp)) {
             execProject(temp, tuple);
@@ -90,8 +88,6 @@ RC SeqScan::GetNext(Tuple &tuple)
 RC SeqScan::Close()
 {
     file.close();
-    lineBuffer.reset();
-
     return 0;
 }
 

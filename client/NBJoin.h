@@ -16,7 +16,7 @@ public:
     NBJoin();
     ~NBJoin();
 
-    RC Open(const char * = NULL);
+    RC Open(const char * = NULL, const uint32_t = 0);
     RC GetNext(Tuple &);
     RC Close();
 

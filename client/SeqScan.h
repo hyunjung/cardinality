@@ -14,8 +14,8 @@ public:
     SeqScan();
     ~SeqScan();
 
-    RC Open(const char * = NULL);
-    RC ReScan(const char * = NULL);
+    RC Open(const char * = NULL, const uint32_t = 0);
+    RC ReScan(const char * = NULL, const uint32_t = 0);
     RC GetNext(Tuple &);
     RC Close();
 

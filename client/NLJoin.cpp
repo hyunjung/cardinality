@@ -21,7 +21,7 @@ NLJoin::~NLJoin()
 {
 }
 
-RC NLJoin::Open(const char *)
+RC NLJoin::Open(const char *, const uint32_t)
 {
     state = RIGHT_OPEN;
     return leftChild->Open();
@@ -37,16 +37,24 @@ RC NLJoin::GetNext(Tuple &tuple)
                 return -1;
             }
             state = RIGHT_GETNEXT;
-            rightChild->Open((idxJoinColID == NOT_INDEX_JOIN) ? NULL
-                                                              : leftTuple[idxJoinColID]);
+            if (idxJoinColID == NOT_INDEX_JOIN) {
+                rightChild->Open();
+            } else {
+                rightChild->Open(leftTuple[idxJoinColID].first,
+                                 leftTuple[idxJoinColID].second);
+            }
         } else if (state == RIGHT_RESCAN) {
             if (leftChild->GetNext(leftTuple)) {
                 rightChild->Close();
                 return -1;
             }
             state = RIGHT_GETNEXT;
-            rightChild->ReScan((idxJoinColID == NOT_INDEX_JOIN) ? NULL
-                                                                : leftTuple[idxJoinColID]);
+            if (idxJoinColID == NOT_INDEX_JOIN) {
+                rightChild->ReScan();
+            } else {
+                rightChild->ReScan(leftTuple[idxJoinColID].first,
+                                   leftTuple[idxJoinColID].second);
+            }
         }
 
         while (!rightChild->GetNext(rightTuple)) {

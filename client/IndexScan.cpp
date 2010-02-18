@@ -5,7 +5,8 @@ using namespace op;
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const Query *q, const char *col)
-    : Scan(n, f, a, t, q), indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
+    : Scan(n, f, a, t, q),
+      indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
       index(NULL), txn(NULL), record(),
       state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL)
 {
@@ -52,20 +53,21 @@ IndexScan::~IndexScan()
 {
 }
 
-RC IndexScan::Open(const char *leftValue)
+RC IndexScan::Open(const char *leftValue, const uint32_t leftValueLen)
 {
-    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * numInputCols]);
-
     file.open(fileName);
     openIndex(indexCol.c_str(), &index);
 
     record.val.type = indexColType;
     if (indexColType == INT) {
-        keyIntVal = (leftValue) ? static_cast<uint32_t>(atoi(leftValue)) : value->intVal;
+        keyIntVal = (leftValue) ? static_cast<uint32_t>(atoi(leftValue))
+                                : value->intVal;
         record.val.intVal = keyIntVal;
     } else { // STRING
         keyCharVal = (leftValue) ? leftValue : value->charVal;
-        strcpy(record.val.charVal, keyCharVal);
+        keyIntVal = (leftValue) ? leftValueLen : value->intVal;
+        memcpy(record.val.charVal, keyCharVal, keyIntVal);
+        record.val.charVal[keyIntVal] = '\0';
     }
 
     beginTransaction(&txn);
@@ -75,17 +77,20 @@ RC IndexScan::Open(const char *leftValue)
     return 0;
 }
 
-RC IndexScan::ReScan(const char *leftValue)
+RC IndexScan::ReScan(const char *leftValue, const uint32_t leftValueLen)
 {
     commitTransaction(txn);
 
     record.val.type = indexColType;
     if (indexColType == INT) {
-        keyIntVal = (leftValue) ? static_cast<uint32_t>(atoi(leftValue)) : value->intVal;
+        keyIntVal = (leftValue) ? static_cast<uint32_t>(atoi(leftValue))
+                                : value->intVal;
         record.val.intVal = keyIntVal;
     } else { // STRING
         keyCharVal = (leftValue) ? leftValue : value->charVal;
-        strcpy(record.val.charVal, keyCharVal);
+        keyIntVal = (leftValue) ? leftValueLen : value->intVal;
+        memcpy(record.val.charVal, keyCharVal, keyIntVal);
+        record.val.charVal[keyIntVal] = '\0';
     }
 
     beginTransaction(&txn);
@@ -115,8 +120,7 @@ RC IndexScan::GetNext(Tuple &tuple)
                 if (unique) {
                     state = INDEX_DONE;
                 }
-                splitLine(file.begin() + record.address, file.end(),
-                          lineBuffer.get(), temp);
+                splitLine(file.begin() + record.address, file.end(), temp);
 
                 if (execFilter(temp)) {
                     execProject(temp, tuple);
@@ -140,24 +144,36 @@ RC IndexScan::GetNext(Tuple &tuple)
     case INDEX_GETNEXT:
         while ((ec = getNext(index, txn, &record)) == SUCCESS) {
             if (checkIndexCond) {
-                int cmp = (indexColType == INT) ?
-                          (keyIntVal - record.val.intVal) :
-                          (strcmp(keyCharVal, record.val.charVal));
-
-                if (compOp == EQ) {
-                    if (cmp != 0) {
-                        return -1;
+                if (indexColType == INT) {
+                    if (compOp == EQ) {
+                        if (keyIntVal != record.val.intVal) {
+                            return -1;
+                        }
+                    } else { // GT
+                        if (keyIntVal >= record.val.intVal) {
+                            continue;
+                        }
+                        checkIndexCond = false;
                     }
-                } else { // GT
-                    if (cmp >= 0) {
-                        continue;
+                } else { // STRING
+                    if (compOp == EQ) {
+                        if (record.val.charVal[keyIntVal] != '\0'
+                            || memcmp(keyCharVal, record.val.charVal, keyIntVal) != 0) {
+                            return -1;
+                        }
+                    } else { // GT
+                        uint32_t charValLen = strlen(record.val.charVal);
+                        int cmp = memcmp(keyCharVal, record.val.charVal,
+                                         std::min(keyIntVal, charValLen));
+                        if (cmp > 0 || (cmp == 0 && keyIntVal >= charValLen)) {
+                            continue;
+                        }
+                        checkIndexCond = false;
                     }
-                    checkIndexCond = false;
                 }
             }
 
-            splitLine(file.begin() + record.address, file.end(),
-                      lineBuffer.get(), temp);
+            splitLine(file.begin() + record.address, file.end(), temp);
 
             if (execFilter(temp)) {
                 execProject(temp, tuple);
@@ -175,7 +191,6 @@ RC IndexScan::Close()
     commitTransaction(txn);
     closeIndex(index);
     file.close();
-    lineBuffer.reset();
 
     return 0;
 }
