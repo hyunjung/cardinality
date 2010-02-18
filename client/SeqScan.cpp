@@ -24,6 +24,7 @@ RC SeqScan::Open(const char *, const uint32_t)
     file.open(fileName);
     pos = file.begin();
 #else
+    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * numInputCols]);
     file.open(fileName.c_str());
     if (file.fail()) {
         throw std::runtime_error("ifstream.open() failed");
@@ -37,6 +38,7 @@ RC SeqScan::ReScan(const char *, const uint32_t)
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     pos = file.begin();
 #else
+    file.clear();
     file.seekg(0, std::ios::beg);
 #endif
     return 0;
@@ -62,19 +64,21 @@ RC SeqScan::GetNext(Tuple &tuple)
         if (file.eof()) {
             return -1;
         }
-        file.getline(lineBuffer.get(), 4096);
+        file.getline(lineBuffer.get(), (MAX_VARCHAR_LEN + 1) * numInputCols);
         if (*lineBuffer.get() == '\0') {
             return -1;
         }
 
-        char *c = lineBuffer.get();
         temp.clear();
-        while (true) {
-            temp.push_back(c);
-            if (!(c = strchr(c + 1, '|'))) {
-                break;
-            }
-            *c++ = 0;
+
+        const char *pos = lineBuffer.get();
+        const char *eof = lineBuffer.get() + strlen(lineBuffer.get()) + 1;
+
+        for (int i = 0; i < numInputCols; ++i) {
+            const char *delim = static_cast<const char *>(
+                                    memchr(pos, (i == numInputCols - 1) ? '\0' : '|', eof - pos));
+            temp.push_back(std::make_pair(pos, delim - pos));
+            pos = delim + 1;
         }
 
         if (execFilter(temp)) {
