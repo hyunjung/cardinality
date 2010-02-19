@@ -132,7 +132,8 @@ void Scan::execProject(const Tuple &inputTuple, Tuple &outputTuple) const
 
 bool Scan::hasCol(const char *col) const
 {
-    return col[alias.size()] == '.' && memcmp(col, alias.data(), alias.size()) == 0;
+    return (col[alias.size()] == '.' || col[alias.size()] == '\0')
+           && memcmp(col, alias.data(), alias.size()) == 0;
 }
 
 ColID Scan::getInputColID(const char *col) const
