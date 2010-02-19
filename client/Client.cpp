@@ -1,6 +1,5 @@
 #include <boost/thread.hpp>
 #include "../include/client.h"
-#include "Client.h"
 #include "SeqScan.h"
 #include "IndexScan.h"
 #include "NLJoin.h"
@@ -8,6 +7,12 @@
 #include "Remote.h"
 #include "Server.h"
 
+
+struct Connection {
+    const Query *q;
+    op::Operator::Ptr root;
+    op::Tuple tuple;
+};
 
 static const Nodes *sNodes;
 static std::map<std::string, Table * > sTables;
