@@ -55,14 +55,15 @@ const char * Scan::splitLine(const char *pos, const char *eof, Tuple &temp) cons
 {
     temp.clear();
 
-    for (int i = 0; i < numInputCols; ++i) {
-        const char *delim = static_cast<const char *>(
-                                memchr(pos, (i == numInputCols - 1) ? '\n' : '|', eof - pos));
+    for (int i = 0; i < numInputCols - 1; ++i) {
+        const char *delim = static_cast<const char *>(memchr(pos, '|', eof - pos));
         temp.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }
 
-    return pos;
+    const char *delim = static_cast<const char *>(memchr(pos, '\n', eof - pos));
+    temp.push_back(std::make_pair(pos, delim - pos));
+    return delim + 1;
 }
 
 bool Scan::execFilter(const Tuple &tuple) const
