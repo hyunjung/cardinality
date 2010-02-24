@@ -24,6 +24,8 @@ int main(int argc, char ** argv)
   // Connection to the master 
   connectPorts( &masterNode, &currentNode, &ports, 20000 );
 
+  string ack = "ACK" ;
+
   char buffer[4096];
   while(true)
   {
@@ -44,6 +46,7 @@ int main(int argc, char ** argv)
       ValueType type = (ValueType) receiveInt(&ports,0) ;
       int iIndex = receiveInt(&ports,0);
       createIndex( indexName, fileName, iIndex, type) ;      
+      sendString(&ports,0,ack.c_str());
     }
     else if(strcmp("PRETREATMENT",buffer) == 0)
     {

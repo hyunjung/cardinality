@@ -1,3 +1,13 @@
+--------------------------------------------------------------------
+Release 1.6 (February 24, 2009)
+---------------------------------------------------------------------
+- Wait for all indexes to be generated before pretreatment phase
+  (bench/mainClient.cpp, bench/mainMaster.cpp)
+- Wait 2 min instead of 1 min before giving up on the connect call
+  (lib/clientCom.cpp)
+- Precision on bench 5: since there is no repartition of a given table,
+  only two nodes are involved (README)
+
 ---------------------------------------------------------------------
 Release 1.5 (February 16, 2009)
 ---------------------------------------------------------------------

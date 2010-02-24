@@ -67,7 +67,7 @@ For all tests of stage 1, you may assume that a partition always cover the entir
     - On a single node, selects with an equal condition on an indexed field
     - On a single node, 2 to 5 joins on tables of different size
     - On a single node, 1 join and a "greater than" condition on an indexed field
-    - On three nodes, one join on two tables of different size, the two tables being on two different nodes
+    - On two nodes, one join on two tables of different size, the two tables being on two different nodes
 
 Stage 2:
 

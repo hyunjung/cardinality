@@ -66,12 +66,12 @@ void connectPorts(const Node * masterNode, const Node * currentNode, Ports * por
   cout << "Connect on "<< portno << endl ;
 
   int attempt ; 
-  for( attempt = 0 ; attempt < 30 and connect(sockfd, (sockaddr*)&serv_addr,sizeof(serv_addr)) < 0 ; attempt ++ ) 
+  for( attempt = 0 ; attempt < 60 and connect(sockfd, (sockaddr*)&serv_addr,sizeof(serv_addr)) < 0 ; attempt ++ ) 
   {
     sleep(2) ;
   }
 
-  assert( attempt < 30 ) ;
+  assert( attempt < 60 ) ;
 
   ports->sockfd[0] = sockfd ;
 }

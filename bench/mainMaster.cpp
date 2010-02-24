@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <vector>
+#include <map>
 #include "../include/client.h"
 #include "../lib/Tools.h"
 #include "../lib/clientCom.h"
@@ -119,10 +120,13 @@ int main(int argc, char ** argv)
     system(command) ;
   }
 
+  cout << "Opening Ports" << endl ;
   // Open the master ports
   openPorts(&nodes, &ports, 20000) ;
 
+  cout << "Creating Indexes" << endl ;
   // Create the indexes
+  std::map<int,int> nbIndexes;
   for( int t = 0 ; t < data.nbTables ; t ++ )
     for( int p = 0 ; p < data.tables[t].nbPartitions ; p ++ )
       for( int f = 0 ; f < data.tables[t].nbFields ; f ++ )
@@ -144,9 +148,18 @@ int main(int argc, char ** argv)
             sendString(&ports,n,data.tables[t].partitions[p].fileName) ;
             sendInt(&ports,n, data.tables[t].fieldsType[f] ) ;
             sendInt(&ports,n,f);
+            ++nbIndexes[n];
           }
         }
       }
+
+  for( int n = 1 ; n < nodes.nbNodes ; n ++ ) {
+    for(int k = 0 ; k < nbIndexes[n]; ++k) {
+      char ack[500];
+      receiveString(&ports,n,ack);
+      assert(!strcmp(ack,"ACK"));
+    }
+  }
 
   #if DEBUG >= 1
   cout << "End initialization" << endl ;
