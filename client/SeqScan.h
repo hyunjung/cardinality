@@ -11,7 +11,7 @@ public:
     typedef boost::shared_ptr<SeqScan> Ptr;
 
     SeqScan(const NodeID, const char *, const char *,
-            const Table *, const Query *);
+            const Table *, const PartitionStats *, const Query *);
     SeqScan();
     ~SeqScan();
 
@@ -21,6 +21,9 @@ public:
     RC Close();
 
     void print(std::ostream &, const int) const;
+
+    double estCost() const;
+    double estCardinality() const;
 
 protected:
     const char *pos;

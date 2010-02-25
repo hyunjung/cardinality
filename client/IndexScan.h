@@ -12,7 +12,8 @@ public:
     typedef boost::shared_ptr<IndexScan> Ptr;
 
     IndexScan(const NodeID, const char *, const char *,
-              const Table *, const Query *, const char * = NULL);
+              const Table *, const PartitionStats *, const Query *,
+              const char * = NULL);
     IndexScan();
     ~IndexScan();
 
@@ -22,6 +23,9 @@ public:
     RC Close();
 
     void print(std::ostream &, const int) const;
+
+    double estCost() const;
+    double estCardinality() const;
 
 protected:
     std::string indexCol;

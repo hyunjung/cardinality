@@ -95,3 +95,22 @@ ValueType Join::getColType(const char *col) const
         return leftChild->getColType(col);
     }
 }
+
+double Join::estTupleLength() const
+{
+    double length = 0;
+    for (size_t i = 0; i < numOutputCols(); ++i) {
+        length += estColLength(i);
+    }
+
+    return length;
+}
+
+double Join::estColLength(const ColID cid) const
+{
+    if (selectedInputColIDs[cid] < static_cast<ColID>(leftChild->numOutputCols())) {
+        return leftChild->estColLength(selectedInputColIDs[cid]);
+    } else {
+        return rightChild->estColLength(selectedInputColIDs[cid] - leftChild->numOutputCols());
+    }
+}

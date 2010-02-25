@@ -3,9 +3,10 @@
 using namespace op;
 
 
-Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Query *q)
+Scan::Scan(const NodeID n, const char *f, const char *a,
+           const Table *t, const PartitionStats *p, const Query *q)
     : Operator(n), fileName(f), gteqConds(), joinConds(), numInputCols(t->nbFields),
-      alias(a), table(t), file()
+      alias(a), table(t), stats(p), file()
 {
     initProject(q);
     initFilter(q);
@@ -13,7 +14,7 @@ Scan::Scan(const NodeID n, const char *f, const char *a, const Table *t, const Q
 
 Scan::Scan()
     : fileName(), gteqConds(), joinConds(), numInputCols(),
-      alias(), table(NULL), file()
+      alias(), table(NULL), stats(NULL), file()
 {
 }
 
@@ -155,4 +156,19 @@ ColID Scan::getInputColID(const char *col) const
 ValueType Scan::getColType(const char *col) const
 {
     return table->fieldsType[getInputColID(col)];
+}
+
+double Scan::estTupleLength() const
+{
+    double length = 0;
+    for (size_t i = 0; i < numOutputCols(); ++i) {
+        length += estColLength(i);
+    }
+
+    return length;
+}
+
+double Scan::estColLength(const ColID cid) const
+{
+    return stats->colLengths[selectedInputColIDs[cid]];
 }

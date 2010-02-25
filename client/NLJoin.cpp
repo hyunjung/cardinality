@@ -79,9 +79,28 @@ void NLJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
     os << "NLJoin@" << getNodeID();
-    os << " [" << selectedInputColIDs.size() << "] ";
+    os << " #cols=" << numOutputCols();
+    os << " len=" << estTupleLength();
+    os << " card=" << estCardinality();
+    os << " cost=" << estCost();
     os << std::endl;
 
     leftChild->print(os, tab + 1);
     rightChild->print(os, tab + 1);
+}
+
+double NLJoin::estCost() const
+{
+    return leftChild->estCost() + leftChild->estCardinality() * rightChild->estCost();
+}
+
+double NLJoin::estCardinality() const
+{
+    double card = leftChild->estCardinality() * rightChild->estCardinality();
+
+    if (!joinConds.empty()) {
+        card /= 10.0;
+    }
+
+    return card;
 }

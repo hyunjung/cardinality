@@ -123,9 +123,30 @@ void NBJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
     os << "NBJoin@" << getNodeID();
-    os << " [" << selectedInputColIDs.size() << "] ";
+    os << " #cols=" << numOutputCols();
+    os << " len=" << estTupleLength();
+    os << " card=" << estCardinality();
+    os << " cost=" << estCost();
     os << std::endl;
 
     leftChild->print(os, tab + 1);
     rightChild->print(os, tab + 1);
+}
+
+double NBJoin::estCost() const
+{
+    return leftChild->estCost()
+           + (leftChild->estCardinality() * leftChild->estTupleLength() / NBJOIN_BUFSIZE)
+             * rightChild->estCost();
+}
+
+double NBJoin::estCardinality() const
+{
+    double card = leftChild->estCardinality() * rightChild->estCardinality();
+
+    if (!joinConds.empty()) {
+        card /= 10.0;
+    }
+
+    return card;
 }

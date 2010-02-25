@@ -37,6 +37,11 @@ public:
     virtual ColID getInputColID(const char *) const = 0;
     virtual ValueType getColType(const char *) const = 0;
 
+    virtual double estCost() const = 0;
+    virtual double estCardinality() const = 0;
+    virtual double estTupleLength() const = 0;
+    virtual double estColLength(ColID) const = 0;
+
     NodeID getNodeID() const;
     size_t numOutputCols() const;
     ColID getOutputColID(const char *) const;

@@ -4,8 +4,9 @@ using namespace op;
 
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
-                     const Table *t, const Query *q, const char *col)
-    : Scan(n, f, a, t, q),
+                     const Table *t, const PartitionStats *p, const Query *q,
+                     const char *col)
+    : Scan(n, f, a, t, p, q),
       indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
       index(NULL), txn(NULL), record(),
       state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL)
@@ -210,6 +211,37 @@ void IndexScan::print(std::ostream &os, const int tab) const
     } else { // STRING
         os << "'" << value->charVal << "'";
     }
-    os << " [" << selectedInputColIDs.size() << "] ";
+    os << " #cols=" << numOutputCols();
+    os << " len=" << estTupleLength();
+    os << " card=" << estCardinality();
+    os << " cost=" << estCost();
     os << std::endl;
+}
+
+double IndexScan::estCost() const
+{
+    return 0.05;
+}
+
+double IndexScan::estCardinality() const
+{
+    if (unique) {
+        return 1.0;
+    }
+
+    double card = stats->fileSize / stats->tupleLength;
+
+    for (size_t i = 0; i < gteqConds.size(); ++i) {
+        if (gteqConds[i].get<2>() == EQ) {
+            card /= 10.0;
+        } else { // GT
+            card /= 3.0;
+        }
+    }
+
+    if (!joinConds.empty()) {
+        card /= 3.0;
+    }
+
+    return card;
 }

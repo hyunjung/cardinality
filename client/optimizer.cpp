@@ -1,3 +1,5 @@
+#include <boost/filesystem/operations.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
 #include "optimizer.h"
 #include "SeqScan.h"
 #include "IndexScan.h"
@@ -8,6 +10,43 @@
 
 extern const Nodes *gNodes;
 extern std::map<std::string, Table * > gTables;
+extern std::map<std::string, PartitionStats * > gStats;
+
+PartitionStats *sampleTable(const std::string fileName, const int numCols)
+{
+    PartitionStats *stats = new PartitionStats(numCols);
+
+    stats->fileSize = boost::filesystem::file_size(fileName);
+    size_t sampleSize = ((numCols + 3) / 4) * PAGE_SIZE;
+    boost::iostreams::mapped_file_source file(fileName,
+                                              std::min(sampleSize, stats->fileSize));
+
+    size_t numTuples = 0;
+    int i = 0;
+    for (const char *pos = file.begin(); pos < file.end(); ++numTuples) {
+        for (i = 0; i < numCols; ++i) {
+            const char *delim = static_cast<const char *>(
+                                    memchr(pos, (i == numCols - 1) ? '\n' : '|',
+                                           file.end() - pos));
+            if (delim == NULL) {
+                pos = file.end();
+                break;
+            }
+            stats->colLengths[i] += delim - pos + 1;
+            pos = delim + 1;
+        }
+    }
+
+    file.close();
+
+    stats->tupleLength = 0;
+    for (int j = 0; j < numCols; ++j) {
+        stats->colLengths[j] /= (j < i) ? (numTuples + 1) : numTuples;
+        stats->tupleLength = stats->colLengths[j];
+    }
+
+    return stats;
+}
 
 static void buildScans(const Query *q,
                        std::vector<op::Operator::Ptr> &plans)
@@ -15,17 +54,18 @@ static void buildScans(const Query *q,
     for (int i = 0; i < q->nbTable; ++i) {
         Table *table = gTables[std::string(q->tableNames[i])];
         Partition *part = &table->partitions[0];
+        PartitionStats *stats = gStats[std::string(q->tableNames[i])];
 
         plans.push_back(op::Scan::Ptr(
                         new op::SeqScan(part->iNode,
                                         part->fileName, q->aliasNames[i],
-                                        table, q)));
+                                        table, stats, q)));
 
         try {
             plans.push_back(op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, q)));
+                                              table, stats, q)));
         } catch (std::runtime_error &e) {}
     }
 }
@@ -52,6 +92,7 @@ static void buildJoins(const Query *q,
 
             Table *table = gTables[std::string(q->tableNames[i])];
             Partition *part = &table->partitions[0];
+            PartitionStats *stats = gStats[std::string(q->tableNames[i])];
             root = subPlans[k];
 
             // add Remote operator if needed
@@ -68,7 +109,7 @@ static void buildJoins(const Query *q,
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, q, q->joinFields1[j]));
+                                              table, stats, q, q->joinFields1[j]));
                     plans.push_back(op::Operator::Ptr(
                                     new op::NLJoin(right->getNodeID(), root, right,
                                                    q, j, q->joinFields2[j])));
@@ -79,7 +120,7 @@ static void buildJoins(const Query *q,
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, q, q->joinFields2[j]));
+                                              table, stats, q, q->joinFields2[j]));
                     plans.push_back(op::Operator::Ptr(
                                     new op::NLJoin(right->getNodeID(), root, right,
                                                    q, j, q->joinFields1[j])));
@@ -92,7 +133,7 @@ static void buildJoins(const Query *q,
                 right = op::Scan::Ptr(
                         new op::IndexScan(part->iNode,
                                           part->fileName, q->aliasNames[i],
-                                          table, q));
+                                          table, stats, q));
                 plans.push_back(op::Operator::Ptr(
                                 new op::NBJoin(right->getNodeID(), root, right, q)));
             } catch (std::runtime_error &e) {}
@@ -100,7 +141,7 @@ static void buildJoins(const Query *q,
             right = op::Scan::Ptr(
                     new op::SeqScan(part->iNode,
                                     part->fileName, q->aliasNames[i],
-                                    table, q));
+                                    table, stats, q));
             plans.push_back(op::Operator::Ptr(
                             new op::NBJoin(right->getNodeID(), root, right, q)));
         }
@@ -124,6 +165,9 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
         }
     }
 
+    op::Operator::Ptr bestPlan;
+    double minCost = 0;
+
     // add Remote operator if needed
     for (size_t k = 0; k < plans.size(); ++k) {
         op::Operator::Ptr root = plans[k];
@@ -132,10 +176,16 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
                    new op::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
             plans[k] = root;
         }
-        root->print(std::cout);
+
+        double cost = root->estCost();
+        if (k == 0 || cost < minCost) {
+            minCost = cost;
+            bestPlan = plans[k];
+        }
     }
 
-    return plans[0];
+    bestPlan->print(std::cout);
+    return bestPlan;
 }
 #else
 op::Operator::Ptr buildQueryPlan(const Query *q)
@@ -152,12 +202,12 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
                 right = op::Scan::Ptr(
                         new op::IndexScan(part->iNode,
                                           part->fileName, q->aliasNames[i],
-                                          table, q));
+                                          table, NULL, q));
             } catch (std::runtime_error &e) {
                 right = op::Scan::Ptr(
                         new op::SeqScan(part->iNode,
                                         part->fileName, q->aliasNames[i],
-                                        table, q));
+                                        table, NULL, q));
             }
             root = right;
 
@@ -178,7 +228,7 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, q, q->joinFields1[j]));
+                                              table, NULL, q, q->joinFields1[j]));
                     root = op::Operator::Ptr(
                            new op::NLJoin(right->getNodeID(), root, right,
                                           q, j, q->joinFields2[j]));
@@ -189,7 +239,7 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, q, q->joinFields2[j]));
+                                              table, NULL, q, q->joinFields2[j]));
                     root = op::Operator::Ptr(
                            new op::NLJoin(right->getNodeID(), root, right,
                                           q, j, q->joinFields1[j]));
@@ -203,12 +253,12 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, q));
+                                              table, NULL, q));
                 } catch (std::runtime_error &e) {
                     right = op::Scan::Ptr(
                             new op::SeqScan(part->iNode,
                                             part->fileName, q->aliasNames[i],
-                                            table, q));
+                                            table, NULL, q));
                 }
                 root = op::Operator::Ptr(
                        new op::NBJoin(right->getNodeID(), root, right, q));

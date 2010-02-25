@@ -21,6 +21,9 @@ public:
 
     void print(std::ostream &, const int) const;
 
+    double estCost() const;
+    double estCardinality() const;
+
 protected:
     ColID idxJoinColID;
     static const ColID NOT_INDEX_JOIN = -1;

@@ -20,6 +20,9 @@ public:
     ColID getInputColID(const char *) const;
     ValueType getColType(const char *) const;
 
+    double estTupleLength() const;
+    double estColLength(const ColID) const;
+
 protected:
     void initFilter(const Query *q, const int);
     bool execFilter(const Tuple &, const Tuple &) const;

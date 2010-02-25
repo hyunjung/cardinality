@@ -11,6 +11,7 @@
 #endif
 #include "Operator.h"
 #include "Value.h"
+#include "optimizer.h"
 
 
 namespace op {
@@ -24,7 +25,8 @@ class Scan: public Operator {
 public:
     typedef boost::shared_ptr<Scan> Ptr;
 
-    Scan(const NodeID, const char *, const char *, const Table *, const Query *);
+    Scan(const NodeID, const char *, const char *,
+         const Table *, const PartitionStats *, const Query *);
     Scan();
     virtual ~Scan();
 
@@ -33,6 +35,9 @@ public:
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
     ValueType getColType(const char *) const;
+
+    double estTupleLength() const;
+    double estColLength(const ColID) const;
 
 protected:
     void initFilter(const Query *q);
@@ -47,6 +52,7 @@ protected:
 
     const std::string alias;
     const Table *table;
+    const PartitionStats *stats;
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     boost::iostreams::mapped_file_source file;
 #else

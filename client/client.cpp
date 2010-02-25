@@ -12,6 +12,7 @@ struct Connection {
 
 const Nodes *gNodes;
 std::map<std::string, Table * > gTables;
+std::map<std::string, PartitionStats * > gStats;
 
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data, const Queries *preset)
@@ -20,6 +21,15 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
 
     for (int i = 0; i < data->nbTables; ++i) {
         gTables[std::string(data->tables[i].tableName)] = &data->tables[i];
+    }
+
+    for (int i = 0; i < data->nbTables; ++i) {
+//      for (int j = 0; j < data->tables[i].nbPartitions; ++j) {
+        for (int j = 0; j < 1; ++j) {
+            PartitionStats *stats = sampleTable(data->tables[i].partitions[j].fileName,
+                                                data->tables[i].nbFields);
+            gStats[std::string(data->tables[i].tableName)] = stats;
+        }
     }
 
     // TODO: *ps will be leaked

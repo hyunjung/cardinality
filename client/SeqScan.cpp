@@ -4,8 +4,8 @@ using namespace op;
 
 
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
-                 const Table *t, const Query *q)
-    : Scan(n, f, a, t, q), pos(NULL)
+                 const Table *t, const PartitionStats *p, const Query *q)
+    : Scan(n, f, a, t, p, q), pos(NULL)
 {
 }
 
@@ -99,6 +99,33 @@ void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
     os << "SeqScan@" << getNodeID() << " " << fileName;
-    os << " [" << selectedInputColIDs.size() << "] ";
+    os << " #cols=" << numOutputCols();
+    os << " len=" << estTupleLength();
+    os << " card=" << estCardinality();
+    os << " cost=" << estCost();
     os << std::endl;
+}
+
+double SeqScan::estCost() const
+{
+    return 1.0 * ((stats->fileSize + PAGE_SIZE - 1) / PAGE_SIZE);
+}
+
+double SeqScan::estCardinality() const
+{
+    double card = stats->fileSize / stats->tupleLength;
+
+    for (size_t i = 0; i < gteqConds.size(); ++i) {
+        if (gteqConds[i].get<2>() == EQ) {
+            card /= 10.0;
+        } else { // GT
+            card /= 3.0;
+        }
+    }
+
+    if (!joinConds.empty()) {
+        card /= 3.0;
+    }
+
+    return card;
 }

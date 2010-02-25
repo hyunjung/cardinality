@@ -83,6 +83,7 @@ void Remote::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
     os << "Remote@" << getNodeID();
+    os << " cost=" << estCost();
     os << std::endl;
 
     child->print(os, tab + 1);
@@ -101,4 +102,24 @@ ColID Remote::getInputColID(const char *col) const
 ValueType Remote::getColType(const char *col) const
 {
     return child->getColType(col);
+}
+
+double Remote::estCost() const
+{
+    return child->estCost() + 0.0025 * estTupleLength() * estCardinality();
+}
+
+double Remote::estCardinality() const
+{
+    return child->estCardinality();
+}
+
+double Remote::estTupleLength() const
+{
+    return child->estTupleLength();
+}
+
+double Remote::estColLength(const ColID cid) const
+{
+    return child->estColLength(cid);
 }
