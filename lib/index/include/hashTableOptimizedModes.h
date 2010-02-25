@@ -193,10 +193,13 @@ class HashTable
 
     if( warpMode )
       {
-	average = evalAverage() ;
 	//int64_t minDist = min( average, MAX_INT_KEY - average ) ;
 	//deviation = min( evalDeviation(average), minDist / 2 ) ;
-	deviation = evalDeviation(average) ;
+	//average = evalAverage() ;
+	//deviation = evalDeviation(average) ;
+        //SIGMOD OPTIMIZE
+	average = evalAverage()*2 ;
+	deviation = evalDeviation(average)*2 ;
         //cout << minDist/2 << endl ;
         //cout << average  << " " << deviation << endl ;
 	Key ** newHashTab = new Key*[size*2] ;
@@ -242,6 +245,7 @@ class HashTable
 	delete[] hashTab ;
 	hashTab = newHashTab ;
       }
+
   }
 
   inline int64_t getSize( int64_t hash )

@@ -1,4 +1,10 @@
 --------------------------------------------------------------------
+Release 1.7 (February 25, 2009)
+---------------------------------------------------------------------
+- Improved loading time of the index
+  (current/lib/index/include/hashTableOptimizedModes.h)
+
+--------------------------------------------------------------------
 Release 1.6 (February 24, 2009)
 ---------------------------------------------------------------------
 - Wait for all indexes to be generated before pretreatment phase
