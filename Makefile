@@ -26,8 +26,8 @@ $(MYOBJS): objs/%.o:
 	$(CC) $(FLAGS) $(MYFLAGS) -c $< -o $@
 
 zip: objs/Client.so
-	strip objs/Client.so -o objs/Client-`date +%F-%H%M`.so
-	zip objs/Client-`date +%F-%H%M`.zip Makefile client/*
+	strip objs/Client.so -o submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.so
+	zip submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.zip Makefile client/*
 
 buildLib:objs/SimpleClient.so objs/TrivialClient.so $(OBJS) 
 buildBench: objs/mainSimpleClient objs/mainSlaveSimpleClient objs/mainTrivialClient objs/mainSlaveTrivialClient
