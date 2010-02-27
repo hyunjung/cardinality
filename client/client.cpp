@@ -87,7 +87,7 @@ ErrCode fetchRow(Connection *conn, Value *values)
         ca::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
         values[i].type = conn->root->getColType(conn->q->outputFields[i]);
         if (values[i].type == INT) {
-            values[i].intVal = static_cast<uint32_t>(std::atoi(conn->tuple[cid].first));
+            values[i].intVal = ca::Operator::parseInt(conn->tuple[cid].first, conn->tuple[cid].second);
 #ifdef PRINT_TUPLES
             std::cout << values[i].intVal << "|";
 #endif

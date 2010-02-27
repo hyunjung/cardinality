@@ -63,12 +63,20 @@ RC IndexScan::Open(const char *leftValue, const uint32_t leftValueLen)
 
     record.val.type = indexColType;
     if (indexColType == INT) {
-        keyIntVal = (leftValue) ? static_cast<uint32_t>(std::atoi(leftValue))
-                                : value->intVal;
+        if (leftValue) {
+            keyIntVal = parseInt(leftValue, leftValueLen);
+        } else {
+            keyIntVal = value->intVal;
+        }
         record.val.intVal = keyIntVal;
     } else { // STRING
-        keyCharVal = (leftValue) ? leftValue : value->charVal;
-        keyIntVal = (leftValue) ? leftValueLen : value->intVal;
+        if (leftValue) {
+            keyCharVal = leftValue;
+            keyIntVal = leftValueLen;
+        } else {
+            keyCharVal = value->charVal;
+            keyIntVal = value->intVal;
+        }
         std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
         record.val.charVal[keyIntVal] = '\0';
     }
@@ -82,21 +90,20 @@ RC IndexScan::Open(const char *leftValue, const uint32_t leftValueLen)
 
 RC IndexScan::ReScan(const char *leftValue, const uint32_t leftValueLen)
 {
-    commitTransaction(txn);
-
-    record.val.type = indexColType;
     if (indexColType == INT) {
-        keyIntVal = (leftValue) ? static_cast<uint32_t>(std::atoi(leftValue))
-                                : value->intVal;
+        if (leftValue) {
+            keyIntVal = parseInt(leftValue, leftValueLen);
+        }
         record.val.intVal = keyIntVal;
     } else { // STRING
-        keyCharVal = (leftValue) ? leftValue : value->charVal;
-        keyIntVal = (leftValue) ? leftValueLen : value->intVal;
+        if (leftValue) {
+            keyCharVal = leftValue;
+            keyIntVal = leftValueLen;
+        }
         std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
         record.val.charVal[keyIntVal] = '\0';
     }
 
-    beginTransaction(&txn);
     state = INDEX_GET;
     checkIndexCond = true;
 
@@ -161,7 +168,7 @@ RC IndexScan::GetNext(Tuple &tuple)
                 } else { // STRING
                     if (compOp == EQ) {
                         if (record.val.charVal[keyIntVal] != '\0'
-                            || std::memcmp(keyCharVal, record.val.charVal, keyIntVal) != 0) {
+                            || std::memcmp(keyCharVal, record.val.charVal, keyIntVal)) {
                             return -1;
                         }
                     } else { // GT

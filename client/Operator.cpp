@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <set>
+#include <boost/spirit/include/qi.hpp>
 #include "Operator.h"
 
 using namespace ca;
@@ -57,4 +58,11 @@ void Operator::initProject(const Query *q)
             selectedInputColIDs.push_back(getInputColID(q->joinFields2[i]));
         }
     }
+}
+
+uint32_t Operator::parseInt(const char *str, const uint32_t len)
+{
+    uint32_t intVal = 0;
+    boost::spirit::qi::parse(str, str + len, boost::spirit::uint_, intVal);
+    return intVal;
 }

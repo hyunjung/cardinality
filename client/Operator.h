@@ -46,6 +46,8 @@ public:
     size_t numOutputCols() const;
     ColID getOutputColID(const char *) const;
 
+    static uint32_t parseInt(const char *, const uint32_t);
+
 protected:
     void initProject(const Query *q);
 

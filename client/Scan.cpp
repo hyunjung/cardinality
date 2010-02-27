@@ -76,7 +76,8 @@ bool Scan::execFilter(const Tuple &tuple) const
     for (size_t i = 0; i < gteqConds.size(); ++i) {
         if (gteqConds[i].get<1>()->type == INT) {
             int cmp = gteqConds[i].get<1>()->intVal
-                      - static_cast<uint32_t>(std::atoi(tuple[gteqConds[i].get<0>()].first));
+                      - parseInt(tuple[gteqConds[i].get<0>()].first,
+                                 tuple[gteqConds[i].get<0>()].second);
             if ((gteqConds[i].get<2>() == EQ && cmp != 0)
                 || (gteqConds[i].get<2>() == GT && cmp >= 0)) {
                 return false;
@@ -87,7 +88,7 @@ bool Scan::execFilter(const Tuple &tuple) const
                      != tuple[gteqConds[i].get<0>()].second)
                     || (std::memcmp(gteqConds[i].get<1>()->charVal,
                                     tuple[gteqConds[i].get<0>()].first,
-                                    tuple[gteqConds[i].get<0>()].second) != 0)) {
+                                    tuple[gteqConds[i].get<0>()].second))) {
                     return false;
                 }
             } else { // GT
@@ -105,8 +106,10 @@ bool Scan::execFilter(const Tuple &tuple) const
 
     for (size_t i = 0; i < joinConds.size(); ++i) {
         if (joinConds[i].get<2>() == INT) {
-            if (std::atoi(tuple[joinConds[i].get<0>()].first)
-                != std::atoi(tuple[joinConds[i].get<1>()].first)) {
+            if (parseInt(tuple[joinConds[i].get<0>()].first,
+                         tuple[joinConds[i].get<0>()].second)
+                != parseInt(tuple[joinConds[i].get<1>()].first,
+                            tuple[joinConds[i].get<1>()].second)) {
                 return false;
             }
         } else { // STRING
@@ -114,7 +117,7 @@ bool Scan::execFilter(const Tuple &tuple) const
                  != tuple[joinConds[i].get<1>()].second)
                 || (std::memcmp(tuple[joinConds[i].get<0>()].first,
                                 tuple[joinConds[i].get<1>()].first,
-                                tuple[joinConds[i].get<1>()].second) != 0)) {
+                                tuple[joinConds[i].get<1>()].second))) {
                 return false;
             }
         }
@@ -135,7 +138,7 @@ void Scan::execProject(const Tuple &inputTuple, Tuple &outputTuple) const
 bool Scan::hasCol(const char *col) const
 {
     return (col[alias.size()] == '.' || col[alias.size()] == '\0')
-           && std::memcmp(col, alias.data(), alias.size()) == 0;
+           && !std::memcmp(col, alias.data(), alias.size());
 }
 
 ColID Scan::getInputColID(const char *col) const
