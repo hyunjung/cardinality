@@ -5,7 +5,7 @@
 #include "../lib/index/include/server.h"
 
 
-namespace op {
+namespace ca {
 
 class IndexScan: public Scan {
 public:
@@ -60,6 +60,6 @@ private:
 
 }
 
-BOOST_SERIALIZATION_SHARED_PTR(op::IndexScan)
+BOOST_SERIALIZATION_SHARED_PTR(ca::IndexScan)
 
 #endif

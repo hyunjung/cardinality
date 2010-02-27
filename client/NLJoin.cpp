@@ -1,6 +1,6 @@
 #include "NLJoin.h"
 
-using namespace op;
+using namespace ca;
 
 
 NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,

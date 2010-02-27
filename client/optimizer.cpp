@@ -52,21 +52,21 @@ PartitionStats *sampleTable(const std::string fileName, const int numInputCols)
 }
 
 static void buildScans(const Query *q,
-                       std::vector<op::Operator::Ptr> &plans)
+                       std::vector<ca::Operator::Ptr> &plans)
 {
     for (int i = 0; i < q->nbTable; ++i) {
         Table *table = gTables[std::string(q->tableNames[i])];
         Partition *part = &table->partitions[0];
         PartitionStats *stats = gStats[std::string(q->tableNames[i])];
 
-        plans.push_back(op::Scan::Ptr(
-                        new op::SeqScan(part->iNode,
+        plans.push_back(ca::Scan::Ptr(
+                        new ca::SeqScan(part->iNode,
                                         part->fileName, q->aliasNames[i],
                                         table, stats, q)));
 
         try {
-            plans.push_back(op::Scan::Ptr(
-                            new op::IndexScan(part->iNode,
+            plans.push_back(ca::Scan::Ptr(
+                            new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, stats, q)));
         } catch (std::runtime_error &e) {}
@@ -81,11 +81,11 @@ static inline bool HASIDXCOL(const char *col, const char *alias)
 }
 
 static void buildJoins(const Query *q,
-                       std::vector<op::Operator::Ptr> &subPlans,
-                       std::vector<op::Operator::Ptr> &plans)
+                       std::vector<ca::Operator::Ptr> &subPlans,
+                       std::vector<ca::Operator::Ptr> &plans)
 {
-    op::Operator::Ptr root;
-    op::Scan::Ptr right;
+    ca::Operator::Ptr root;
+    ca::Scan::Ptr right;
 
     for (size_t k = 0; k < subPlans.size(); ++k) {
         for (int i = 0; i < q->nbTable; ++i) {
@@ -100,8 +100,8 @@ static void buildJoins(const Query *q,
 
             // add Remote operator if needed
             if (root->getNodeID() != part->iNode) {
-                root = op::Operator::Ptr(
-                       new op::Remote(part->iNode, root,
+                root = ca::Operator::Ptr(
+                       new ca::Remote(part->iNode, root,
                                       gNodes->nodes[root->getNodeID()].ip));
             }
 
@@ -109,25 +109,25 @@ static void buildJoins(const Query *q,
             for (int j = 0; j < q->nbJoins; ++j) {
                 if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i])
                     && root->hasCol(q->joinFields2[j])) {
-                    right = op::Scan::Ptr(
-                            new op::IndexScan(part->iNode,
+                    right = ca::Scan::Ptr(
+                            new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, stats, q,
                                               q->joinFields1[j], root->estCardinality()));
-                    plans.push_back(op::Operator::Ptr(
-                                    new op::NLJoin(right->getNodeID(), root, right,
+                    plans.push_back(ca::Operator::Ptr(
+                                    new ca::NLJoin(right->getNodeID(), root, right,
                                                    q, j, q->joinFields2[j])));
                     break;
                 }
                 if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i])
                     && root->hasCol(q->joinFields1[j])) {
-                    right = op::Scan::Ptr(
-                            new op::IndexScan(part->iNode,
+                    right = ca::Scan::Ptr(
+                            new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, stats, q,
                                               q->joinFields2[j], root->estCardinality()));
-                    plans.push_back(op::Operator::Ptr(
-                                    new op::NLJoin(right->getNodeID(), root, right,
+                    plans.push_back(ca::Operator::Ptr(
+                                    new ca::NLJoin(right->getNodeID(), root, right,
                                                    q, j, q->joinFields1[j])));
                     break;
                 }
@@ -135,29 +135,29 @@ static void buildJoins(const Query *q,
 
             // Nested Block Join
             try {
-                right = op::Scan::Ptr(
-                        new op::IndexScan(part->iNode,
+                right = ca::Scan::Ptr(
+                        new ca::IndexScan(part->iNode,
                                           part->fileName, q->aliasNames[i],
                                           table, stats, q));
-                plans.push_back(op::Operator::Ptr(
-                                new op::NBJoin(right->getNodeID(), root, right, q)));
+                plans.push_back(ca::Operator::Ptr(
+                                new ca::NBJoin(right->getNodeID(), root, right, q)));
             } catch (std::runtime_error &e) {}
 
-            right = op::Scan::Ptr(
-                    new op::SeqScan(part->iNode,
+            right = ca::Scan::Ptr(
+                    new ca::SeqScan(part->iNode,
                                     part->fileName, q->aliasNames[i],
                                     table, stats, q));
-            plans.push_back(op::Operator::Ptr(
-                            new op::NBJoin(right->getNodeID(), root, right, q)));
+            plans.push_back(ca::Operator::Ptr(
+                            new ca::NBJoin(right->getNodeID(), root, right, q)));
         }
     }
 }
 
 #ifndef DISABLE_JOIN_REORDERING
-op::Operator::Ptr buildQueryPlan(const Query *q)
+ca::Operator::Ptr buildQueryPlan(const Query *q)
 {
-    std::vector<op::Operator::Ptr> plans;
-    std::vector<op::Operator::Ptr> subPlans;
+    std::vector<ca::Operator::Ptr> plans;
+    std::vector<ca::Operator::Ptr> subPlans;
 
     // enumerate equivalent execution trees
     for (int i = 0; i < q->nbTable; ++i) {
@@ -170,15 +170,15 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
         }
     }
 
-    op::Operator::Ptr bestPlan;
+    ca::Operator::Ptr bestPlan;
     double minCost = 0;
 
     // add Remote operator if needed
     for (size_t k = 0; k < plans.size(); ++k) {
-        op::Operator::Ptr root = plans[k];
+        ca::Operator::Ptr root = plans[k];
         if (root->getNodeID() != 0) {
-            root = op::Operator::Ptr(
-                   new op::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
+            root = ca::Operator::Ptr(
+                   new ca::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
             plans[k] = root;
         }
 
@@ -193,10 +193,10 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
     return bestPlan;
 }
 #else
-op::Operator::Ptr buildQueryPlan(const Query *q)
+ca::Operator::Ptr buildQueryPlan(const Query *q)
 {
-    op::Operator::Ptr root;
-    op::Scan::Ptr right;
+    ca::Operator::Ptr root;
+    ca::Scan::Ptr right;
 
     for (int i = 0; i < q->nbTable; ++i) {
         Table *table = gTables[std::string(q->tableNames[i])];
@@ -204,13 +204,13 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
 
         if (i == 0) {
             try {
-                right = op::Scan::Ptr(
-                        new op::IndexScan(part->iNode,
+                right = ca::Scan::Ptr(
+                        new ca::IndexScan(part->iNode,
                                           part->fileName, q->aliasNames[i],
                                           table, NULL, q));
             } catch (std::runtime_error &e) {
-                right = op::Scan::Ptr(
-                        new op::SeqScan(part->iNode,
+                right = ca::Scan::Ptr(
+                        new ca::SeqScan(part->iNode,
                                         part->fileName, q->aliasNames[i],
                                         table, NULL, q));
             }
@@ -219,8 +219,8 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
         } else {
             // add Remote operator if needed
             if (root->getNodeID() != part->iNode) {
-                root = op::Operator::Ptr(
-                       new op::Remote(part->iNode, root,
+                root = ca::Operator::Ptr(
+                       new ca::Remote(part->iNode, root,
                                       gNodes->nodes[root->getNodeID()].ip));
             }
 
@@ -230,23 +230,23 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
             for (j = 0; j < q->nbJoins; ++j) {
                 if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i])
                     && root->hasCol(q->joinFields2[j])) {
-                    right = op::Scan::Ptr(
-                            new op::IndexScan(part->iNode,
+                    right = ca::Scan::Ptr(
+                            new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, NULL, q, q->joinFields1[j]));
-                    root = op::Operator::Ptr(
-                           new op::NLJoin(right->getNodeID(), root, right,
+                    root = ca::Operator::Ptr(
+                           new ca::NLJoin(right->getNodeID(), root, right,
                                           q, j, q->joinFields2[j]));
                     break;
                 }
                 if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i])
                     && root->hasCol(q->joinFields1[j])) {
-                    right = op::Scan::Ptr(
-                            new op::IndexScan(part->iNode,
+                    right = ca::Scan::Ptr(
+                            new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, NULL, q, q->joinFields2[j]));
-                    root = op::Operator::Ptr(
-                           new op::NLJoin(right->getNodeID(), root, right,
+                    root = ca::Operator::Ptr(
+                           new ca::NLJoin(right->getNodeID(), root, right,
                                           q, j, q->joinFields1[j]));
                     break;
                 }
@@ -255,25 +255,25 @@ op::Operator::Ptr buildQueryPlan(const Query *q)
             // Nested Block Join
             if (j == q->nbJoins) {
                 try {
-                    right = op::Scan::Ptr(
-                            new op::IndexScan(part->iNode,
+                    right = ca::Scan::Ptr(
+                            new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, NULL, q));
                 } catch (std::runtime_error &e) {
-                    right = op::Scan::Ptr(
-                            new op::SeqScan(part->iNode,
+                    right = ca::Scan::Ptr(
+                            new ca::SeqScan(part->iNode,
                                             part->fileName, q->aliasNames[i],
                                             table, NULL, q));
                 }
-                root = op::Operator::Ptr(
-                       new op::NBJoin(right->getNodeID(), root, right, q));
+                root = ca::Operator::Ptr(
+                       new ca::NBJoin(right->getNodeID(), root, right, q));
             }
         }
     }
 
     if (root->getNodeID() != 0) {
-        root = op::Operator::Ptr(
-               new op::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
+        root = ca::Operator::Ptr(
+               new ca::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
     }
 
     return root;

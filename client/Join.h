@@ -5,7 +5,7 @@
 #include "Scan.h"
 
 
-namespace op {
+namespace ca {
 
 class Join: public Operator {
 public:
@@ -48,7 +48,7 @@ private:
 
 }
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Join)
-BOOST_SERIALIZATION_SHARED_PTR(op::Join)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Join)
+BOOST_SERIALIZATION_SHARED_PTR(ca::Join)
 
 #endif

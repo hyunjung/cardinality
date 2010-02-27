@@ -10,7 +10,7 @@
 #include "../include/client.h"
 
 
-namespace op {
+namespace ca {
 
 typedef int RC;
 typedef int ColID;
@@ -65,7 +65,7 @@ private:
 
 }
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Operator)
-BOOST_SERIALIZATION_SHARED_PTR(op::Operator)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Operator)
+BOOST_SERIALIZATION_SHARED_PTR(ca::Operator)
 
 #endif

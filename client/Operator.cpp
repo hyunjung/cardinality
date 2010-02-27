@@ -2,7 +2,7 @@
 #include <set>
 #include "Operator.h"
 
-using namespace op;
+using namespace ca;
 
 
 Operator::Operator(const NodeID n)

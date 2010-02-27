@@ -4,7 +4,7 @@
 #include "Scan.h"
 
 
-namespace op {
+namespace ca {
 
 class SeqScan: public Scan {
 public:
@@ -40,6 +40,6 @@ private:
 
 }
 
-BOOST_SERIALIZATION_SHARED_PTR(op::SeqScan)
+BOOST_SERIALIZATION_SHARED_PTR(ca::SeqScan)
 
 #endif

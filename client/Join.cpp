@@ -1,6 +1,6 @@
 #include "Join.h"
 
-using namespace op;
+using namespace ca;
 
 
 Join::Join(const NodeID n, Operator::Ptr l, Scan::Ptr r,

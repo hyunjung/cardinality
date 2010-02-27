@@ -7,7 +7,7 @@
 #include "IndexScan.h"
 
 
-using namespace op;
+using namespace ca;
 
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)

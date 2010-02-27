@@ -5,7 +5,7 @@
 #include "Join.h"
 
 
-namespace op {
+namespace ca {
 
 class NBJoin: public Join {
 public:
@@ -45,6 +45,6 @@ private:
 
 }
 
-BOOST_SERIALIZATION_SHARED_PTR(op::NBJoin)
+BOOST_SERIALIZATION_SHARED_PTR(ca::NBJoin)
 
 #endif

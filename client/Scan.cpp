@@ -1,6 +1,6 @@
 #include "Scan.h"
 
-using namespace op;
+using namespace ca;
 
 
 Scan::Scan(const NodeID n, const char *f, const char *a,

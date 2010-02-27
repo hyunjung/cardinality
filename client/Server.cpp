@@ -36,14 +36,14 @@ void Server::stop()
 static void handle_query(tcpstream_ptr conn)
 {
     boost::archive::binary_iarchive ia(*conn);
-    ia.register_type(static_cast<op::NLJoin *>(NULL));
-    ia.register_type(static_cast<op::NBJoin *>(NULL));
-    ia.register_type(static_cast<op::SeqScan *>(NULL));
-    ia.register_type(static_cast<op::IndexScan *>(NULL));
-    ia.register_type(static_cast<op::Remote *>(NULL));
+    ia.register_type(static_cast<ca::NLJoin *>(NULL));
+    ia.register_type(static_cast<ca::NBJoin *>(NULL));
+    ia.register_type(static_cast<ca::SeqScan *>(NULL));
+    ia.register_type(static_cast<ca::IndexScan *>(NULL));
+    ia.register_type(static_cast<ca::Remote *>(NULL));
 
-    op::Tuple tuple;
-    op::Operator::Ptr root;
+    ca::Tuple tuple;
+    ca::Operator::Ptr root;
     ia >> root;
 
     root->Open();

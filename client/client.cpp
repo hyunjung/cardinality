@@ -6,8 +6,8 @@
 
 struct Connection {
     const Query *q;
-    op::Operator::Ptr root;
-    op::Tuple tuple;
+    ca::Operator::Ptr root;
+    ca::Tuple tuple;
 };
 
 const Nodes *gNodes;
@@ -84,7 +84,7 @@ ErrCode fetchRow(Connection *conn, Value *values)
     }
 
     for (int i = 0; i < conn->q->nbOutputFields; ++i) {
-        op::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
+        ca::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
         values[i].type = conn->root->getColType(conn->q->outputFields[i]);
         if (values[i].type == INT) {
             values[i].intVal = static_cast<uint32_t>(std::atoi(conn->tuple[cid].first));

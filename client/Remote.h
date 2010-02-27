@@ -6,7 +6,7 @@
 #include "Operator.h"
 
 
-namespace op {
+namespace ca {
 
 class Remote: public Operator {
 public:
@@ -51,6 +51,6 @@ private:
 
 }
 
-BOOST_SERIALIZATION_SHARED_PTR(op::Remote)
+BOOST_SERIALIZATION_SHARED_PTR(ca::Remote)
 
 #endif

@@ -1,6 +1,6 @@
 #include "IndexScan.h"
 
-using namespace op;
+using namespace ca;
 
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,

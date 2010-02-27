@@ -1,6 +1,6 @@
 #include "SeqScan.h"
 
-using namespace op;
+using namespace ca;
 
 
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,

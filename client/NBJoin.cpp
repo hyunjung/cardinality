@@ -4,7 +4,7 @@
 #define NBJOIN_BUFSIZE 65536
 #endif
 
-using namespace op;
+using namespace ca;
 
 
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,

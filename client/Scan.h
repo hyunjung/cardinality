@@ -14,7 +14,7 @@
 #include "optimizer.h"
 
 
-namespace op {
+namespace ca {
 
 enum CompOp {
     EQ,
@@ -76,8 +76,8 @@ private:
 
 }
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(op::Scan)
-BOOST_SERIALIZATION_SHARED_PTR(op::Scan)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Scan)
+BOOST_SERIALIZATION_SHARED_PTR(ca::Scan)
 
 namespace boost {
 namespace serialization {

@@ -31,6 +31,6 @@ struct PartitionStats {
 
 
 extern PartitionStats *sampleTable(const std::string, const int);
-extern op::Operator::Ptr buildQueryPlan(const Query *);
+extern ca::Operator::Ptr buildQueryPlan(const Query *);
 
 #endif
