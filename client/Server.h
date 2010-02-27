@@ -5,6 +5,8 @@
 #include <boost/shared_ptr.hpp>
 
 
+namespace ca {
+
 typedef boost::shared_ptr<boost::asio::ip::tcp::iostream> tcpstream_ptr;
 
 class Server {
@@ -26,5 +28,7 @@ private:
     Server(const Server &);
     Server& operator=(const Server &);
 };
+
+}
 
 #endif

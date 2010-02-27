@@ -8,6 +8,8 @@
 #include "NBJoin.h"
 #include "Remote.h"
 
+using namespace ca;
+
 
 Server::Server(const int port)
     : io_service(),

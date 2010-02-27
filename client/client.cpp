@@ -33,15 +33,15 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
     }
 
     // TODO: *ps will be leaked
-    Server *ps = new Server(17000);
-    boost::thread t(boost::bind(&Server::run, ps));
+    ca::Server *ps = new ca::Server(17000);
+    boost::thread t(boost::bind(&ca::Server::run, ps));
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)
 {
     // TODO: *ps will be leaked
-    Server *ps = new Server(17000 + currentNode->iNode);
-    boost::thread t(boost::bind(&Server::run, ps));
+    ca::Server *ps = new ca::Server(17000 + currentNode->iNode);
+    boost::thread t(boost::bind(&ca::Server::run, ps));
 }
 
 Connection *createConnection()
