@@ -5,11 +5,12 @@ using namespace op;
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
-                     const char *col)
+                     const char *col, const double o)
     : Scan(n, f, a, t, p, q),
       indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
       index(NULL), txn(NULL), record(),
-      state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL)
+      state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL),
+      outerCardinality(o)
 {
     if (col) { // NLIJ
         const char *dot = strchr(col, '.');
@@ -46,7 +47,8 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
 IndexScan::IndexScan()
     : indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
       index(NULL), txn(NULL), record(),
-      state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL)
+      state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL),
+      outerCardinality(0)
 {
 }
 
@@ -218,29 +220,88 @@ void IndexScan::print(std::ostream &os, const int tab) const
     os << std::endl;
 }
 
+// Mackert and Lohman,
+// Index Scans Using a Finite LRU Buffer: A Validated I/O Model,
+// ACM Transactions on Database Systems, Vol. 14, No. 3, September 1989, p.411
+//
+static double MACKERT_LOHMAN(double T, double D, double x = 1)
+{
+    double Y;
+    double b = 32 * 1024;
+    double Dx = D * x;
+
+    if (T <= b) {
+        Y = std::min(T, (2.0 * T * Dx) / (2.0 * T + Dx));
+    } else { // T > b
+        double l = (2.0 * T * b) / (2.0 * T - b);
+        if (Dx <= l) {
+            Y = (2.0 * T * Dx) / (2.0 * T + Dx);
+        } else {
+            Y = b + (Dx - l) * (T - b) / T;
+        }
+    }
+
+    return Y;
+}
+
 double IndexScan::estCost() const
 {
-    return 0.05;
+    double seqPages = 0;
+    double randomPages = 0;
+
+    if (!value) { // NLIJ
+        randomPages = MACKERT_LOHMAN(stats->numPages,
+                                     (unique) ? 1 : 3, outerCardinality)
+                      / outerCardinality;
+    } else {
+        if (compOp == EQ) {
+            if (unique) {
+                seqPages = MACKERT_LOHMAN(stats->numPages, 1);
+            } else {
+                randomPages = MACKERT_LOHMAN(stats->numPages, 3);
+            }
+        } else { // GT
+            if (unique) {
+                seqPages = stats->numPages * SELECTIVITY_GT;
+            } else {
+                randomPages = MACKERT_LOHMAN(stats->numPages,
+                                             stats->cardinality * SELECTIVITY_GT);
+            }
+        }
+    }
+
+    return (seqPages + randomPages) * COST_DISK_READ_PAGE
+           + randomPages * COST_DISK_SEEK_PAGE;
 }
 
 double IndexScan::estCardinality() const
 {
-    if (unique) {
-        return 1.0;
-    }
+    double card = stats->cardinality;
 
-    double card = stats->fileSize / stats->tupleLength;
+    if (compOp == EQ) {
+        if (unique) {
+            card /= stats->cardinality;
+        } else {
+            card *= SELECTIVITY_EQ;
+        }
+    } else { // GT
+        card *= SELECTIVITY_GT;
+    }
 
     for (size_t i = 0; i < gteqConds.size(); ++i) {
         if (gteqConds[i].get<2>() == EQ) {
-            card /= 10.0;
+            if (gteqConds[i].get<0>() == 0) {
+                card /= stats->cardinality;
+            } else {
+                card *= SELECTIVITY_EQ;
+            }
         } else { // GT
-            card /= 3.0;
+            card *= SELECTIVITY_GT;
         }
     }
 
     if (!joinConds.empty()) {
-        card /= 3.0;
+        card *= SELECTIVITY_EQ;
     }
 
     return card;

@@ -108,23 +108,27 @@ void SeqScan::print(std::ostream &os, const int tab) const
 
 double SeqScan::estCost() const
 {
-    return 1.0 * ((stats->fileSize + PAGE_SIZE - 1) / PAGE_SIZE);
+    return stats->numPages * COST_DISK_READ_PAGE;
 }
 
 double SeqScan::estCardinality() const
 {
-    double card = stats->fileSize / stats->tupleLength;
+    double card = stats->cardinality;
 
     for (size_t i = 0; i < gteqConds.size(); ++i) {
         if (gteqConds[i].get<2>() == EQ) {
-            card /= 10.0;
+            if (gteqConds[i].get<0>() == 0) {
+                card /= stats->cardinality;
+            } else {
+                card *= SELECTIVITY_EQ;
+            }
         } else { // GT
-            card /= 3.0;
+            card *= SELECTIVITY_GT;
         }
     }
 
     if (!joinConds.empty()) {
-        card /= 3.0;
+        card *= SELECTIVITY_EQ;
     }
 
     return card;

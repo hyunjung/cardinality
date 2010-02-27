@@ -23,7 +23,6 @@ public:
     void print(std::ostream &, const int) const;
 
     double estCost() const;
-    double estCardinality() const;
 
 protected:
     enum { RIGHT_OPEN, RIGHT_RESCAN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state;

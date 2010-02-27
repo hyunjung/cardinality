@@ -13,7 +13,7 @@ public:
 
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartitionStats *, const Query *,
-              const char * = NULL);
+              const char * = NULL, const double = 0);
     IndexScan();
     ~IndexScan();
 
@@ -41,6 +41,7 @@ protected:
     bool checkIndexCond;
     uint32_t keyIntVal;
     const char *keyCharVal;
+    const double outerCardinality;
 
 private:
     IndexScan(const IndexScan &);

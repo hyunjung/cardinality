@@ -93,14 +93,3 @@ double NLJoin::estCost() const
 {
     return leftChild->estCost() + leftChild->estCardinality() * rightChild->estCost();
 }
-
-double NLJoin::estCardinality() const
-{
-    double card = leftChild->estCardinality() * rightChild->estCardinality();
-
-    if (!joinConds.empty()) {
-        card /= 10.0;
-    }
-
-    return card;
-}

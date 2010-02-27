@@ -96,6 +96,21 @@ ValueType Join::getColType(const char *col) const
     }
 }
 
+double Join::estCardinality() const
+{
+    double card = leftChild->estCardinality() * rightChild->estCardinality();
+
+    for (size_t i = 0; i < joinConds.size(); ++i) {
+        if (joinConds[i].get<1>() == 0) {
+            card /= rightChild->estCardinality();
+        } else {
+            card *= SELECTIVITY_EQ;
+        }
+    }
+
+    return card;
+}
+
 double Join::estTupleLength() const
 {
     double length = 0;

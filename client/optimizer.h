@@ -6,6 +6,11 @@
 
 #define PAGE_SIZE 4096
 
+#define COST_DISK_READ_PAGE 1.0
+#define COST_DISK_SEEK_PAGE 0.5
+#define COST_NET_XFER_BYTE 0.0025
+#define SELECTIVITY_EQ 0.1
+#define SELECTIVITY_GT 0.4
 
 struct PartitionStats {
     PartitionStats(const int n) {
@@ -19,8 +24,8 @@ struct PartitionStats {
         delete [] colLengths;
     }
 
-    size_t fileSize;
-    double tupleLength;
+    size_t numPages;
+    double cardinality;
     double *colLengths;
 };
 

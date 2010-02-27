@@ -136,17 +136,6 @@ void NBJoin::print(std::ostream &os, const int tab) const
 double NBJoin::estCost() const
 {
     return leftChild->estCost()
-           + (leftChild->estCardinality() * leftChild->estTupleLength() / NBJOIN_BUFSIZE)
+           + std::ceil(leftChild->estCardinality() * leftChild->estTupleLength() / NBJOIN_BUFSIZE)
              * rightChild->estCost();
-}
-
-double NBJoin::estCardinality() const
-{
-    double card = leftChild->estCardinality() * rightChild->estCardinality();
-
-    if (!joinConds.empty()) {
-        card /= 10.0;
-    }
-
-    return card;
 }

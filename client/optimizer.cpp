@@ -12,21 +12,23 @@ extern const Nodes *gNodes;
 extern std::map<std::string, Table * > gTables;
 extern std::map<std::string, PartitionStats * > gStats;
 
-PartitionStats *sampleTable(const std::string fileName, const int numCols)
+PartitionStats *sampleTable(const std::string fileName, const int numInputCols)
 {
-    PartitionStats *stats = new PartitionStats(numCols);
+    PartitionStats *stats = new PartitionStats(numInputCols);
 
-    stats->fileSize = boost::filesystem::file_size(fileName);
-    size_t sampleSize = ((numCols + 3) / 4) * PAGE_SIZE;
+    size_t fileSize = boost::filesystem::file_size(fileName);
+    stats->numPages = (fileSize + PAGE_SIZE - 1) / PAGE_SIZE;
+
+    size_t sampleSize = ((numInputCols + 3) / 4) * PAGE_SIZE;
     boost::iostreams::mapped_file_source file(fileName,
-                                              std::min(sampleSize, stats->fileSize));
+                                              std::min(sampleSize, fileSize));
 
     size_t numTuples = 0;
     int i = 0;
-    for (const char *pos = file.begin(); pos < file.end(); ++numTuples) {
-        for (i = 0; i < numCols; ++i) {
+    for (const char *pos = file.begin(); pos < file.end(); ++numTuples, i = 0) {
+        for ( ;i < numInputCols; ++i) {
             const char *delim = static_cast<const char *>(
-                                    memchr(pos, (i == numCols - 1) ? '\n' : '|',
+                                    memchr(pos, (i == numInputCols - 1) ? '\n' : '|',
                                            file.end() - pos));
             if (delim == NULL) {
                 pos = file.end();
@@ -39,11 +41,12 @@ PartitionStats *sampleTable(const std::string fileName, const int numCols)
 
     file.close();
 
-    stats->tupleLength = 0;
-    for (int j = 0; j < numCols; ++j) {
+    double tupleLength = 0;
+    for (int j = 0; j < numInputCols; ++j) {
         stats->colLengths[j] /= (j < i) ? (numTuples + 1) : numTuples;
-        stats->tupleLength = stats->colLengths[j];
+        tupleLength += stats->colLengths[j];
     }
+    stats->cardinality = fileSize / tupleLength;
 
     return stats;
 }
@@ -109,7 +112,8 @@ static void buildJoins(const Query *q,
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, stats, q, q->joinFields1[j]));
+                                              table, stats, q,
+                                              q->joinFields1[j], root->estCardinality()));
                     plans.push_back(op::Operator::Ptr(
                                     new op::NLJoin(right->getNodeID(), root, right,
                                                    q, j, q->joinFields2[j])));
@@ -120,7 +124,8 @@ static void buildJoins(const Query *q,
                     right = op::Scan::Ptr(
                             new op::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
-                                              table, stats, q, q->joinFields2[j]));
+                                              table, stats, q,
+                                              q->joinFields2[j], root->estCardinality()));
                     plans.push_back(op::Operator::Ptr(
                                     new op::NLJoin(right->getNodeID(), root, right,
                                                    q, j, q->joinFields1[j])));

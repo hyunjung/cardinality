@@ -106,7 +106,7 @@ ValueType Remote::getColType(const char *col) const
 
 double Remote::estCost() const
 {
-    return child->estCost() + 0.0025 * estTupleLength() * estCardinality();
+    return child->estCost() + COST_NET_XFER_BYTE * estTupleLength() * estCardinality();
 }
 
 double Remote::estCardinality() const

@@ -20,6 +20,7 @@ public:
     ColID getInputColID(const char *) const;
     ValueType getColType(const char *) const;
 
+    double estCardinality() const;
     double estTupleLength() const;
     double estColLength(const ColID) const;
 
