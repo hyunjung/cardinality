@@ -13,7 +13,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
       outerCardinality(o)
 {
     if (col) { // NLIJ
-        const char *dot = strchr(col, '.');
+        const char *dot = std::strchr(col, '.');
         if (dot == NULL) {
             throw std::runtime_error("invalid column name");
         }
@@ -21,7 +21,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         indexCol += '.';
         indexCol += dot + 1;
         indexColType = getColType(col);
-        unique = strcmp(t->fieldsName[0], dot + 1) == 0;
+        unique = std::strcmp(t->fieldsName[0], dot + 1) == 0;
     } else {
         for (size_t i = 0; i < gteqConds.size(); ++i) {
             const char *col = table->fieldsName[gteqConds[i].get<0>()];
@@ -63,13 +63,13 @@ RC IndexScan::Open(const char *leftValue, const uint32_t leftValueLen)
 
     record.val.type = indexColType;
     if (indexColType == INT) {
-        keyIntVal = (leftValue) ? static_cast<uint32_t>(atoi(leftValue))
+        keyIntVal = (leftValue) ? static_cast<uint32_t>(std::atoi(leftValue))
                                 : value->intVal;
         record.val.intVal = keyIntVal;
     } else { // STRING
         keyCharVal = (leftValue) ? leftValue : value->charVal;
         keyIntVal = (leftValue) ? leftValueLen : value->intVal;
-        memcpy(record.val.charVal, keyCharVal, keyIntVal);
+        std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
         record.val.charVal[keyIntVal] = '\0';
     }
 
@@ -86,13 +86,13 @@ RC IndexScan::ReScan(const char *leftValue, const uint32_t leftValueLen)
 
     record.val.type = indexColType;
     if (indexColType == INT) {
-        keyIntVal = (leftValue) ? static_cast<uint32_t>(atoi(leftValue))
+        keyIntVal = (leftValue) ? static_cast<uint32_t>(std::atoi(leftValue))
                                 : value->intVal;
         record.val.intVal = keyIntVal;
     } else { // STRING
         keyCharVal = (leftValue) ? leftValue : value->charVal;
         keyIntVal = (leftValue) ? leftValueLen : value->intVal;
-        memcpy(record.val.charVal, keyCharVal, keyIntVal);
+        std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
         record.val.charVal[keyIntVal] = '\0';
     }
 
@@ -161,13 +161,13 @@ RC IndexScan::GetNext(Tuple &tuple)
                 } else { // STRING
                     if (compOp == EQ) {
                         if (record.val.charVal[keyIntVal] != '\0'
-                            || memcmp(keyCharVal, record.val.charVal, keyIntVal) != 0) {
+                            || std::memcmp(keyCharVal, record.val.charVal, keyIntVal) != 0) {
                             return -1;
                         }
                     } else { // GT
-                        uint32_t charValLen = strlen(record.val.charVal);
-                        int cmp = memcmp(keyCharVal, record.val.charVal,
-                                         std::min(keyIntVal, charValLen));
+                        uint32_t charValLen = std::strlen(record.val.charVal);
+                        int cmp = std::memcmp(keyCharVal, record.val.charVal,
+                                              std::min(keyIntVal, charValLen));
                         if (cmp > 0 || (cmp == 0 && keyIntVal >= charValLen)) {
                             continue;
                         }

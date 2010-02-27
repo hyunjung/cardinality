@@ -42,16 +42,16 @@ bool Join::execFilter(const Tuple &leftTuple, const Tuple &rightTuple) const
 {
     for (size_t i = 0; i < joinConds.size(); ++i) {
         if (joinConds[i].get<2>() == INT) {
-            if (atoi(leftTuple[joinConds[i].get<0>()].first)
-                != atoi(rightTuple[joinConds[i].get<1>()].first)) {
+            if (std::atoi(leftTuple[joinConds[i].get<0>()].first)
+                != std::atoi(rightTuple[joinConds[i].get<1>()].first)) {
                 return false;
             }
         } else { // STRING
             if ((leftTuple[joinConds[i].get<0>()].second
                  != rightTuple[joinConds[i].get<1>()].second)
-                || memcmp(leftTuple[joinConds[i].get<0>()].first,
-                          rightTuple[joinConds[i].get<1>()].first,
-                          rightTuple[joinConds[i].get<1>()].second) != 0) {
+                || std::memcmp(leftTuple[joinConds[i].get<0>()].first,
+                               rightTuple[joinConds[i].get<1>()].first,
+                               rightTuple[joinConds[i].get<1>()].second) != 0) {
                 return false;
             }
         }

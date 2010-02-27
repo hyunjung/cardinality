@@ -45,7 +45,7 @@ RC NBJoin::GetNext(Tuple &tuple)
                 for (size_t i = 0; i < leftTuple.size(); ++i) {
                     uint32_t len = leftTuple[i].second;
                     if (pos + len < mainBuffer.get() + NBJOIN_BUFSIZE) {
-                        memcpy(pos, leftTuple[i].first, len);
+                        std::memcpy(pos, leftTuple[i].first, len);
                         pos[len] = '\0';
                         leftTuple[i].first = pos;
                         pos += len + 1;
@@ -58,7 +58,7 @@ RC NBJoin::GetNext(Tuple &tuple)
                         pos = overflowBuffer.get();
                         for (; i < leftTuple.size(); ++i) {
                             uint32_t len = leftTuple[i].second;
-                            memcpy(pos, leftTuple[i].first, len);
+                            std::memcpy(pos, leftTuple[i].first, len);
                             pos[len] = '\0';
                             leftTuple[i].first = pos;
                             pos += len + 1;

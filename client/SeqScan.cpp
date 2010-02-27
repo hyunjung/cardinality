@@ -72,11 +72,11 @@ RC SeqScan::GetNext(Tuple &tuple)
         temp.clear();
 
         const char *pos = lineBuffer.get();
-        const char *eof = lineBuffer.get() + strlen(lineBuffer.get()) + 1;
+        const char *eof = lineBuffer.get() + std::strlen(lineBuffer.get()) + 1;
 
         for (int i = 0; i < numInputCols; ++i) {
             const char *delim = static_cast<const char *>(
-                                    memchr(pos, (i == numInputCols - 1) ? '\0' : '|', eof - pos));
+                                    std::memchr(pos, (i == numInputCols - 1) ? '\0' : '|', eof - pos));
             temp.push_back(std::make_pair(pos, delim - pos));
             pos = delim + 1;
         }

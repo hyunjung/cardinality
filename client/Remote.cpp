@@ -59,11 +59,11 @@ RC Remote::GetNext(Tuple &tuple)
     }
 
     const char *pos = lineBuffer.get();
-    const char *eof = lineBuffer.get() + strlen(lineBuffer.get()) + 1;
+    const char *eof = lineBuffer.get() + std::strlen(lineBuffer.get()) + 1;
 
     for (size_t i = 0; i < child->numOutputCols(); ++i) {
         const char *delim = static_cast<const char *>(
-                                memchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|', eof - pos));
+                                std::memchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|', eof - pos));
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }

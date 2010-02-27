@@ -28,8 +28,8 @@ PartitionStats *sampleTable(const std::string fileName, const int numInputCols)
     for (const char *pos = file.begin(); pos < file.end(); ++numTuples, i = 0) {
         for ( ;i < numInputCols; ++i) {
             const char *delim = static_cast<const char *>(
-                                    memchr(pos, (i == numInputCols - 1) ? '\n' : '|',
-                                           file.end() - pos));
+                                    std::memchr(pos, (i == numInputCols - 1) ? '\n' : '|',
+                                                file.end() - pos));
             if (delim == NULL) {
                 pos = file.end();
                 break;
@@ -75,9 +75,9 @@ static void buildScans(const Query *q,
 
 static inline bool HASIDXCOL(const char *col, const char *alias)
 {
-    int aliasLen = strlen(alias);
+    int aliasLen = std::strlen(alias);
     return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
-           && !memcmp(col, alias, aliasLen);
+           && !std::memcmp(col, alias, aliasLen);
 }
 
 static void buildJoins(const Query *q,

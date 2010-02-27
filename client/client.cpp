@@ -60,13 +60,13 @@ void performQuery(Connection *conn, const Query *q)
     for (int j = 0; j < q->nbRestrictionsEqual; ++j) {
         Value *v = &q->restrictionEqualValues[j];
         if (v->type == STRING) {
-            v->intVal = strlen(v->charVal);
+            v->intVal = std::strlen(v->charVal);
         }
     }
     for (int j = 0; j < q->nbRestrictionsGreaterThan; ++j) {
         Value *v = &q->restrictionGreaterThanValues[j];
         if (v->type == STRING) {
-            v->intVal = strlen(v->charVal);
+            v->intVal = std::strlen(v->charVal);
         }
     }
 
@@ -87,12 +87,12 @@ ErrCode fetchRow(Connection *conn, Value *values)
         op::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
         values[i].type = conn->root->getColType(conn->q->outputFields[i]);
         if (values[i].type == INT) {
-            values[i].intVal = static_cast<uint32_t>(atoi(conn->tuple[cid].first));
+            values[i].intVal = static_cast<uint32_t>(std::atoi(conn->tuple[cid].first));
 #ifdef PRINT_TUPLES
             std::cout << values[i].intVal << "|";
 #endif
         } else {
-            memcpy(values[i].charVal, conn->tuple[cid].first, conn->tuple[cid].second);
+            std::memcpy(values[i].charVal, conn->tuple[cid].first, conn->tuple[cid].second);
             values[i].charVal[conn->tuple[cid].second] = '\0';
 #ifdef PRINT_TUPLES
             std::cout << values[i].charVal << "|";
