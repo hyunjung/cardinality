@@ -60,11 +60,18 @@ RC Remote::GetNext(Tuple &tuple)
     }
 
     const char *pos = lineBuffer.get();
+#ifndef _GNU_SOURCE
     const char *eof = lineBuffer.get() + std::strlen(lineBuffer.get()) + 1;
+#endif
 
     for (size_t i = 0; i < child->numOutputCols(); ++i) {
+#ifdef _GNU_SOURCE
+        const char *delim = static_cast<const char *>(
+                                rawmemchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|'));
+#else
         const char *delim = static_cast<const char *>(
                                 std::memchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|', eof - pos));
+#endif
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }
