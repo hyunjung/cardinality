@@ -7,6 +7,7 @@
 #include "NLJoin.h"
 #include "NBJoin.h"
 #include "Remote.h"
+#include "Union.h"
 
 using namespace ca;
 
@@ -38,14 +39,15 @@ void Server::stop()
 static void handle_query(tcpstream_ptr conn)
 {
     boost::archive::binary_iarchive ia(*conn);
-    ia.register_type(static_cast<ca::NLJoin *>(NULL));
-    ia.register_type(static_cast<ca::NBJoin *>(NULL));
-    ia.register_type(static_cast<ca::SeqScan *>(NULL));
-    ia.register_type(static_cast<ca::IndexScan *>(NULL));
-    ia.register_type(static_cast<ca::Remote *>(NULL));
+    ia.register_type(static_cast<NLJoin *>(NULL));
+    ia.register_type(static_cast<NBJoin *>(NULL));
+    ia.register_type(static_cast<SeqScan *>(NULL));
+    ia.register_type(static_cast<IndexScan *>(NULL));
+    ia.register_type(static_cast<Remote *>(NULL));
+    ia.register_type(static_cast<Union *>(NULL));
 
-    ca::Tuple tuple;
-    ca::Operator::Ptr root;
+    Tuple tuple;
+    Operator::Ptr root;
     ia >> root;
 
     root->Open();

@@ -5,7 +5,7 @@
 #include "NBJoin.h"
 #include "SeqScan.h"
 #include "IndexScan.h"
-
+#include "Union.h"
 
 using namespace ca;
 
@@ -43,6 +43,7 @@ RC Remote::Open(const char *, const uint32_t)
     oa.register_type(static_cast<SeqScan *>(NULL));
     oa.register_type(static_cast<IndexScan *>(NULL));
     oa.register_type(static_cast<Remote *>(NULL));
+    oa.register_type(static_cast<Union *>(NULL));
 
     oa << child;
     return 0;
