@@ -5,8 +5,7 @@ OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs
 
 MYFLAGS = -Wall -I/u/hyunjung/boost_1_42_0 #-DDISABLE_JOIN_REORDERING
 MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/IndexScan.o objs/NLJoin.o objs/NBJoin.o objs/Remote.o objs/client.o objs/Server.o objs/optimizer.o
-MYLIBS = libboost_serialization.a libboost_system.a libboost_iostreams.a libboost_thread.a libboost_filesystem.a
-MYLIBS := $(addprefix /u/hyunjung/boost_1_42_0/stage/lib/, $(MYLIBS))
+MYLIBS = lib/thirdparty/libboost_serialization.a lib/thirdparty/libboost_system.a lib/thirdparty/libboost_iostreams.a lib/thirdparty/libboost_thread.a lib/thirdparty/libboost_filesystem.a lib/thirdparty/libtcmalloc_minimal.a
 
 all: objs/mainClient objs/mainSlaveClient
 
