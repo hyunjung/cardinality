@@ -14,7 +14,7 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
 
 Scan::Scan()
     : fileName(), gteqConds(), joinConds(), numInputCols(),
-      alias(), table(NULL), stats(NULL), file()
+      alias(), table(), stats(), file()
 {
 }
 

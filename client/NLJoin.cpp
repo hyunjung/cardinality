@@ -13,7 +13,7 @@ NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,
 }
 
 NLJoin::NLJoin()
-    : idxJoinColID(NOT_INDEX_JOIN)
+    : idxJoinColID()
 {
 }
 

@@ -12,7 +12,7 @@ Operator::Operator(const NodeID n)
 }
 
 Operator::Operator()
-    : nodeID(0), selectedInputColIDs()
+    : nodeID(), selectedInputColIDs()
 {
 }
 

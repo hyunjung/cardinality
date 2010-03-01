@@ -7,9 +7,9 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
                      const char *col, const double o)
     : Scan(n, f, a, t, p, q),
-      indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
-      index(NULL), txn(NULL), record(),
-      state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL),
+      indexCol(), indexColType(), compOp(EQ), value(NULL), unique(),
+      index(), txn(), record(),
+      state(), checkIndexCond(), keyIntVal(), keyCharVal(),
       outerCardinality(o)
 {
     if (col) { // NLIJ
@@ -45,10 +45,10 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
 }
 
 IndexScan::IndexScan()
-    : indexCol(), indexColType(), compOp(EQ), value(NULL), unique(false),
-      index(NULL), txn(NULL), record(),
-      state(), checkIndexCond(), keyIntVal(0), keyCharVal(NULL),
-      outerCardinality(0)
+    : indexCol(), indexColType(), compOp(), value(), unique(),
+      index(), txn(), record(),
+      state(), checkIndexCond(), keyIntVal(), keyCharVal(),
+      outerCardinality()
 {
 }
 
