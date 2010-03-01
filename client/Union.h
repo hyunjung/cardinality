@@ -10,7 +10,7 @@ class Union: public Operator {
 public:
     typedef boost::shared_ptr<Union> Ptr;
 
-    Union(const NodeID, Operator::Ptr);
+    Union(const NodeID, std::vector<Operator::Ptr>);
     Union();
     ~Union();
 
@@ -29,7 +29,10 @@ public:
     double estColLength(const ColID) const;
 
 protected:
-    Operator::Ptr child;
+    std::vector<Operator::Ptr> children;
+
+    size_t j;
+    std::vector<bool> done;
 
 private:
     Union(const Union &);
@@ -38,7 +41,7 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
-        ar & child;
+        ar & children;
     }
 };
 
