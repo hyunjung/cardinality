@@ -27,6 +27,9 @@ void openPorts( const Nodes * nodes, Ports * ports, int basePort)
     serv_addr.sin_addr.s_addr = INADDR_ANY;
     serv_addr.sin_port = htons(portno);
 
+    int optval = 1;
+    setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+
     cout << "Bind on "<< portno << endl ;
 
     int attempt ; 
