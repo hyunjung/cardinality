@@ -1,6 +1,7 @@
 #include <boost/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
 #include "Server.h"
 #include "SeqScan.h"
 #include "IndexScan.h"
@@ -36,31 +37,54 @@ void Server::stop()
     io_service.stop();
 }
 
-static void handle_query(tcpstream_ptr conn)
+static void handle_request(tcpstream_ptr conn)
 {
-    boost::archive::binary_iarchive ia(*conn);
-    ia.register_type(static_cast<NLJoin *>(NULL));
-    ia.register_type(static_cast<NBJoin *>(NULL));
-    ia.register_type(static_cast<SeqScan *>(NULL));
-    ia.register_type(static_cast<IndexScan *>(NULL));
-    ia.register_type(static_cast<Remote *>(NULL));
-    ia.register_type(static_cast<Union *>(NULL));
+    if (conn->get() == 'S') {
+        char buf[1024];
 
-    Tuple tuple;
-    Operator::Ptr root;
-    ia >> root;
-
-    root->Open();
-    while (!root->GetNext(tuple)) {
-        for (size_t i = 0; i < tuple.size(); i++) {
-            conn->write(tuple[i].first, tuple[i].second);
-            if (i < tuple.size() - 1) {
-                conn->put('|');
+        while (true) {
+            conn->getline(buf, 1024);
+            if (buf[0] == '\0') {
+                break;
             }
+            int nbFields = std::atoi(buf);
+            conn->getline(buf, 1024);
+            enum ValueType fieldType = static_cast<ValueType>(std::atoi(buf));
+            conn->getline(buf, 1024);
+
+            boost::archive::binary_oarchive oa(*conn);
+            oa.register_type(static_cast<PartitionStats *>(NULL));
+
+            PartitionStats *stats = new PartitionStats(buf, nbFields, fieldType);
+            oa << stats;
+            delete stats;
         }
-        *conn << std::endl;
+
+    } else { // 'Q'
+        boost::archive::binary_iarchive ia(*conn);
+        ia.register_type(static_cast<NLJoin *>(NULL));
+        ia.register_type(static_cast<NBJoin *>(NULL));
+        ia.register_type(static_cast<SeqScan *>(NULL));
+        ia.register_type(static_cast<IndexScan *>(NULL));
+        ia.register_type(static_cast<Remote *>(NULL));
+        ia.register_type(static_cast<Union *>(NULL));
+
+        Tuple tuple;
+        Operator::Ptr root;
+        ia >> root;
+
+        root->Open();
+        while (!root->GetNext(tuple)) {
+            for (size_t i = 0; i < tuple.size(); i++) {
+                conn->write(tuple[i].first, tuple[i].second);
+                if (i < tuple.size() - 1) {
+                    conn->put('|');
+                }
+            }
+            *conn << std::endl;
+        }
+        root->Close();
     }
-    root->Close();
 
     conn->close();
 }
@@ -68,7 +92,7 @@ static void handle_query(tcpstream_ptr conn)
 void Server::handle_accept(const boost::system::error_code &e)
 {
     if (!e) {
-        boost::thread t(boost::bind(handle_query, new_tcpstream));
+        boost::thread t(boost::bind(handle_request, new_tcpstream));
         new_tcpstream.reset(new boost::asio::ip::tcp::iostream());
         acceptor.async_accept(*new_tcpstream->rdbuf(),
                               boost::bind(&Server::handle_accept, this,

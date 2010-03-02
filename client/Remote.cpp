@@ -37,6 +37,8 @@ RC Remote::Open(const char *, const uint32_t)
         throw std::runtime_error("tcp::iostream.connect() failed");
     }
 
+    tcpstream.put('Q');
+
     boost::archive::binary_oarchive oa(tcpstream);
     oa.register_type(static_cast<NLJoin *>(NULL));
     oa.register_type(static_cast<NBJoin *>(NULL));

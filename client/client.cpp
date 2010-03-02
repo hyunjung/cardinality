@@ -1,6 +1,10 @@
 #include <boost/thread.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include "../include/client.h"
 #include "Server.h"
+#include "PartitionStats.h"
 #include "optimizer.h"
 
 
@@ -12,8 +16,47 @@ struct Connection {
 
 const Nodes *gNodes;
 std::map<std::string, Table * > gTables;
-std::map<std::string, PartitionStats * > gStats;
+std::map<std::pair<std::string, int>, ca::PartitionStats * > gStats;
 
+
+static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
+{
+    boost::asio::ip::tcp::iostream tcpstream;
+    for (int attempt = 0; attempt < 5; ++attempt) {
+        tcpstream.connect(gNodes->nodes[n].ip, boost::lexical_cast<std::string>(17000 + n));
+        if (tcpstream.good()) {
+            break;
+        }
+        tcpstream.clear();
+        usleep(100000); // 0.1s
+    }
+    if (tcpstream.fail()) {
+        throw std::runtime_error("tcp::iostream.connect() failed");
+    }
+
+    tcpstream.put('S');
+
+    for (int i = 0; i < data->nbTables; ++i) {
+        for (int j = 0; j < data->tables[i].nbPartitions; ++j) {
+            if (data->tables[i].partitions[j].iNode != n) {
+                continue;
+            }
+
+            tcpstream << data->tables[i].nbFields << std::endl;
+            tcpstream << data->tables[i].fieldsType[0] << std::endl;
+            tcpstream << data->tables[i].partitions[j].fileName << std::endl;
+
+            boost::archive::binary_iarchive ia(tcpstream);
+            ia.register_type(static_cast<ca::PartitionStats *>(NULL));
+
+            ca::PartitionStats *stats;
+            ia >> stats;
+            gStats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
+        }
+    }
+
+    tcpstream.close();
+}
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data, const Queries *preset)
 {
@@ -23,18 +66,30 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
         gTables[std::string(data->tables[i].tableName)] = &data->tables[i];
     }
 
+    usleep(50000); // 0.05s
+
+    boost::thread_group threads;
+    for (int n = 1; n < gNodes->nbNodes; ++n) {
+        threads.create_thread(boost::bind(&startPreTreatmentSlave, n, data));
+    }
+
     for (int i = 0; i < data->nbTables; ++i) {
-//      for (int j = 0; j < data->tables[i].nbPartitions; ++j) {
-        for (int j = 0; j < 1; ++j) {
-            PartitionStats *stats = sampleTable(data->tables[i].partitions[j].fileName,
-                                                data->tables[i].nbFields);
-            gStats[std::string(data->tables[i].tableName)] = stats;
+        for (int j = 0; j < data->tables[i].nbPartitions; ++j) {
+            if (data->tables[i].partitions[j].iNode) {
+                continue;
+            }
+            ca::PartitionStats *stats = new ca::PartitionStats(data->tables[i].partitions[j].fileName,
+                                                               data->tables[i].nbFields,
+                                                               data->tables[i].fieldsType[0]);
+            gStats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
         }
     }
 
     // TODO: *ps will be leaked
     ca::Server *ps = new ca::Server(17000);
     boost::thread t(boost::bind(&ca::Server::run, ps));
+
+    threads.join_all();
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)

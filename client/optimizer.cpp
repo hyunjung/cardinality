@@ -1,5 +1,3 @@
-#include <boost/filesystem/operations.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include "optimizer.h"
 #include "SeqScan.h"
 #include "IndexScan.h"
@@ -10,54 +8,24 @@
 
 extern const Nodes *gNodes;
 extern std::map<std::string, Table * > gTables;
-extern std::map<std::string, PartitionStats * > gStats;
+extern std::map<std::pair<std::string, int>, ca::PartitionStats * > gStats;
 
-PartitionStats *sampleTable(const std::string fileName, const int numInputCols)
+
+static inline bool HASIDXCOL(const char *col, const char *alias)
 {
-    PartitionStats *stats = new PartitionStats(numInputCols);
-
-    size_t fileSize = boost::filesystem::file_size(fileName);
-    stats->numPages = (fileSize + PAGE_SIZE - 1) / PAGE_SIZE;
-
-    size_t sampleSize = ((numInputCols + 3) / 4) * PAGE_SIZE;
-    boost::iostreams::mapped_file_source file(fileName,
-                                              std::min(sampleSize, fileSize));
-
-    size_t numTuples = 0;
-    int i = 0;
-    for (const char *pos = file.begin(); pos < file.end(); ++numTuples, i = 0) {
-        for ( ;i < numInputCols; ++i) {
-            const char *delim = static_cast<const char *>(
-                                    std::memchr(pos, (i == numInputCols - 1) ? '\n' : '|',
-                                                file.end() - pos));
-            if (delim == NULL) {
-                pos = file.end();
-                break;
-            }
-            stats->colLengths[i] += delim - pos + 1;
-            pos = delim + 1;
-        }
-    }
-
-    file.close();
-
-    double tupleLength = 0;
-    for (int j = 0; j < numInputCols; ++j) {
-        stats->colLengths[j] /= (j < i) ? (numTuples + 1) : numTuples;
-        tupleLength += stats->colLengths[j];
-    }
-    stats->cardinality = fileSize / tupleLength;
-
-    return stats;
+    int aliasLen = std::strlen(alias);
+    return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
+           && !std::memcmp(col, alias, aliasLen);
 }
 
+#ifndef DISABLE_JOIN_REORDERING
 static void buildScans(const Query *q,
                        std::vector<ca::Operator::Ptr> &plans)
 {
     for (int i = 0; i < q->nbTable; ++i) {
         Table *table = gTables[std::string(q->tableNames[i])];
         Partition *part = &table->partitions[0];
-        PartitionStats *stats = gStats[std::string(q->tableNames[i])];
+        ca::PartitionStats *stats = gStats[std::make_pair(std::string(q->tableNames[i]), 0)];
 
         plans.push_back(ca::Scan::Ptr(
                         new ca::SeqScan(part->iNode,
@@ -71,13 +39,6 @@ static void buildScans(const Query *q,
                                               table, stats, q)));
         } catch (std::runtime_error &e) {}
     }
-}
-
-static inline bool HASIDXCOL(const char *col, const char *alias)
-{
-    int aliasLen = std::strlen(alias);
-    return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
-           && !std::memcmp(col, alias, aliasLen);
 }
 
 static void buildJoins(const Query *q,
@@ -95,7 +56,7 @@ static void buildJoins(const Query *q,
 
             Table *table = gTables[std::string(q->tableNames[i])];
             Partition *part = &table->partitions[0];
-            PartitionStats *stats = gStats[std::string(q->tableNames[i])];
+            ca::PartitionStats *stats = gStats[std::make_pair(std::string(q->tableNames[i]), 0)];
             root = subPlans[k];
 
             // add Remote operator if needed
@@ -153,7 +114,6 @@ static void buildJoins(const Query *q,
     }
 }
 
-#ifndef DISABLE_JOIN_REORDERING
 ca::Operator::Ptr buildQueryPlan(const Query *q)
 {
     std::vector<ca::Operator::Ptr> plans;

@@ -10,6 +10,7 @@
 #include <boost/scoped_array.hpp>
 #endif
 #include "Operator.h"
+#include "PartitionStats.h"
 #include "Value.h"
 #include "optimizer.h"
 
