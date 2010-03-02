@@ -1,0 +1,30 @@
+
+DELAY
+3
+
+NODE
+127.0.0.1
+
+NODE
+127.0.0.1
+
+NODE
+127.0.0.1
+
+TABLE
+students 5
+_id int
+_lastname string
+firstname string
+birth_year int
+curriculum_year int
+PARTITIONS 1
+1
+
+TABLE
+courses 3
+_code string
+student int
+mark int
+PARTITIONS 1
+2
