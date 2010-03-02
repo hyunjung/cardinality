@@ -11,7 +11,7 @@ class Join: public Operator {
 public:
     typedef boost::shared_ptr<Join> Ptr;
 
-    Join(const NodeID, Operator::Ptr, Scan::Ptr,
+    Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
     Join();
     virtual ~Join();
@@ -30,7 +30,7 @@ protected:
     void execProject(const Tuple &, const Tuple &, Tuple &) const;
 
     Operator::Ptr leftChild;
-    Scan::Ptr rightChild;
+    Operator::Ptr rightChild;
     std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
 
 private:

@@ -11,12 +11,13 @@ class NBJoin: public Join {
 public:
     typedef boost::shared_ptr<NBJoin> Ptr;
 
-    NBJoin(const NodeID, Operator::Ptr, Scan::Ptr,
+    NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
     NBJoin();
     ~NBJoin();
 
     RC Open(const char * = NULL, const uint32_t = 0);
+    RC ReOpen(const char * = NULL, const uint32_t = 0);
     RC GetNext(Tuple &);
     RC Close();
 
@@ -25,7 +26,7 @@ public:
     double estCost() const;
 
 protected:
-    enum { RIGHT_OPEN, RIGHT_RESCAN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state;
+    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state;
     bool leftDone;
     std::vector<Tuple> leftTuples;
     std::vector<Tuple>::const_iterator leftTuplesIt;

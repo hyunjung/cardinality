@@ -27,7 +27,7 @@ Remote::~Remote()
 {
 }
 
-RC Remote::Open(const char *, const uint32_t)
+RC Remote::Open(const char *leftPtr, const uint32_t leftLen)
 {
     lineBuffer.reset(new char[std::max(static_cast<size_t>(1),
                                        (MAX_VARCHAR_LEN + 1) * child->numOutputCols())]);
@@ -48,6 +48,11 @@ RC Remote::Open(const char *, const uint32_t)
     oa.register_type(static_cast<Union *>(NULL));
 
     oa << child;
+    return 0;
+}
+
+RC Remote::ReOpen(const char *leftPtr, const uint32_t leftLen)
+{
     return 0;
 }
 

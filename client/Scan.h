@@ -31,8 +31,6 @@ public:
     Scan();
     virtual ~Scan();
 
-    virtual RC ReScan(const char * = NULL, const uint32_t = 0) = 0;
-
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
     ValueType getColType(const char *) const;

@@ -56,23 +56,23 @@ IndexScan::~IndexScan()
 {
 }
 
-RC IndexScan::Open(const char *leftValue, const uint32_t leftValueLen)
+RC IndexScan::Open(const char *leftPtr, const uint32_t leftLen)
 {
     file.open(fileName);
     openIndex(indexCol.c_str(), &index);
 
     record.val.type = indexColType;
     if (indexColType == INT) {
-        if (leftValue) {
-            keyIntVal = parseInt(leftValue, leftValueLen);
+        if (leftPtr) {
+            keyIntVal = parseInt(leftPtr, leftLen);
         } else {
             keyIntVal = value->intVal;
         }
         record.val.intVal = keyIntVal;
     } else { // STRING
-        if (leftValue) {
-            keyCharVal = leftValue;
-            keyIntVal = leftValueLen;
+        if (leftPtr) {
+            keyCharVal = leftPtr;
+            keyIntVal = leftLen;
         } else {
             keyCharVal = value->charVal;
             keyIntVal = value->intVal;
@@ -88,17 +88,17 @@ RC IndexScan::Open(const char *leftValue, const uint32_t leftValueLen)
     return 0;
 }
 
-RC IndexScan::ReScan(const char *leftValue, const uint32_t leftValueLen)
+RC IndexScan::ReOpen(const char *leftPtr, const uint32_t leftLen)
 {
     if (indexColType == INT) {
-        if (leftValue) {
-            keyIntVal = parseInt(leftValue, leftValueLen);
+        if (leftPtr) {
+            keyIntVal = parseInt(leftPtr, leftLen);
         }
         record.val.intVal = keyIntVal;
     } else { // STRING
-        if (leftValue) {
-            keyCharVal = leftValue;
-            keyIntVal = leftValueLen;
+        if (leftPtr) {
+            keyCharVal = leftPtr;
+            keyIntVal = leftLen;
         }
         std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
         record.val.charVal[keyIntVal] = '\0';

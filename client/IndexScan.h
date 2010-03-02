@@ -18,7 +18,7 @@ public:
     ~IndexScan();
 
     RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReScan(const char * = NULL, const uint32_t = 0);
+    RC ReOpen(const char * = NULL, const uint32_t = 0);
     RC GetNext(Tuple &);
     RC Close();
 

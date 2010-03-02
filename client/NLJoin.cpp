@@ -3,7 +3,7 @@
 using namespace ca;
 
 
-NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,
+NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
     : Join(n, l, r, q, x), idxJoinColID(NOT_INDEX_JOIN)
 {
@@ -27,6 +27,11 @@ RC NLJoin::Open(const char *, const uint32_t)
     return leftChild->Open();
 }
 
+RC NLJoin::ReOpen(const char *, const uint32_t)
+{
+    throw std::runtime_error("NLJoin::ReOpen() called");
+}
+
 RC NLJoin::GetNext(Tuple &tuple)
 {
     Tuple rightTuple;
@@ -43,16 +48,16 @@ RC NLJoin::GetNext(Tuple &tuple)
                 rightChild->Open(leftTuple[idxJoinColID].first,
                                  leftTuple[idxJoinColID].second);
             }
-        } else if (state == RIGHT_RESCAN) {
+        } else if (state == RIGHT_REOPEN) {
             if (leftChild->GetNext(leftTuple)) {
                 rightChild->Close();
                 return -1;
             }
             state = RIGHT_GETNEXT;
             if (idxJoinColID == NOT_INDEX_JOIN) {
-                rightChild->ReScan();
+                rightChild->ReOpen();
             } else {
-                rightChild->ReScan(leftTuple[idxJoinColID].first,
+                rightChild->ReOpen(leftTuple[idxJoinColID].first,
                                    leftTuple[idxJoinColID].second);
             }
         }
@@ -64,7 +69,7 @@ RC NLJoin::GetNext(Tuple &tuple)
             }
         }
 
-        state = RIGHT_RESCAN;
+        state = RIGHT_REOPEN;
     }
 
     return 0;

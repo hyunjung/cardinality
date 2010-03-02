@@ -29,6 +29,7 @@ public:
     virtual ~Operator();
 
     virtual RC Open(const char * = NULL, const uint32_t = 0) = 0;
+    virtual RC ReOpen(const char * = NULL, const uint32_t = 0) = 0;
     virtual RC GetNext(Tuple &) = 0;
     virtual RC Close() = 0;
 

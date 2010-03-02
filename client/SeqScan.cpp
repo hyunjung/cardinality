@@ -33,7 +33,7 @@ RC SeqScan::Open(const char *, const uint32_t)
     return 0;
 }
 
-RC SeqScan::ReScan(const char *, const uint32_t)
+RC SeqScan::ReOpen(const char *, const uint32_t)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     pos = file.begin();

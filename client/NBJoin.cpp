@@ -7,7 +7,7 @@
 using namespace ca;
 
 
-NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Scan::Ptr r,
+NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
       state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
@@ -32,12 +32,17 @@ RC NBJoin::Open(const char *, const uint32_t)
     return leftChild->Open();
 }
 
+RC NBJoin::ReOpen(const char *, const uint32_t)
+{
+    throw std::runtime_error("NBJoin::ReOpen() called");
+}
+
 RC NBJoin::GetNext(Tuple &tuple)
 {
     while (true) {
         switch (state) {
         case RIGHT_OPEN:
-        case RIGHT_RESCAN: {
+        case RIGHT_REOPEN: {
             Tuple leftTuple;
             for (char *pos = mainBuffer.get();
                  pos - mainBuffer.get() < NBJOIN_BUFSIZE - 512
@@ -70,7 +75,7 @@ RC NBJoin::GetNext(Tuple &tuple)
             }
 
             if (leftTuples.empty()) {
-                if (state == RIGHT_RESCAN) {
+                if (state == RIGHT_REOPEN) {
                     rightChild->Close();
                 }
                 return -1;
@@ -78,8 +83,8 @@ RC NBJoin::GetNext(Tuple &tuple)
 
             if (state == RIGHT_OPEN) {
                 rightChild->Open();
-            } else { // RIGHT_RESCAN
-                rightChild->ReScan();
+            } else { // RIGHT_REOPEN
+                rightChild->ReOpen();
             }
             state = RIGHT_GETNEXT;
         }
@@ -91,7 +96,7 @@ RC NBJoin::GetNext(Tuple &tuple)
                     rightChild->Close();
                     return -1;
                 }
-                state = RIGHT_RESCAN;
+                state = RIGHT_REOPEN;
                 break;
             }
             leftTuplesIt = leftTuples.begin();

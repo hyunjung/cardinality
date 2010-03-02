@@ -21,11 +21,22 @@ Union::~Union()
 {
 }
 
-RC Union::Open(const char *, const uint32_t)
+RC Union::Open(const char *leftPtr, const uint32_t leftLen)
 {
     done.resize(children.size());
     for (size_t i = 0; i < children.size(); ++i) {
-        children[i]->Open();
+        children[i]->Open(leftPtr, leftLen);
+        done[i] = false;
+    }
+    j = 0;
+
+    return 0;
+}
+
+RC Union::ReOpen(const char *leftPtr, const uint32_t leftLen)
+{
+    for (size_t i = 0; i < children.size(); ++i) {
+        children[i]->ReOpen(leftPtr, leftLen);
         done[i] = false;
     }
     j = 0;

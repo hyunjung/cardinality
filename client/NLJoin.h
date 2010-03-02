@@ -10,12 +10,13 @@ class NLJoin: public Join {
 public:
     typedef boost::shared_ptr<NLJoin> Ptr;
 
-    NLJoin(const NodeID, Operator::Ptr, Scan::Ptr,
+    NLJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *, const int = -1, const char * = NULL);
     NLJoin();
     ~NLJoin();
 
     RC Open(const char * = NULL, const uint32_t = 0);
+    RC ReOpen(const char * = NULL, const uint32_t = 0);
     RC GetNext(Tuple &);
     RC Close();
 
@@ -27,7 +28,7 @@ protected:
     ColID idxJoinColID;
     static const ColID NOT_INDEX_JOIN = -1;
 
-    enum { RIGHT_OPEN, RIGHT_RESCAN, RIGHT_GETNEXT } state;
+    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT } state;
     Tuple leftTuple;
 
 private:

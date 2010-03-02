@@ -3,7 +3,7 @@
 using namespace ca;
 
 
-Join::Join(const NodeID n, Operator::Ptr l, Scan::Ptr r,
+Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
            const Query *q, const int x)
     : Operator(n), leftChild(l), rightChild(r), joinConds()
 {
