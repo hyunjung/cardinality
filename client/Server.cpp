@@ -38,43 +38,61 @@ void Server::stop()
     io_service_.stop();
 }
 
-static void handle_request(tcpstream_ptr conn)
+static void handle_query(tcpstream_ptr &conn)
 {
-    if (conn->get() == 'S') {
-        char buf[1024];
+    boost::archive::binary_iarchive ia(*conn);
+    ia.register_type(static_cast<NLJoin *>(NULL));
+    ia.register_type(static_cast<NBJoin *>(NULL));
+    ia.register_type(static_cast<SeqScan *>(NULL));
+    ia.register_type(static_cast<IndexScan *>(NULL));
+    ia.register_type(static_cast<Remote *>(NULL));
+    ia.register_type(static_cast<Union *>(NULL));
 
-        while (true) {
-            conn->getline(buf, 1024);
-            if (buf[0] == '\0') {
-                break;
+    Tuple tuple;
+    Operator::Ptr root;
+    ia >> root;
+
+    root->Open();
+    while (!root->GetNext(tuple)) {
+        for (size_t i = 0; i < tuple.size(); i++) {
+            conn->write(tuple[i].first, tuple[i].second);
+            if (i < tuple.size() - 1) {
+                conn->put('|');
             }
-            int nbFields = std::atoi(buf);
-            conn->getline(buf, 1024);
-            enum ValueType fieldType = static_cast<ValueType>(std::atoi(buf));
-            conn->getline(buf, 1024);
+        }
+        *conn << std::endl;
+    }
+    root->Close();
+}
 
-            boost::archive::binary_oarchive oa(*conn);
-            oa.register_type(static_cast<PartitionStats *>(NULL));
+static void handle_param_query(tcpstream_ptr &conn)
+{
+    boost::archive::binary_iarchive ia(*conn);
+    ia.register_type(static_cast<IndexScan *>(NULL));
 
-            PartitionStats *stats = new PartitionStats(buf, nbFields, fieldType);
-            oa << stats;
-            delete stats;
+    char buf[16];
+    char val[MAX_VARCHAR_LEN + 1];
+    bool reopen = false;
+    Tuple tuple;
+    Operator::Ptr root;
+    ia >> root;
+
+    while (true) {
+        conn->getline(buf, 16);
+        if (buf[0] == '\0') {
+            break;
+        }
+        int len = std::atoi(buf);
+        conn->read(val, len);
+        val[len] = '\0';
+
+        if (reopen) {
+            root->ReOpen(val, len);
+        } else {
+            root->Open(val, len);
+            reopen = true;
         }
 
-    } else { // 'Q'
-        boost::archive::binary_iarchive ia(*conn);
-        ia.register_type(static_cast<NLJoin *>(NULL));
-        ia.register_type(static_cast<NBJoin *>(NULL));
-        ia.register_type(static_cast<SeqScan *>(NULL));
-        ia.register_type(static_cast<IndexScan *>(NULL));
-        ia.register_type(static_cast<Remote *>(NULL));
-        ia.register_type(static_cast<Union *>(NULL));
-
-        Tuple tuple;
-        Operator::Ptr root;
-        ia >> root;
-
-        root->Open();
         while (!root->GetNext(tuple)) {
             for (size_t i = 0; i < tuple.size(); i++) {
                 conn->write(tuple[i].first, tuple[i].second);
@@ -84,7 +102,54 @@ static void handle_request(tcpstream_ptr conn)
             }
             *conn << std::endl;
         }
-        root->Close();
+        // end of results
+        conn->put('|');
+        *conn << std::endl;
+    }
+    root->Close();
+}
+
+static void handle_stats(tcpstream_ptr &conn)
+{
+    char buf[1024];
+
+    while (true) {
+        conn->getline(buf, 1024);
+        if (buf[0] == '\0') {
+            break;
+        }
+        int nbFields = std::atoi(buf);
+        conn->getline(buf, 1024);
+        enum ValueType fieldType = static_cast<ValueType>(std::atoi(buf));
+        conn->getline(buf, 1024);
+
+        PartitionStats *stats = new PartitionStats(buf, nbFields, fieldType);
+
+        boost::archive::binary_oarchive oa(*conn);
+        oa.register_type(static_cast<PartitionStats *>(NULL));
+        oa << stats;
+
+        delete stats;
+    }
+}
+
+static void handle_request(tcpstream_ptr conn)
+{
+    switch (conn->get()) {
+    case 'Q':
+        handle_query(conn);
+        break;
+
+    case 'P':
+        handle_param_query(conn);
+        break;
+
+    case 'S':
+        handle_stats(conn);
+        break;
+
+    default:
+        throw std::runtime_error("unknown command");
     }
 
     conn->close();

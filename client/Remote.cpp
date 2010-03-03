@@ -53,22 +53,46 @@ RC Remote::Open(const char *left_ptr, const uint32_t left_len)
         throw std::runtime_error("tcp::iostream.connect() failed");
     }
 
-    tcpstream_.put('Q');
+    if (left_ptr) {
+        tcpstream_.put('P');
 
-    boost::archive::binary_oarchive oa(tcpstream_);
-    oa.register_type(static_cast<NLJoin *>(NULL));
-    oa.register_type(static_cast<NBJoin *>(NULL));
-    oa.register_type(static_cast<SeqScan *>(NULL));
-    oa.register_type(static_cast<IndexScan *>(NULL));
-    oa.register_type(static_cast<Remote *>(NULL));
-    oa.register_type(static_cast<Union *>(NULL));
+        boost::archive::binary_oarchive oa(tcpstream_);
+        oa.register_type(static_cast<IndexScan *>(NULL));
 
-    oa << child;
+        oa << child_;
+
+        tcpstream_ << left_len << '\n';
+        tcpstream_.write(left_ptr, left_len);
+        tcpstream_ << std::flush;
+
+    } else {
+        tcpstream_.put('Q');
+
+        boost::archive::binary_oarchive oa(tcpstream_);
+        oa.register_type(static_cast<NLJoin *>(NULL));
+        oa.register_type(static_cast<NBJoin *>(NULL));
+        oa.register_type(static_cast<SeqScan *>(NULL));
+        oa.register_type(static_cast<IndexScan *>(NULL));
+        oa.register_type(static_cast<Remote *>(NULL));
+        oa.register_type(static_cast<Union *>(NULL));
+
+        oa << child_;
+    }
+
     return 0;
 }
 
 RC Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
+    if (left_ptr) {
+        tcpstream_ << left_len << '\n';
+        tcpstream_.write(left_ptr, left_len);
+        tcpstream_ << std::flush;
+    } else {
+        tcpstream_.close();
+        Open();
+    }
+
     return 0;
 }
 
@@ -80,6 +104,9 @@ RC Remote::GetNext(Tuple &tuple)
                                (MAX_VARCHAR_LEN + 1) * child_->numOutputCols()));
     if (*line_buffer_.get() == '\0') {
         return (tcpstream_.eof()) ? -1 : 0;
+    }
+    if (*line_buffer_.get() == '|') {
+        return -1;
     }
 
     const char *pos = line_buffer_.get();
