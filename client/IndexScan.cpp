@@ -7,7 +7,8 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
                      const char *col, const double o)
     : Scan(n, f, a, t, p, q),
-      indexCol(), indexColType(), compOp(EQ), value(NULL), unique(),
+      indexCol(), indexColType(),
+      compOp(EQ), value(NULL), unique(),
       index(), txn(), record(),
       state(), checkIndexCond(), keyIntVal(), keyCharVal(),
       outerCardinality(o)
@@ -45,15 +46,32 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
 }
 
 IndexScan::IndexScan()
-    : indexCol(), indexColType(), compOp(), value(), unique(),
+    : Scan(),
+      indexCol(), indexColType(),
+      compOp(), value(), unique(),
       index(), txn(), record(),
       state(), checkIndexCond(), keyIntVal(), keyCharVal(),
       outerCardinality()
 {
 }
 
+IndexScan::IndexScan(const IndexScan &x)
+    : Scan(x),
+      indexCol(x.indexCol), indexColType(x.indexColType),
+      compOp(x.compOp), value(x.value), unique(x.unique),
+      index(), txn(), record(),
+      state(), checkIndexCond(), keyIntVal(), keyCharVal(),
+      outerCardinality(x.outerCardinality)
+{
+}
+
 IndexScan::~IndexScan()
 {
+}
+
+Operator::Ptr IndexScan::clone() const
+{
+    return Operator::Ptr(new IndexScan(*this));
 }
 
 RC IndexScan::Open(const char *leftPtr, const uint32_t leftLen)

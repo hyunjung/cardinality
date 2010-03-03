@@ -11,7 +11,9 @@ using namespace ca;
 
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
-    : Operator(n), child(c), ipAddress(i), tcpstream(), lineBuffer()
+    : Operator(n),
+      child(c), ipAddress(i),
+      tcpstream(), lineBuffer()
 {
     for (size_t i = 0; i < child->numOutputCols(); ++i) {
         selectedInputColIDs.push_back(i);
@@ -19,12 +21,26 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
 }
 
 Remote::Remote()
-    : child(), ipAddress(), tcpstream(), lineBuffer()
+    : Operator(),
+      child(), ipAddress(),
+      tcpstream(), lineBuffer()
+{
+}
+
+Remote::Remote(const Remote &x)
+    : Operator(x),
+      child(x.child->clone()), ipAddress(x.ipAddress),
+      tcpstream(), lineBuffer()
 {
 }
 
 Remote::~Remote()
 {
+}
+
+Operator::Ptr Remote::clone() const
+{
+    return Operator::Ptr(new Remote(*this));
 }
 
 RC Remote::Open(const char *leftPtr, const uint32_t leftLen)

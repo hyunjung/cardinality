@@ -25,8 +25,8 @@ public:
     typedef boost::shared_ptr<Operator> Ptr;
 
     Operator(const NodeID);
-    Operator();
     virtual ~Operator();
+    virtual Operator::Ptr clone() const = 0;
 
     virtual RC Open(const char * = NULL, const uint32_t = 0) = 0;
     virtual RC ReOpen(const char * = NULL, const uint32_t = 0) = 0;
@@ -50,13 +50,15 @@ public:
     static uint32_t parseInt(const char *, const uint32_t);
 
 protected:
+    Operator();
+    Operator(const Operator &);
+
     void initProject(const Query *q);
 
     const NodeID nodeID;
     std::vector<ColID> selectedInputColIDs;
 
 private:
-    Operator(const Operator &);
     Operator& operator=(const Operator &);
 
     friend class boost::serialization::access;

@@ -28,7 +28,6 @@ public:
 
     Scan(const NodeID, const char *, const char *,
          const Table *, const PartitionStats *, const Query *);
-    Scan();
     virtual ~Scan();
 
     bool hasCol(const char *) const;
@@ -39,6 +38,9 @@ public:
     double estColLength(const ColID) const;
 
 protected:
+    Scan();
+    Scan(const Scan &);
+
     void initFilter(const Query *q);
     bool execFilter(const Tuple &) const;
     void execProject(const Tuple &, Tuple &) const;
@@ -60,7 +62,6 @@ protected:
 #endif
 
 private:
-    Scan(const Scan &);
     Scan& operator=(const Scan &);
 
     friend class boost::serialization::access;

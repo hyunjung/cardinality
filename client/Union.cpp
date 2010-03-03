@@ -5,7 +5,8 @@ using namespace ca;
 
 
 Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
-    : Operator(n), children(c), j(), done()
+    : Operator(n),
+      children(c), j(), done()
 {
     for (size_t i = 0; i < children[0]->numOutputCols(); ++i) {
         selectedInputColIDs.push_back(i);
@@ -13,12 +14,29 @@ Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
 }
 
 Union::Union()
-    : children(), j(), done()
+    : Operator(),
+      children(), j(), done()
 {
+}
+
+Union::Union(const Union &x)
+    : Operator(x),
+      children(), j(), done()
+{
+    children.reserve((x.children.size() + 1) / 2);
+    for (std::vector<Operator::Ptr>::const_iterator it = x.children.begin();
+         it < x.children.end(); ++it) {
+        children.push_back((*it)->clone());
+    }
 }
 
 Union::~Union()
 {
+}
+
+Operator::Ptr Union::clone() const
+{
+    return Operator::Ptr(new Union(*this));
 }
 
 RC Union::Open(const char *leftPtr, const uint32_t leftLen)

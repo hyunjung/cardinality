@@ -13,8 +13,8 @@ public:
     typedef boost::shared_ptr<Remote> Ptr;
 
     Remote(const NodeID, Operator::Ptr, const char *);
-    Remote();
     ~Remote();
+    Operator::Ptr clone() const;
 
     RC Open(const char * = NULL, const uint32_t = 0);
     RC ReOpen(const char * = NULL, const uint32_t = 0);
@@ -32,6 +32,9 @@ public:
     double estColLength(const ColID) const;
 
 protected:
+    Remote();
+    Remote(const Remote &);
+
     Operator::Ptr child;
     const std::string ipAddress;
 
@@ -39,7 +42,6 @@ protected:
     boost::scoped_array<char> lineBuffer;
 
 private:
-    Remote(const Remote &);
     Remote& operator=(const Remote &);
 
     friend class boost::serialization::access;

@@ -5,7 +5,9 @@ using namespace ca;
 
 Scan::Scan(const NodeID n, const char *f, const char *a,
            const Table *t, const PartitionStats *p, const Query *q)
-    : Operator(n), fileName(f), gteqConds(), joinConds(), numInputCols(t->nbFields),
+    : Operator(n),
+      fileName(f), gteqConds(), joinConds(),
+      numInputCols(t->nbFields),
       alias(a), table(t), stats(p), file()
 {
     initProject(q);
@@ -13,8 +15,18 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
 }
 
 Scan::Scan()
-    : fileName(), gteqConds(), joinConds(), numInputCols(),
+    : Operator(),
+      fileName(), gteqConds(), joinConds(),
+      numInputCols(),
       alias(), table(), stats(), file()
+{
+}
+
+Scan::Scan(const Scan &x)
+    : Operator(x),
+      fileName(x.fileName), gteqConds(x.gteqConds), joinConds(x.joinConds),
+      numInputCols(x.numInputCols),
+      alias(x.alias), table(x.table), stats(x.stats), file()
 {
 }
 

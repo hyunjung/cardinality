@@ -5,17 +5,30 @@ using namespace ca;
 
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
                  const Table *t, const PartitionStats *p, const Query *q)
-    : Scan(n, f, a, t, p, q), pos()
+    : Scan(n, f, a, t, p, q),
+      pos()
 {
 }
 
 SeqScan::SeqScan()
-    : pos()
+    : Scan(),
+      pos()
+{
+}
+
+SeqScan::SeqScan(const SeqScan &x)
+    : Scan(x),
+      pos()
 {
 }
 
 SeqScan::~SeqScan()
 {
+}
+
+Operator::Ptr SeqScan::clone() const
+{
+    return Operator::Ptr(new SeqScan(*this));
 }
 
 RC SeqScan::Open(const char *, const uint32_t)

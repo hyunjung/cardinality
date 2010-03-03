@@ -16,6 +16,11 @@ Operator::Operator()
 {
 }
 
+Operator::Operator(const Operator &x)
+    : nodeID(x.nodeID), selectedInputColIDs(x.selectedInputColIDs)
+{
+}
+
 Operator::~Operator()
 {
 }

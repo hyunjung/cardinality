@@ -11,8 +11,8 @@ public:
     typedef boost::shared_ptr<Union> Ptr;
 
     Union(const NodeID, std::vector<Operator::Ptr>);
-    Union();
     ~Union();
+    Operator::Ptr clone() const;
 
     RC Open(const char * = NULL, const uint32_t = 0);
     RC ReOpen(const char * = NULL, const uint32_t = 0);
@@ -30,13 +30,15 @@ public:
     double estColLength(const ColID) const;
 
 protected:
+    Union();
+    Union(const Union &);
+
     std::vector<Operator::Ptr> children;
 
     size_t j;
     std::vector<bool> done;
 
 private:
-    Union(const Union &);
     Union& operator=(const Union &);
 
     friend class boost::serialization::access;

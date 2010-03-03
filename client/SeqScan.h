@@ -12,8 +12,8 @@ public:
 
     SeqScan(const NodeID, const char *, const char *,
             const Table *, const PartitionStats *, const Query *);
-    SeqScan();
     ~SeqScan();
+    Operator::Ptr clone() const;
 
     RC Open(const char * = NULL, const uint32_t = 0);
     RC ReOpen(const char * = NULL, const uint32_t = 0);
@@ -26,10 +26,12 @@ public:
     double estCardinality() const;
 
 protected:
+    SeqScan();
+    SeqScan(const SeqScan &);
+
     const char *pos;
 
 private:
-    SeqScan(const SeqScan &);
     SeqScan& operator=(const SeqScan &);
 
     friend class boost::serialization::access;

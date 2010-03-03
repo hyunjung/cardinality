@@ -13,8 +13,8 @@ public:
 
     NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
-    NBJoin();
     ~NBJoin();
+    Operator::Ptr clone() const;
 
     RC Open(const char * = NULL, const uint32_t = 0);
     RC ReOpen(const char * = NULL, const uint32_t = 0);
@@ -26,6 +26,9 @@ public:
     double estCost() const;
 
 protected:
+    NBJoin();
+    NBJoin(const NBJoin &);
+
     enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state;
     bool leftDone;
     std::vector<Tuple> leftTuples;
@@ -35,7 +38,6 @@ protected:
     boost::scoped_array<char> overflowBuffer;
 
 private:
-    NBJoin(const NBJoin &);
     NBJoin& operator=(const NBJoin &);
 
     friend class boost::serialization::access;

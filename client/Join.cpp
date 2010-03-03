@@ -5,14 +5,25 @@ using namespace ca;
 
 Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
            const Query *q, const int x)
-    : Operator(n), leftChild(l), rightChild(r), joinConds()
+    : Operator(n),
+      leftChild(l), rightChild(r),
+      joinConds()
 {
     initProject(q);
     initFilter(q, x);
 }
 
 Join::Join()
-    : leftChild(), rightChild(), joinConds()
+    : Operator(),
+      leftChild(), rightChild(),
+      joinConds()
+{
+}
+
+Join::Join(const Join &x)
+    : Operator(x),
+      leftChild(x.leftChild->clone()), rightChild(x.rightChild->clone()),
+      joinConds(x.joinConds)
 {
 }
 

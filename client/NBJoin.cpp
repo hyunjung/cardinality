@@ -16,13 +16,26 @@ NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 }
 
 NBJoin::NBJoin()
-    : state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
+    : Join(),
+      state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
+      mainBuffer(), overflowBuffer()
+{
+}
+
+NBJoin::NBJoin(const NBJoin &x)
+    : Join(x),
+      state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
       mainBuffer(), overflowBuffer()
 {
 }
 
 NBJoin::~NBJoin()
 {
+}
+
+Operator::Ptr NBJoin::clone() const
+{
+    return Operator::Ptr(new NBJoin(*this));
 }
 
 RC NBJoin::Open(const char *, const uint32_t)

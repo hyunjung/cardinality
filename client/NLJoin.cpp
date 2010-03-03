@@ -5,7 +5,8 @@ using namespace ca;
 
 NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
-    : Join(n, l, r, q, x), idxJoinColID(NOT_INDEX_JOIN)
+    : Join(n, l, r, q, x),
+      idxJoinColID(NOT_INDEX_JOIN)
 {
     if (idxJoinCol) {
         idxJoinColID = getInputColID(idxJoinCol);
@@ -13,12 +14,24 @@ NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 }
 
 NLJoin::NLJoin()
-    : idxJoinColID()
+    : Join(),
+      idxJoinColID()
+{
+}
+
+NLJoin::NLJoin(const NLJoin &x)
+    : Join(x),
+      idxJoinColID(x.idxJoinColID)
 {
 }
 
 NLJoin::~NLJoin()
 {
+}
+
+Operator::Ptr NLJoin::clone() const
+{
+    return Operator::Ptr(new NLJoin(*this));
 }
 
 RC NLJoin::Open(const char *, const uint32_t)

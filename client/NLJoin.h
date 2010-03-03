@@ -12,8 +12,8 @@ public:
 
     NLJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *, const int = -1, const char * = NULL);
-    NLJoin();
     ~NLJoin();
+    Operator::Ptr clone() const;
 
     RC Open(const char * = NULL, const uint32_t = 0);
     RC ReOpen(const char * = NULL, const uint32_t = 0);
@@ -25,6 +25,9 @@ public:
     double estCost() const;
 
 protected:
+    NLJoin();
+    NLJoin(const NLJoin &);
+
     ColID idxJoinColID;
     static const ColID NOT_INDEX_JOIN = -1;
 
@@ -32,7 +35,6 @@ protected:
     Tuple leftTuple;
 
 private:
-    NLJoin(const NLJoin &);
     NLJoin& operator=(const NLJoin &);
 
     friend class boost::serialization::access;

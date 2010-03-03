@@ -14,8 +14,8 @@ public:
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartitionStats *, const Query *,
               const char * = NULL, const double = 0);
-    IndexScan();
     ~IndexScan();
+    Operator::Ptr clone() const;
 
     RC Open(const char * = NULL, const uint32_t = 0);
     RC ReOpen(const char * = NULL, const uint32_t = 0);
@@ -28,6 +28,9 @@ public:
     double estCardinality() const;
 
 protected:
+    IndexScan();
+    IndexScan(const IndexScan &);
+
     std::string indexCol;
     ValueType indexColType;
     CompOp compOp;
@@ -44,7 +47,6 @@ protected:
     const double outerCardinality;
 
 private:
-    IndexScan(const IndexScan &);
     IndexScan& operator=(const IndexScan &);
 
     friend class boost::serialization::access;
