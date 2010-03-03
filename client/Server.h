@@ -1,5 +1,5 @@
-#ifndef SERVER_H
-#define SERVER_H
+#ifndef CLIENT_SERVER_H_
+#define CLIENT_SERVER_H_
 
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
@@ -29,6 +29,6 @@ private:
     Server& operator=(const Server &);
 };
 
-}
+}  // namespace ca
 
-#endif
+#endif  // CLIENT_SERVER_H_

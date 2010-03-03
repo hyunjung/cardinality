@@ -7,8 +7,8 @@
 #include "IndexScan.h"
 #include "Union.h"
 
-using namespace ca;
 
+namespace ca {
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
     : Operator(n),
@@ -154,3 +154,5 @@ double Remote::estColLength(const ColID cid) const
 {
     return child_->estColLength(cid);
 }
+
+}  // namespace ca

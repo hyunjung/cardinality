@@ -1,7 +1,7 @@
 #include "NLJoin.h"
 
-using namespace ca;
 
+namespace ca {
 
 NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
@@ -111,3 +111,5 @@ double NLJoin::estCost() const
 {
     return left_child_->estCost() + left_child_->estCardinality() * right_child_->estCost();
 }
+
+}  // namespace ca

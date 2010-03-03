@@ -1,7 +1,7 @@
 #include "IndexScan.h"
 
-using namespace ca;
 
+namespace ca {
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
@@ -331,3 +331,5 @@ double IndexScan::estCardinality() const
 
     return card;
 }
+
+}  // namespace ca

@@ -4,8 +4,8 @@
 #define NBJOIN_BUFSIZE 65536
 #endif
 
-using namespace ca;
 
+namespace ca {
 
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
@@ -157,3 +157,5 @@ double NBJoin::estCost() const
            + std::ceil(left_child_->estCardinality() * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
              * right_child_->estCost();
 }
+
+}  // namespace ca

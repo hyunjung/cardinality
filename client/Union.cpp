@@ -1,8 +1,7 @@
 #include "Union.h"
 
 
-using namespace ca;
-
+namespace ca {
 
 Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
     : Operator(n),
@@ -153,3 +152,5 @@ double Union::estColLength(const ColID cid) const
 {
     return children_[0]->estColLength(cid);
 }
+
+}  // namespace ca

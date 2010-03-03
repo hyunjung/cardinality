@@ -3,8 +3,8 @@
 #include <boost/spirit/include/qi.hpp>
 #include "Operator.h"
 
-using namespace ca;
 
+namespace ca {
 
 Operator::Operator(const NodeID n)
     : node_id_(n), selected_input_col_ids_()
@@ -71,3 +71,5 @@ uint32_t Operator::parseInt(const char *str, const uint32_t len)
     boost::spirit::qi::parse(str, str + len, boost::spirit::uint_, intval);
     return intval;
 }
+
+}  // namespace ca

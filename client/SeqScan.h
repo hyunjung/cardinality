@@ -1,5 +1,5 @@
-#ifndef SEQSCAN_H
-#define SEQSCAN_H
+#ifndef CLIENT_SEQSCAN_H_
+#define CLIENT_SEQSCAN_H_
 
 #include "Scan.h"
 
@@ -40,8 +40,8 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_SHARED_PTR(ca::SeqScan)
 
-#endif
+#endif  // CLIENT_SEQSCAN_H_

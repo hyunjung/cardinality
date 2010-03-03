@@ -1,5 +1,5 @@
-#ifndef NLJOIN_H
-#define NLJOIN_H
+#ifndef CLIENT_NLJOIN_H_
+#define CLIENT_NLJOIN_H_
 
 #include "Join.h"
 
@@ -44,8 +44,8 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_SHARED_PTR(ca::NLJoin)
 
-#endif
+#endif  // CLIENT_NLJOIN_H_

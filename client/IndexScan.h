@@ -1,5 +1,5 @@
-#ifndef INDEXSCAN_H
-#define INDEXSCAN_H
+#ifndef CLIENT_INDEXSCAN_H_
+#define CLIENT_INDEXSCAN_H_
 
 #include "Scan.h"
 #include "../lib/index/include/server.h"
@@ -60,8 +60,8 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_SHARED_PTR(ca::IndexScan)
 
-#endif
+#endif  // CLIENT_INDEXSCAN_H_

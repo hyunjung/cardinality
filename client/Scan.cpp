@@ -1,7 +1,7 @@
 #include "Scan.h"
 
-using namespace ca;
 
+namespace ca {
 
 Scan::Scan(const NodeID n, const char *f, const char *a,
            const Table *t, const PartitionStats *p, const Query *q)
@@ -195,3 +195,5 @@ double Scan::estColLength(const ColID cid) const
 {
     return stats_->col_lengths_[selected_input_col_ids_[cid]];
 }
+
+}  // namespace ca

@@ -1,5 +1,5 @@
-#ifndef REMOTE_H
-#define REMOTE_H
+#ifndef CLIENT_REMOTE_H_
+#define CLIENT_REMOTE_H_
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/scoped_array.hpp>
@@ -52,8 +52,8 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_SHARED_PTR(ca::Remote)
 
-#endif
+#endif  // CLIENT_REMOTE_H_

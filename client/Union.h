@@ -1,5 +1,5 @@
-#ifndef UNION_H
-#define UNION_H
+#ifndef CLIENT_UNION_H_
+#define CLIENT_UNION_H_
 
 #include "Operator.h"
 
@@ -48,8 +48,8 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_SHARED_PTR(ca::Union)
 
-#endif
+#endif  // CLIENT_UNION_H_

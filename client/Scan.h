@@ -1,5 +1,5 @@
-#ifndef SCAN_H
-#define SCAN_H
+#ifndef CLIENT_SCAN_H_
+#define CLIENT_SCAN_H_
 
 #include <boost/tuple/tuple.hpp>
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
@@ -74,7 +74,7 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Scan)
 BOOST_SERIALIZATION_SHARED_PTR(ca::Scan)
@@ -91,4 +91,4 @@ void serialize(Archive &ar, boost::tuple<T1, T2, T3> &t, const unsigned int ver)
 
 }}
 
-#endif
+#endif  // CLIENT_SCAN_H_

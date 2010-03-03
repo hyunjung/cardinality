@@ -4,8 +4,8 @@
 
 #define PAGE_SIZE 4096
 
-using namespace ca;
 
+namespace ca {
 
 PartitionStats::PartitionStats(const std::string filename,
                                const int num_input_cols,
@@ -105,3 +105,5 @@ void PartitionStats::init(const std::string filename,
     }
     cardinality_ = file_size / tuple_length;
 }
+
+}  // namespace ca

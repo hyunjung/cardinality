@@ -1,5 +1,5 @@
-#ifndef NBJOIN_H
-#define NBJOIN_H
+#ifndef CLIENT_NBJOIN_H_
+#define CLIENT_NBJOIN_H_
 
 #include <boost/scoped_array.hpp>
 #include "Join.h"
@@ -46,8 +46,8 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_SHARED_PTR(ca::NBJoin)
 
-#endif
+#endif  // CLIENT_NBJOIN_H_

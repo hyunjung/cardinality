@@ -1,7 +1,7 @@
 #include "Join.h"
 
-using namespace ca;
 
+namespace ca {
 
 Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
            const Query *q, const int x)
@@ -142,3 +142,5 @@ double Join::estColLength(const ColID cid) const
         return right_child_->estColLength(selected_input_col_ids_[cid] - left_child_->numOutputCols());
     }
 }
+
+}  // namespace ca

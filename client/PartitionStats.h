@@ -1,5 +1,5 @@
-#ifndef PARTITIONSTATS_H
-#define PARTITIONSTATS_H
+#ifndef CLIENT_PARTITIONSTATS_H_
+#define CLIENT_PARTITIONSTATS_H_
 
 #include "Operator.h"
 #include "Value.h"
@@ -36,6 +36,6 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
-#endif
+#endif  // CLIENT_PARTITIONSTATS_H_

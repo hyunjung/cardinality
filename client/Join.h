@@ -1,5 +1,5 @@
-#ifndef JOIN_H
-#define JOIN_H
+#ifndef CLIENT_JOIN_H_
+#define CLIENT_JOIN_H_
 
 #include "Operator.h"
 #include "Scan.h"
@@ -47,9 +47,9 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Join)
 BOOST_SERIALIZATION_SHARED_PTR(ca::Join)
 
-#endif
+#endif  // CLIENT_JOIN_H_

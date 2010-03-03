@@ -10,8 +10,8 @@
 #include "Remote.h"
 #include "Union.h"
 
-using namespace ca;
 
+namespace ca {
 
 Server::Server(const int port)
     : io_service_(),
@@ -99,3 +99,5 @@ void Server::handle_accept(const boost::system::error_code &e)
                                           boost::asio::placeholders::error));
     }
 }
+
+}  // namespace ca

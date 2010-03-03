@@ -1,7 +1,7 @@
 #include "SeqScan.h"
 
-using namespace ca;
 
+namespace ca {
 
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
                  const Table *t, const PartitionStats *p, const Query *q)
@@ -146,3 +146,5 @@ double SeqScan::estCardinality() const
 
     return card;
 }
+
+}  // namespace ca

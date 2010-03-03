@@ -1,5 +1,5 @@
-#ifndef OPERATOR_H
-#define OPERATOR_H
+#ifndef CLIENT_OPERATOR_H_
+#define CLIENT_OPERATOR_H_
 
 #include <iostream>
 #include <boost/serialization/access.hpp>
@@ -68,9 +68,9 @@ private:
     }
 };
 
-}
+}  // namespace ca
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Operator)
 BOOST_SERIALIZATION_SHARED_PTR(ca::Operator)
 
-#endif
+#endif  // CLIENT_OPERATOR_H_

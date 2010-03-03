@@ -1,5 +1,5 @@
-#ifndef VALUE_H
-#define VALUE_H
+#ifndef CLIENT_VALUE_H_
+#define CLIENT_VALUE_H_
 
 #include <boost/serialization/split_free.hpp>
 #include "Operator.h"
@@ -34,4 +34,4 @@ void load(Archive &ar, Value &v, const unsigned int ver) {
 
 BOOST_SERIALIZATION_SPLIT_FREE(Value)
 
-#endif
+#endif  // CLIENT_VALUE_H_
