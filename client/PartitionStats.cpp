@@ -7,12 +7,12 @@
 using namespace ca;
 
 
-PartitionStats::PartitionStats(const std::string fileName,
-                               const int numInputCols,
-                               const ValueType pkeyType)
-    : num_pages_(), cardinality_(), col_lengths_(numInputCols), min_val_(), max_val_()
+PartitionStats::PartitionStats(const std::string filename,
+                               const int num_input_cols,
+                               const ValueType pkey_type)
+    : num_pages_(), cardinality_(), col_lengths_(num_input_cols), min_val_(), max_val_()
 {
-    init(fileName, numInputCols, pkeyType);
+    init(filename, num_input_cols, pkey_type);
 }
 
 PartitionStats::PartitionStats()
@@ -26,18 +26,18 @@ PartitionStats::~PartitionStats()
 
 static inline void extractPrimaryKey(const char *pos,
                                      const size_t size,
-                                     const int numInputCols,
-                                     const ValueType pkeyType,
+                                     const int num_input_cols,
+                                     const ValueType pkey_type,
                                      Value &v)
 {
 #ifdef _GNU_SOURCE
     const char *delim = static_cast<const char *>(
-                            rawmemchr(pos, (numInputCols == 0) ? '\n' : '|'));
+                            rawmemchr(pos, (num_input_cols == 0) ? '\n' : '|'));
 #else
     const char *delim = static_cast<const char *>(
-                            std::memchr(pos, (numInputCols == 0) ? '\n' : '|', size));
+                            std::memchr(pos, (num_input_cols == 0) ? '\n' : '|', size));
 #endif
-    v.type = pkeyType;
+    v.type = pkey_type;
     if (v.type == INT) {
         v.intVal = ca::Operator::parseInt(pos, delim - pos);
     } else { // STRING
@@ -47,29 +47,29 @@ static inline void extractPrimaryKey(const char *pos,
     }
 }
 
-void PartitionStats::init(const std::string fileName,
-                          const int numInputCols,
-                          const ValueType pkeyType)
+void PartitionStats::init(const std::string filename,
+                          const int num_input_cols,
+                          const ValueType pkey_type)
 {
-    size_t fileSize = boost::filesystem::file_size(fileName);
-    num_pages_ = (fileSize + PAGE_SIZE - 1) / PAGE_SIZE;
+    size_t file_size = boost::filesystem::file_size(filename);
+    num_pages_ = (file_size + PAGE_SIZE - 1) / PAGE_SIZE;
 
     // 1024 bytes per column
-    size_t sampleSize = ((numInputCols + 3) / 4) * PAGE_SIZE;
-    boost::iostreams::mapped_file_source file(fileName,
-                                              std::min(sampleSize, fileSize));
+    size_t sample_size = ((num_input_cols + 3) / 4) * PAGE_SIZE;
+    boost::iostreams::mapped_file_source file(filename,
+                                              std::min(sample_size, file_size));
     const char *pos = file.begin();
 
     // extract the minimum primary key
-    extractPrimaryKey(pos, file.size(), numInputCols, pkeyType, min_val_);
+    extractPrimaryKey(pos, file.size(), num_input_cols, pkey_type, min_val_);
 
     // accumulate lengths of columns
-    size_t numTuples = 0;
+    size_t num_tuples = 0;
     int i = 0;
-    for (; pos < file.end(); ++numTuples, i = 0) {
-        for (; i < numInputCols; ++i) {
+    for (; pos < file.end(); ++num_tuples, i = 0) {
+        for (; i < num_input_cols; ++i) {
             const char *delim = static_cast<const char *>(
-                                    std::memchr(pos, (i == numInputCols - 1) ? '\n' : '|', file.end() - pos));
+                                    std::memchr(pos, (i == num_input_cols - 1) ? '\n' : '|', file.end() - pos));
             if (delim == NULL) {
                 pos = file.end();
                 break;
@@ -80,10 +80,10 @@ void PartitionStats::init(const std::string fileName,
     }
 
     // map the last part of file
-    if (sampleSize < fileSize) {
+    if (sample_size < file_size) {
         file.close();
-        size_t offset = (fileSize - sampleSize) & ~(boost::iostreams::mapped_file_source::alignment() - 1);
-        file.open(fileName, fileSize - offset, offset);
+        size_t offset = (file_size - sample_size) & ~(boost::iostreams::mapped_file_source::alignment() - 1);
+        file.open(filename, file_size - offset, offset);
     }
 
     // extract the maximum primary key
@@ -93,15 +93,15 @@ void PartitionStats::init(const std::string fileName,
     for (pos = file.end() - 2; *pos != '\n'; --pos);
     ++pos;
 #endif
-    extractPrimaryKey(pos, file.end() - pos, numInputCols, pkeyType, max_val_);
+    extractPrimaryKey(pos, file.end() - pos, num_input_cols, pkey_type, max_val_);
 
     file.close();
 
     // compute average lengths of columns and the cardinality
-    double tupleLength = 0;
-    for (int j = 0; j < numInputCols; ++j) {
-        col_lengths_[j] /= (j < i) ? (numTuples + 1) : numTuples;
-        tupleLength += col_lengths_[j];
+    double tuple_length = 0;
+    for (int j = 0; j < num_input_cols; ++j) {
+        col_lengths_[j] /= (j < i) ? (num_tuples + 1) : num_tuples;
+        tuple_length += col_lengths_[j];
     }
-    cardinality_ = fileSize / tupleLength;
+    cardinality_ = file_size / tuple_length;
 }

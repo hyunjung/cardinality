@@ -39,11 +39,11 @@ Operator::Ptr Union::clone() const
     return Operator::Ptr(new Union(*this));
 }
 
-RC Union::Open(const char *leftPtr, const uint32_t leftLen)
+RC Union::Open(const char *left_ptr, const uint32_t left_len)
 {
     done_.resize(children_.size());
     for (size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->Open(leftPtr, leftLen);
+        children_[i]->Open(left_ptr, left_len);
         done_[i] = false;
     }
     it_ = 0;
@@ -51,10 +51,10 @@ RC Union::Open(const char *leftPtr, const uint32_t leftLen)
     return 0;
 }
 
-RC Union::ReOpen(const char *leftPtr, const uint32_t leftLen)
+RC Union::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     for (size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->ReOpen(leftPtr, leftLen);
+        children_[i]->ReOpen(left_ptr, left_len);
         done_[i] = false;
     }
     it_ = 0;

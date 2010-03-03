@@ -49,22 +49,22 @@ void Join::initFilter(const Query *q, const int x)
     }
 }
 
-bool Join::execFilter(const Tuple &leftTuple, const Tuple &rightTuple) const
+bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
 {
     for (size_t i = 0; i < join_conds_.size(); ++i) {
         if (join_conds_[i].get<2>() == INT) {
-            if (parseInt(leftTuple[join_conds_[i].get<0>()].first,
-                         leftTuple[join_conds_[i].get<0>()].second)
-                != parseInt(rightTuple[join_conds_[i].get<1>()].first,
-                            rightTuple[join_conds_[i].get<1>()].second)) {
+            if (parseInt(left_tuple[join_conds_[i].get<0>()].first,
+                         left_tuple[join_conds_[i].get<0>()].second)
+                != parseInt(right_tuple[join_conds_[i].get<1>()].first,
+                            right_tuple[join_conds_[i].get<1>()].second)) {
                 return false;
             }
         } else { // STRING
-            if ((leftTuple[join_conds_[i].get<0>()].second
-                 != rightTuple[join_conds_[i].get<1>()].second)
-                || std::memcmp(leftTuple[join_conds_[i].get<0>()].first,
-                               rightTuple[join_conds_[i].get<1>()].first,
-                               rightTuple[join_conds_[i].get<1>()].second)) {
+            if ((left_tuple[join_conds_[i].get<0>()].second
+                 != right_tuple[join_conds_[i].get<1>()].second)
+                || std::memcmp(left_tuple[join_conds_[i].get<0>()].first,
+                               right_tuple[join_conds_[i].get<1>()].first,
+                               right_tuple[join_conds_[i].get<1>()].second)) {
                 return false;
             }
         }
@@ -73,15 +73,15 @@ bool Join::execFilter(const Tuple &leftTuple, const Tuple &rightTuple) const
     return true;
 }
 
-void Join::execProject(const Tuple &leftTuple, const Tuple &rightTuple, Tuple &outputTuple) const
+void Join::execProject(const Tuple &left_tuple, const Tuple &right_tuple, Tuple &output_tuple) const
 {
-    outputTuple.clear();
+    output_tuple.clear();
 
     for (size_t i = 0; i < numOutputCols(); ++i) {
         if (selected_input_col_ids_[i] < static_cast<ColID>(left_child_->numOutputCols())) {
-            outputTuple.push_back(leftTuple[selected_input_col_ids_[i]]);
+            output_tuple.push_back(left_tuple[selected_input_col_ids_[i]]);
         } else {
-            outputTuple.push_back(rightTuple[selected_input_col_ids_[i] - left_child_->numOutputCols()]);
+            output_tuple.push_back(right_tuple[selected_input_col_ids_[i] - left_child_->numOutputCols()]);
         }
     }
 }

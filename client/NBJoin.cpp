@@ -56,35 +56,35 @@ RC NBJoin::GetNext(Tuple &tuple)
         switch (state_) {
         case RIGHT_OPEN:
         case RIGHT_REOPEN: {
-            Tuple leftTuple;
+            Tuple left_tuple;
             for (char *pos = main_buffer_.get();
                  pos - main_buffer_.get() < NBJOIN_BUFSIZE - 512
-                 && !(left_done_ = left_child_->GetNext(leftTuple)); ) {
-                for (size_t i = 0; i < leftTuple.size(); ++i) {
-                    uint32_t len = leftTuple[i].second;
+                 && !(left_done_ = left_child_->GetNext(left_tuple)); ) {
+                for (size_t i = 0; i < left_tuple.size(); ++i) {
+                    uint32_t len = left_tuple[i].second;
                     if (pos + len < main_buffer_.get() + NBJOIN_BUFSIZE) {
-                        std::memcpy(pos, leftTuple[i].first, len);
+                        std::memcpy(pos, left_tuple[i].first, len);
                         pos[len] = '\0';
-                        leftTuple[i].first = pos;
+                        left_tuple[i].first = pos;
                         pos += len + 1;
                     } else { // main_buffer_ doesn't have enough space
-                        int overflowLen = len + 1;
-                        for (size_t j = i + 1; j < leftTuple.size(); ++j) {
-                            overflowLen += leftTuple[j].second + 1;
+                        int overflow_len = len + 1;
+                        for (size_t j = i + 1; j < left_tuple.size(); ++j) {
+                            overflow_len += left_tuple[j].second + 1;
                         }
-                        overflow_buffer_.reset(new char[overflowLen]);
+                        overflow_buffer_.reset(new char[overflow_len]);
                         pos = overflow_buffer_.get();
-                        for (; i < leftTuple.size(); ++i) {
-                            uint32_t len = leftTuple[i].second;
-                            std::memcpy(pos, leftTuple[i].first, len);
+                        for (; i < left_tuple.size(); ++i) {
+                            uint32_t len = left_tuple[i].second;
+                            std::memcpy(pos, left_tuple[i].first, len);
                             pos[len] = '\0';
-                            leftTuple[i].first = pos;
+                            left_tuple[i].first = pos;
                             pos += len + 1;
                         }
                         pos = main_buffer_.get() + NBJOIN_BUFSIZE;
                     }
                 }
-                left_tuples_.push_back(leftTuple);
+                left_tuples_.push_back(left_tuple);
             }
 
             if (left_tuples_.empty()) {

@@ -43,23 +43,23 @@ ColID Operator::getOutputColID(const char *col) const
 
 void Operator::initProject(const Query *q)
 {
-    std::set<std::string> selectedCols;
+    std::set<std::string> selected_cols;
 
     for (int i = 0; i < q->nbOutputFields; ++i) {
         if (hasCol(q->outputFields[i])
-            && selectedCols.count(std::string(q->outputFields[i])) == 0) {
-            selectedCols.insert(std::string(q->outputFields[i]));
+            && selected_cols.count(std::string(q->outputFields[i])) == 0) {
+            selected_cols.insert(std::string(q->outputFields[i]));
             selected_input_col_ids_.push_back(getInputColID(q->outputFields[i]));
         }
     }
     for (int i = 0; i < q->nbJoins; ++i) {
         if (hasCol(q->joinFields1[i]) && !hasCol(q->joinFields2[i])
-            && selectedCols.count(std::string(q->joinFields1[i])) == 0) {
-            selectedCols.insert(std::string(q->joinFields1[i]));
+            && selected_cols.count(std::string(q->joinFields1[i])) == 0) {
+            selected_cols.insert(std::string(q->joinFields1[i]));
             selected_input_col_ids_.push_back(getInputColID(q->joinFields1[i]));
         } else if (hasCol(q->joinFields2[i]) && !hasCol(q->joinFields1[i])
-                   && selectedCols.count(std::string(q->joinFields2[i])) == 0) {
-            selectedCols.insert(std::string(q->joinFields2[i]));
+                   && selected_cols.count(std::string(q->joinFields2[i])) == 0) {
+            selected_cols.insert(std::string(q->joinFields2[i]));
             selected_input_col_ids_.push_back(getInputColID(q->joinFields2[i]));
         }
     }
@@ -67,7 +67,7 @@ void Operator::initProject(const Query *q)
 
 uint32_t Operator::parseInt(const char *str, const uint32_t len)
 {
-    uint32_t intVal = 0;
-    boost::spirit::qi::parse(str, str + len, boost::spirit::uint_, intVal);
-    return intVal;
+    uint32_t intval = 0;
+    boost::spirit::qi::parse(str, str + len, boost::spirit::uint_, intval);
+    return intval;
 }

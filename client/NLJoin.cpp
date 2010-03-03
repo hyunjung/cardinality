@@ -47,7 +47,7 @@ RC NLJoin::ReOpen(const char *, const uint32_t)
 
 RC NLJoin::GetNext(Tuple &tuple)
 {
-    Tuple rightTuple;
+    Tuple right_tuple;
 
     while (true) {
         if (state_ == RIGHT_OPEN) {
@@ -75,9 +75,9 @@ RC NLJoin::GetNext(Tuple &tuple)
             }
         }
 
-        while (!right_child_->GetNext(rightTuple)) {
-            if (execFilter(left_tuple_, rightTuple)) {
-                execProject(left_tuple_, rightTuple, tuple);
+        while (!right_child_->GetNext(right_tuple)) {
+            if (execFilter(left_tuple_, right_tuple)) {
+                execProject(left_tuple_, right_tuple, tuple);
                 return 0;
             }
         }

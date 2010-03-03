@@ -146,12 +146,12 @@ bool Scan::execFilter(const Tuple &tuple) const
     return true;
 }
 
-void Scan::execProject(const Tuple &inputTuple, Tuple &outputTuple) const
+void Scan::execProject(const Tuple &input_tuple, Tuple &output_tuple) const
 {
-    outputTuple.clear();
+    output_tuple.clear();
 
     for (size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        outputTuple.push_back(inputTuple[selected_input_col_ids_[i]]);
+        output_tuple.push_back(input_tuple[selected_input_col_ids_[i]]);
     }
 }
 

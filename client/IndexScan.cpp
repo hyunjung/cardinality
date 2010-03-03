@@ -74,23 +74,23 @@ Operator::Ptr IndexScan::clone() const
     return Operator::Ptr(new IndexScan(*this));
 }
 
-RC IndexScan::Open(const char *leftPtr, const uint32_t leftLen)
+RC IndexScan::Open(const char *left_ptr, const uint32_t left_len)
 {
     file_.open(filename_);
     openIndex(index_col_.c_str(), &index_);
 
     record_.val.type = index_col_type_;
     if (index_col_type_ == INT) {
-        if (leftPtr) {
-            key_intval_ = parseInt(leftPtr, leftLen);
+        if (left_ptr) {
+            key_intval_ = parseInt(left_ptr, left_len);
         } else {
             key_intval_ = value_->intVal;
         }
         record_.val.intVal = key_intval_;
     } else { // STRING
-        if (leftPtr) {
-            key_charval_ = leftPtr;
-            key_intval_ = leftLen;
+        if (left_ptr) {
+            key_charval_ = left_ptr;
+            key_intval_ = left_len;
         } else {
             key_charval_ = value_->charVal;
             key_intval_ = value_->intVal;
@@ -106,17 +106,17 @@ RC IndexScan::Open(const char *leftPtr, const uint32_t leftLen)
     return 0;
 }
 
-RC IndexScan::ReOpen(const char *leftPtr, const uint32_t leftLen)
+RC IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (index_col_type_ == INT) {
-        if (leftPtr) {
-            key_intval_ = parseInt(leftPtr, leftLen);
+        if (left_ptr) {
+            key_intval_ = parseInt(left_ptr, left_len);
         }
         record_.val.intVal = key_intval_;
     } else { // STRING
-        if (leftPtr) {
-            key_charval_ = leftPtr;
-            key_intval_ = leftLen;
+        if (left_ptr) {
+            key_charval_ = left_ptr;
+            key_intval_ = left_len;
         }
         std::memcpy(record_.val.charVal, key_charval_, key_intval_);
         record_.val.charVal[key_intval_] = '\0';
@@ -190,10 +190,10 @@ RC IndexScan::GetNext(Tuple &tuple)
                             return -1;
                         }
                     } else { // GT
-                        uint32_t charValLen = std::strlen(record_.val.charVal);
+                        uint32_t charval_len = std::strlen(record_.val.charVal);
                         int cmp = std::memcmp(key_charval_, record_.val.charVal,
-                                              std::min(key_intval_, charValLen));
-                        if (cmp > 0 || (cmp == 0 && key_intval_ >= charValLen)) {
+                                              std::min(key_intval_, charval_len));
+                        if (cmp > 0 || (cmp == 0 && key_intval_ >= charval_len)) {
                             continue;
                         }
                         check_index_cond_ = false;
@@ -271,32 +271,32 @@ static double MACKERT_LOHMAN(double T, double D, double x = 1)
 
 double IndexScan::estCost() const
 {
-    double seqPages = 0;
-    double randomPages = 0;
+    double seq_pages = 0;
+    double random_pages = 0;
 
     if (!value_) { // NLIJ
-        randomPages = MACKERT_LOHMAN(stats_->num_pages_,
+        random_pages = MACKERT_LOHMAN(stats_->num_pages_,
                                      (unique_) ? 1 : 3, outer_cardinality_)
                       / outer_cardinality_;
     } else {
         if (comp_op_ == EQ) {
             if (unique_) {
-                seqPages = MACKERT_LOHMAN(stats_->num_pages_, 1);
+                seq_pages = MACKERT_LOHMAN(stats_->num_pages_, 1);
             } else {
-                randomPages = MACKERT_LOHMAN(stats_->num_pages_, 3);
+                random_pages = MACKERT_LOHMAN(stats_->num_pages_, 3);
             }
         } else { // GT
             if (unique_) {
-                seqPages = stats_->num_pages_ * SELECTIVITY_GT;
+                seq_pages = stats_->num_pages_ * SELECTIVITY_GT;
             } else {
-                randomPages = MACKERT_LOHMAN(stats_->num_pages_,
+                random_pages = MACKERT_LOHMAN(stats_->num_pages_,
                                              stats_->cardinality_ * SELECTIVITY_GT);
             }
         }
     }
 
-    return (seqPages + randomPages) * COST_DISK_READ_PAGE
-           + randomPages * COST_DISK_SEEK_PAGE;
+    return (seq_pages + random_pages) * COST_DISK_READ_PAGE
+           + random_pages * COST_DISK_SEEK_PAGE;
 }
 
 double IndexScan::estCardinality() const

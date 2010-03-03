@@ -43,7 +43,7 @@ Operator::Ptr Remote::clone() const
     return Operator::Ptr(new Remote(*this));
 }
 
-RC Remote::Open(const char *leftPtr, const uint32_t leftLen)
+RC Remote::Open(const char *left_ptr, const uint32_t left_len)
 {
     line_buffer_.reset(new char[std::max(static_cast<size_t>(1),
                                        (MAX_VARCHAR_LEN + 1) * child_->numOutputCols())]);
@@ -67,7 +67,7 @@ RC Remote::Open(const char *leftPtr, const uint32_t leftLen)
     return 0;
 }
 
-RC Remote::ReOpen(const char *leftPtr, const uint32_t leftLen)
+RC Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     return 0;
 }
