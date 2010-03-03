@@ -12,25 +12,25 @@ using namespace ca;
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
     : Operator(n),
-      child(c), ipAddress(i),
-      tcpstream(), lineBuffer()
+      child_(c), hostname_(i),
+      tcpstream_(), line_buffer_()
 {
-    for (size_t i = 0; i < child->numOutputCols(); ++i) {
-        selectedInputColIDs.push_back(i);
+    for (size_t i = 0; i < child_->numOutputCols(); ++i) {
+        selected_input_col_ids_.push_back(i);
     }
 }
 
 Remote::Remote()
     : Operator(),
-      child(), ipAddress(),
-      tcpstream(), lineBuffer()
+      child_(), hostname_(),
+      tcpstream_(), line_buffer_()
 {
 }
 
 Remote::Remote(const Remote &x)
     : Operator(x),
-      child(x.child->clone()), ipAddress(x.ipAddress),
-      tcpstream(), lineBuffer()
+      child_(x.child_->clone()), hostname_(x.hostname_),
+      tcpstream_(), line_buffer_()
 {
 }
 
@@ -45,17 +45,17 @@ Operator::Ptr Remote::clone() const
 
 RC Remote::Open(const char *leftPtr, const uint32_t leftLen)
 {
-    lineBuffer.reset(new char[std::max(static_cast<size_t>(1),
-                                       (MAX_VARCHAR_LEN + 1) * child->numOutputCols())]);
+    line_buffer_.reset(new char[std::max(static_cast<size_t>(1),
+                                       (MAX_VARCHAR_LEN + 1) * child_->numOutputCols())]);
 
-    tcpstream.connect(ipAddress, boost::lexical_cast<std::string>(17000 + child->getNodeID()));
-    if (tcpstream.fail()) {
+    tcpstream_.connect(hostname_, boost::lexical_cast<std::string>(17000 + child_->getNodeID()));
+    if (tcpstream_.fail()) {
         throw std::runtime_error("tcp::iostream.connect() failed");
     }
 
-    tcpstream.put('Q');
+    tcpstream_.put('Q');
 
-    boost::archive::binary_oarchive oa(tcpstream);
+    boost::archive::binary_oarchive oa(tcpstream_);
     oa.register_type(static_cast<NLJoin *>(NULL));
     oa.register_type(static_cast<NBJoin *>(NULL));
     oa.register_type(static_cast<SeqScan *>(NULL));
@@ -75,25 +75,25 @@ RC Remote::ReOpen(const char *leftPtr, const uint32_t leftLen)
 RC Remote::GetNext(Tuple &tuple)
 {
     tuple.clear();
-    tcpstream.getline(lineBuffer.get(),
+    tcpstream_.getline(line_buffer_.get(),
                       std::max(static_cast<size_t>(1),
-                               (MAX_VARCHAR_LEN + 1) * child->numOutputCols()));
-    if (*lineBuffer.get() == '\0') {
-        return (tcpstream.eof()) ? -1 : 0;
+                               (MAX_VARCHAR_LEN + 1) * child_->numOutputCols()));
+    if (*line_buffer_.get() == '\0') {
+        return (tcpstream_.eof()) ? -1 : 0;
     }
 
-    const char *pos = lineBuffer.get();
+    const char *pos = line_buffer_.get();
 #ifndef _GNU_SOURCE
-    const char *eof = lineBuffer.get() + std::strlen(lineBuffer.get()) + 1;
+    const char *eof = line_buffer_.get() + std::strlen(line_buffer_.get()) + 1;
 #endif
 
-    for (size_t i = 0; i < child->numOutputCols(); ++i) {
+    for (size_t i = 0; i < child_->numOutputCols(); ++i) {
 #ifdef _GNU_SOURCE
         const char *delim = static_cast<const char *>(
-                                rawmemchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|'));
+                                rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|'));
 #else
         const char *delim = static_cast<const char *>(
-                                std::memchr(pos, (i == child->numOutputCols() - 1) ? '\0' : '|', eof - pos));
+                                std::memchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|', eof - pos));
 #endif
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
@@ -104,8 +104,8 @@ RC Remote::GetNext(Tuple &tuple)
 
 RC Remote::Close()
 {
-    tcpstream.close();
-    lineBuffer.reset();
+    tcpstream_.close();
+    line_buffer_.reset();
 
     return 0;
 }
@@ -117,40 +117,40 @@ void Remote::print(std::ostream &os, const int tab) const
     os << " cost=" << estCost();
     os << std::endl;
 
-    child->print(os, tab + 1);
+    child_->print(os, tab + 1);
 }
 
 bool Remote::hasCol(const char *col) const
 {
-    return child->hasCol(col);
+    return child_->hasCol(col);
 }
 
 ColID Remote::getInputColID(const char *col) const
 {
-    return child->getOutputColID(col);
+    return child_->getOutputColID(col);
 }
 
 ValueType Remote::getColType(const char *col) const
 {
-    return child->getColType(col);
+    return child_->getColType(col);
 }
 
 double Remote::estCost() const
 {
-    return child->estCost() + COST_NET_XFER_BYTE * estTupleLength() * estCardinality();
+    return child_->estCost() + COST_NET_XFER_BYTE * estTupleLength() * estCardinality();
 }
 
 double Remote::estCardinality() const
 {
-    return child->estCardinality();
+    return child_->estCardinality();
 }
 
 double Remote::estTupleLength() const
 {
-    return child->estTupleLength();
+    return child_->estTupleLength();
 }
 
 double Remote::estColLength(const ColID cid) const
 {
-    return child->estColLength(cid);
+    return child_->estColLength(cid);
 }

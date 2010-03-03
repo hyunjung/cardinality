@@ -10,13 +10,13 @@ using namespace ca;
 PartitionStats::PartitionStats(const std::string fileName,
                                const int numInputCols,
                                const ValueType pkeyType)
-    : numPages(), cardinality(), colLengths(numInputCols), minVal(), maxVal()
+    : num_pages_(), cardinality_(), col_lengths_(numInputCols), min_val_(), max_val_()
 {
     init(fileName, numInputCols, pkeyType);
 }
 
 PartitionStats::PartitionStats()
-    : numPages(), cardinality(), colLengths(), minVal(), maxVal()
+    : num_pages_(), cardinality_(), col_lengths_(), min_val_(), max_val_()
 {
 }
 
@@ -52,7 +52,7 @@ void PartitionStats::init(const std::string fileName,
                           const ValueType pkeyType)
 {
     size_t fileSize = boost::filesystem::file_size(fileName);
-    numPages = (fileSize + PAGE_SIZE - 1) / PAGE_SIZE;
+    num_pages_ = (fileSize + PAGE_SIZE - 1) / PAGE_SIZE;
 
     // 1024 bytes per column
     size_t sampleSize = ((numInputCols + 3) / 4) * PAGE_SIZE;
@@ -61,7 +61,7 @@ void PartitionStats::init(const std::string fileName,
     const char *pos = file.begin();
 
     // extract the minimum primary key
-    extractPrimaryKey(pos, file.size(), numInputCols, pkeyType, minVal);
+    extractPrimaryKey(pos, file.size(), numInputCols, pkeyType, min_val_);
 
     // accumulate lengths of columns
     size_t numTuples = 0;
@@ -74,7 +74,7 @@ void PartitionStats::init(const std::string fileName,
                 pos = file.end();
                 break;
             }
-            colLengths[i] += delim - pos + 1;
+            col_lengths_[i] += delim - pos + 1;
             pos = delim + 1;
         }
     }
@@ -93,15 +93,15 @@ void PartitionStats::init(const std::string fileName,
     for (pos = file.end() - 2; *pos != '\n'; --pos);
     ++pos;
 #endif
-    extractPrimaryKey(pos, file.end() - pos, numInputCols, pkeyType, maxVal);
+    extractPrimaryKey(pos, file.end() - pos, numInputCols, pkeyType, max_val_);
 
     file.close();
 
     // compute average lengths of columns and the cardinality
     double tupleLength = 0;
     for (int j = 0; j < numInputCols; ++j) {
-        colLengths[j] /= (j < i) ? (numTuples + 1) : numTuples;
-        tupleLength += colLengths[j];
+        col_lengths_[j] /= (j < i) ? (numTuples + 1) : numTuples;
+        tupleLength += col_lengths_[j];
     }
-    cardinality = fileSize / tupleLength;
+    cardinality_ = fileSize / tupleLength;
 }

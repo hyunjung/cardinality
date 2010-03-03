@@ -29,7 +29,7 @@ protected:
     SeqScan();
     SeqScan(const SeqScan &);
 
-    const char *pos;
+    const char *pos_;
 
 private:
     SeqScan& operator=(const SeqScan &);

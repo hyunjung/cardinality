@@ -14,11 +14,11 @@ using namespace ca;
 
 
 Server::Server(const int port)
-    : io_service(),
-      acceptor(io_service, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
-      new_tcpstream(new boost::asio::ip::tcp::iostream())
+    : io_service_(),
+      acceptor_(io_service_, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port)),
+      new_tcpstream_(new boost::asio::ip::tcp::iostream())
 {
-    acceptor.async_accept(*new_tcpstream->rdbuf(),
+    acceptor_.async_accept(*new_tcpstream_->rdbuf(),
                           boost::bind(&Server::handle_accept, this,
                                       boost::asio::placeholders::error));
 }
@@ -29,12 +29,12 @@ Server::~Server()
 
 void Server::run()
 {
-    io_service.run();
+    io_service_.run();
 }
 
 void Server::stop()
 {
-    io_service.stop();
+    io_service_.stop();
 }
 
 static void handle_request(tcpstream_ptr conn)
@@ -92,9 +92,9 @@ static void handle_request(tcpstream_ptr conn)
 void Server::handle_accept(const boost::system::error_code &e)
 {
     if (!e) {
-        boost::thread t(boost::bind(handle_request, new_tcpstream));
-        new_tcpstream.reset(new boost::asio::ip::tcp::iostream());
-        acceptor.async_accept(*new_tcpstream->rdbuf(),
+        boost::thread t(boost::bind(handle_request, new_tcpstream_));
+        new_tcpstream_.reset(new boost::asio::ip::tcp::iostream());
+        acceptor_.async_accept(*new_tcpstream_->rdbuf(),
                               boost::bind(&Server::handle_accept, this,
                                           boost::asio::placeholders::error));
     }

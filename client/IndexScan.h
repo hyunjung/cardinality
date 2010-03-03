@@ -31,20 +31,20 @@ protected:
     IndexScan();
     IndexScan(const IndexScan &);
 
-    std::string indexCol;
-    ValueType indexColType;
-    CompOp compOp;
-    Value *value;
-    bool unique;
+    std::string index_col_;
+    ValueType index_col_type_;
+    CompOp comp_op_;
+    Value *value_;
+    bool unique_;
 
-    Index *index;
-    TxnState *txn;
-    Record record;
-    enum { INDEX_GET, INDEX_DONE, INDEX_GETNEXT } state;
-    bool checkIndexCond;
-    uint32_t keyIntVal;
-    const char *keyCharVal;
-    const double outerCardinality;
+    Index *index_;
+    TxnState *txn_;
+    Record record_;
+    enum { INDEX_GET, INDEX_DONE, INDEX_GETNEXT } state_;
+    bool check_index_cond_;
+    uint32_t key_intval_;
+    const char *key_charval_;
+    const double outer_cardinality_;
 
 private:
     IndexScan& operator=(const IndexScan &);
@@ -52,11 +52,11 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Scan>(*this);
-        ar & indexCol;
-        ar & indexColType;
-        ar & compOp;
-        ar & value;
-        ar & unique;
+        ar & index_col_;
+        ar & index_col_type_;
+        ar & comp_op_;
+        ar & value_;
+        ar & unique_;
     }
 };
 

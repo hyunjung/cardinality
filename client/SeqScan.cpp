@@ -6,19 +6,19 @@ using namespace ca;
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
                  const Table *t, const PartitionStats *p, const Query *q)
     : Scan(n, f, a, t, p, q),
-      pos()
+      pos_()
 {
 }
 
 SeqScan::SeqScan()
     : Scan(),
-      pos()
+      pos_()
 {
 }
 
 SeqScan::SeqScan(const SeqScan &x)
     : Scan(x),
-      pos()
+      pos_()
 {
 }
 
@@ -34,12 +34,12 @@ Operator::Ptr SeqScan::clone() const
 RC SeqScan::Open(const char *, const uint32_t)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
-    file.open(fileName);
-    pos = file.begin();
+    file_.open(filename_);
+    pos_ = file_.begin();
 #else
-    lineBuffer.reset(new char[(MAX_VARCHAR_LEN + 1) * numInputCols]);
-    file.open(fileName.c_str());
-    if (file.fail()) {
+    line_buffer_.reset(new char[(MAX_VARCHAR_LEN + 1) * num_input_cols_]);
+    file_.open(filename_.c_str());
+    if (file_.fail()) {
         throw std::runtime_error("ifstream.open() failed");
     }
 #endif
@@ -49,10 +49,10 @@ RC SeqScan::Open(const char *, const uint32_t)
 RC SeqScan::ReOpen(const char *, const uint32_t)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
-    pos = file.begin();
+    pos_ = file_.begin();
 #else
-    file.clear();
-    file.seekg(0, std::ios::beg);
+    file_.clear();
+    file_.seekg(0, std::ios::beg);
 #endif
     return 0;
 }
@@ -62,8 +62,8 @@ RC SeqScan::GetNext(Tuple &tuple)
     Tuple temp;
 
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
-    while (pos < file.end()) {
-        pos = splitLine(pos, file.end(), temp);
+    while (pos_ < file_.end()) {
+        pos_ = splitLine(pos_, file_.end(), temp);
 
         if (execFilter(temp)) {
             execProject(temp, tuple);
@@ -74,22 +74,22 @@ RC SeqScan::GetNext(Tuple &tuple)
     return -1;
 #else
     while (true) {
-        if (file.eof()) {
+        if (file_.eof()) {
             return -1;
         }
-        file.getline(lineBuffer.get(), (MAX_VARCHAR_LEN + 1) * numInputCols);
-        if (*lineBuffer.get() == '\0') {
+        file_.getline(line_buffer_.get(), (MAX_VARCHAR_LEN + 1) * num_input_cols_);
+        if (*line_buffer_.get() == '\0') {
             return -1;
         }
 
         temp.clear();
 
-        const char *pos = lineBuffer.get();
-        const char *eof = lineBuffer.get() + std::strlen(lineBuffer.get()) + 1;
+        const char *pos = line_buffer_.get();
+        const char *eof = line_buffer_.get() + std::strlen(line_buffer_.get()) + 1;
 
-        for (int i = 0; i < numInputCols; ++i) {
+        for (int i = 0; i < num_input_cols_; ++i) {
             const char *delim = static_cast<const char *>(
-                                    std::memchr(pos, (i == numInputCols - 1) ? '\0' : '|', eof - pos));
+                                    std::memchr(pos, (i == num_input_cols_ - 1) ? '\0' : '|', eof - pos));
             temp.push_back(std::make_pair(pos, delim - pos));
             pos = delim + 1;
         }
@@ -104,14 +104,14 @@ RC SeqScan::GetNext(Tuple &tuple)
 
 RC SeqScan::Close()
 {
-    file.close();
+    file_.close();
     return 0;
 }
 
 void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "SeqScan@" << getNodeID() << " " << fileName;
+    os << "SeqScan@" << getNodeID() << " " << filename_;
     os << " #cols=" << numOutputCols();
     os << " len=" << estTupleLength();
     os << " card=" << estCardinality();
@@ -121,17 +121,17 @@ void SeqScan::print(std::ostream &os, const int tab) const
 
 double SeqScan::estCost() const
 {
-    return stats->numPages * COST_DISK_READ_PAGE;
+    return stats_->num_pages_ * COST_DISK_READ_PAGE;
 }
 
 double SeqScan::estCardinality() const
 {
-    double card = stats->cardinality;
+    double card = stats_->cardinality_;
 
-    for (size_t i = 0; i < gteqConds.size(); ++i) {
-        if (gteqConds[i].get<2>() == EQ) {
-            if (gteqConds[i].get<0>() == 0) {
-                card /= stats->cardinality;
+    for (size_t i = 0; i < gteq_conds_.size(); ++i) {
+        if (gteq_conds_[i].get<2>() == EQ) {
+            if (gteq_conds_[i].get<0>() == 0) {
+                card /= stats_->cardinality_;
             } else {
                 card *= SELECTIVITY_EQ;
             }
@@ -140,7 +140,7 @@ double SeqScan::estCardinality() const
         }
     }
 
-    if (!joinConds.empty()) {
+    if (!join_conds_.empty()) {
         card *= SELECTIVITY_EQ;
     }
 

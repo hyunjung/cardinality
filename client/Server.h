@@ -20,9 +20,9 @@ public:
 protected:
     void handle_accept(const boost::system::error_code &e);
 
-    boost::asio::io_service io_service;
-    boost::asio::ip::tcp::acceptor acceptor;
-    tcpstream_ptr new_tcpstream;
+    boost::asio::io_service io_service_;
+    boost::asio::ip::tcp::acceptor acceptor_;
+    tcpstream_ptr new_tcpstream_;
 
 private:
     Server(const Server &);

@@ -6,22 +6,22 @@ using namespace ca;
 NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
     : Join(n, l, r, q, x),
-      idxJoinColID(NOT_INDEX_JOIN)
+      index_join_col_id_(NOT_INDEX_JOIN)
 {
     if (idxJoinCol) {
-        idxJoinColID = getInputColID(idxJoinCol);
+        index_join_col_id_ = getInputColID(idxJoinCol);
     }
 }
 
 NLJoin::NLJoin()
     : Join(),
-      idxJoinColID()
+      index_join_col_id_()
 {
 }
 
 NLJoin::NLJoin(const NLJoin &x)
     : Join(x),
-      idxJoinColID(x.idxJoinColID)
+      index_join_col_id_(x.index_join_col_id_)
 {
 }
 
@@ -36,8 +36,8 @@ Operator::Ptr NLJoin::clone() const
 
 RC NLJoin::Open(const char *, const uint32_t)
 {
-    state = RIGHT_OPEN;
-    return leftChild->Open();
+    state_ = RIGHT_OPEN;
+    return left_child_->Open();
 }
 
 RC NLJoin::ReOpen(const char *, const uint32_t)
@@ -50,39 +50,39 @@ RC NLJoin::GetNext(Tuple &tuple)
     Tuple rightTuple;
 
     while (true) {
-        if (state == RIGHT_OPEN) {
-            if (leftChild->GetNext(leftTuple)) {
+        if (state_ == RIGHT_OPEN) {
+            if (left_child_->GetNext(left_tuple_)) {
                 return -1;
             }
-            state = RIGHT_GETNEXT;
-            if (idxJoinColID == NOT_INDEX_JOIN) {
-                rightChild->Open();
+            state_ = RIGHT_GETNEXT;
+            if (index_join_col_id_ == NOT_INDEX_JOIN) {
+                right_child_->Open();
             } else {
-                rightChild->Open(leftTuple[idxJoinColID].first,
-                                 leftTuple[idxJoinColID].second);
+                right_child_->Open(left_tuple_[index_join_col_id_].first,
+                                 left_tuple_[index_join_col_id_].second);
             }
-        } else if (state == RIGHT_REOPEN) {
-            if (leftChild->GetNext(leftTuple)) {
-                rightChild->Close();
+        } else if (state_ == RIGHT_REOPEN) {
+            if (left_child_->GetNext(left_tuple_)) {
+                right_child_->Close();
                 return -1;
             }
-            state = RIGHT_GETNEXT;
-            if (idxJoinColID == NOT_INDEX_JOIN) {
-                rightChild->ReOpen();
+            state_ = RIGHT_GETNEXT;
+            if (index_join_col_id_ == NOT_INDEX_JOIN) {
+                right_child_->ReOpen();
             } else {
-                rightChild->ReOpen(leftTuple[idxJoinColID].first,
-                                   leftTuple[idxJoinColID].second);
+                right_child_->ReOpen(left_tuple_[index_join_col_id_].first,
+                                   left_tuple_[index_join_col_id_].second);
             }
         }
 
-        while (!rightChild->GetNext(rightTuple)) {
-            if (execFilter(leftTuple, rightTuple)) {
-                execProject(leftTuple, rightTuple, tuple);
+        while (!right_child_->GetNext(rightTuple)) {
+            if (execFilter(left_tuple_, rightTuple)) {
+                execProject(left_tuple_, rightTuple, tuple);
                 return 0;
             }
         }
 
-        state = RIGHT_REOPEN;
+        state_ = RIGHT_REOPEN;
     }
 
     return 0;
@@ -90,7 +90,7 @@ RC NLJoin::GetNext(Tuple &tuple)
 
 RC NLJoin::Close()
 {
-    return leftChild->Close();
+    return left_child_->Close();
 }
 
 void NLJoin::print(std::ostream &os, const int tab) const
@@ -103,11 +103,11 @@ void NLJoin::print(std::ostream &os, const int tab) const
     os << " cost=" << estCost();
     os << std::endl;
 
-    leftChild->print(os, tab + 1);
-    rightChild->print(os, tab + 1);
+    left_child_->print(os, tab + 1);
+    right_child_->print(os, tab + 1);
 }
 
 double NLJoin::estCost() const
 {
-    return leftChild->estCost() + leftChild->estCardinality() * rightChild->estCost();
+    return left_child_->estCost() + left_child_->estCardinality() * right_child_->estCost();
 }

@@ -7,61 +7,61 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
                      const char *col, const double o)
     : Scan(n, f, a, t, p, q),
-      indexCol(), indexColType(),
-      compOp(EQ), value(NULL), unique(),
-      index(), txn(), record(),
-      state(), checkIndexCond(), keyIntVal(), keyCharVal(),
-      outerCardinality(o)
+      index_col_(), index_col_type_(),
+      comp_op_(EQ), value_(NULL), unique_(),
+      index_(), txn_(), record_(),
+      state_(), check_index_cond_(), key_intval_(), key_charval_(),
+      outer_cardinality_(o)
 {
     if (col) { // NLIJ
         const char *dot = std::strchr(col, '.');
         if (dot == NULL) {
             throw std::runtime_error("invalid column name");
         }
-        indexCol = table->tableName;
-        indexCol += '.';
-        indexCol += dot + 1;
-        indexColType = getColType(col);
-        unique = std::strcmp(t->fieldsName[0], dot + 1) == 0;
+        index_col_ = table_->tableName;
+        index_col_ += '.';
+        index_col_ += dot + 1;
+        index_col_type_ = getColType(col);
+        unique_ = std::strcmp(t->fieldsName[0], dot + 1) == 0;
     } else {
-        for (size_t i = 0; i < gteqConds.size(); ++i) {
-            const char *col = table->fieldsName[gteqConds[i].get<0>()];
+        for (size_t i = 0; i < gteq_conds_.size(); ++i) {
+            const char *col = table_->fieldsName[gteq_conds_[i].get<0>()];
             if (col[0] == '_') {
-                indexCol = table->tableName;
-                indexCol += '.';
-                indexCol += col;
-                compOp = gteqConds[i].get<2>();
-                value = gteqConds[i].get<1>();
-                indexColType = value->type;
-                unique = gteqConds[i].get<0>() == 0;
-                gteqConds.erase(gteqConds.begin() + i);
+                index_col_ = table_->tableName;
+                index_col_ += '.';
+                index_col_ += col;
+                comp_op_ = gteq_conds_[i].get<2>();
+                value_ = gteq_conds_[i].get<1>();
+                index_col_type_ = value_->type;
+                unique_ = gteq_conds_[i].get<0>() == 0;
+                gteq_conds_.erase(gteq_conds_.begin() + i);
                 break;
             }
         }
 
-        if (indexCol.empty()) {
-            throw std::runtime_error("indexed column not found");
+        if (index_col_.empty()) {
+            throw std::runtime_error("index_ed column not found");
         }
     }
 }
 
 IndexScan::IndexScan()
     : Scan(),
-      indexCol(), indexColType(),
-      compOp(), value(), unique(),
-      index(), txn(), record(),
-      state(), checkIndexCond(), keyIntVal(), keyCharVal(),
-      outerCardinality()
+      index_col_(), index_col_type_(),
+      comp_op_(), value_(), unique_(),
+      index_(), txn_(), record_(),
+      state_(), check_index_cond_(), key_intval_(), key_charval_(),
+      outer_cardinality_()
 {
 }
 
 IndexScan::IndexScan(const IndexScan &x)
     : Scan(x),
-      indexCol(x.indexCol), indexColType(x.indexColType),
-      compOp(x.compOp), value(x.value), unique(x.unique),
-      index(), txn(), record(),
-      state(), checkIndexCond(), keyIntVal(), keyCharVal(),
-      outerCardinality(x.outerCardinality)
+      index_col_(x.index_col_), index_col_type_(x.index_col_type_),
+      comp_op_(x.comp_op_), value_(x.value_), unique_(x.unique_),
+      index_(), txn_(), record_(),
+      state_(), check_index_cond_(), key_intval_(), key_charval_(),
+      outer_cardinality_(x.outer_cardinality_)
 {
 }
 
@@ -76,54 +76,54 @@ Operator::Ptr IndexScan::clone() const
 
 RC IndexScan::Open(const char *leftPtr, const uint32_t leftLen)
 {
-    file.open(fileName);
-    openIndex(indexCol.c_str(), &index);
+    file_.open(filename_);
+    openIndex(index_col_.c_str(), &index_);
 
-    record.val.type = indexColType;
-    if (indexColType == INT) {
+    record_.val.type = index_col_type_;
+    if (index_col_type_ == INT) {
         if (leftPtr) {
-            keyIntVal = parseInt(leftPtr, leftLen);
+            key_intval_ = parseInt(leftPtr, leftLen);
         } else {
-            keyIntVal = value->intVal;
+            key_intval_ = value_->intVal;
         }
-        record.val.intVal = keyIntVal;
+        record_.val.intVal = key_intval_;
     } else { // STRING
         if (leftPtr) {
-            keyCharVal = leftPtr;
-            keyIntVal = leftLen;
+            key_charval_ = leftPtr;
+            key_intval_ = leftLen;
         } else {
-            keyCharVal = value->charVal;
-            keyIntVal = value->intVal;
+            key_charval_ = value_->charVal;
+            key_intval_ = value_->intVal;
         }
-        std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
-        record.val.charVal[keyIntVal] = '\0';
+        std::memcpy(record_.val.charVal, key_charval_, key_intval_);
+        record_.val.charVal[key_intval_] = '\0';
     }
 
-    beginTransaction(&txn);
-    state = INDEX_GET;
-    checkIndexCond = true;
+    beginTransaction(&txn_);
+    state_ = INDEX_GET;
+    check_index_cond_ = true;
 
     return 0;
 }
 
 RC IndexScan::ReOpen(const char *leftPtr, const uint32_t leftLen)
 {
-    if (indexColType == INT) {
+    if (index_col_type_ == INT) {
         if (leftPtr) {
-            keyIntVal = parseInt(leftPtr, leftLen);
+            key_intval_ = parseInt(leftPtr, leftLen);
         }
-        record.val.intVal = keyIntVal;
+        record_.val.intVal = key_intval_;
     } else { // STRING
         if (leftPtr) {
-            keyCharVal = leftPtr;
-            keyIntVal = leftLen;
+            key_charval_ = leftPtr;
+            key_intval_ = leftLen;
         }
-        std::memcpy(record.val.charVal, keyCharVal, keyIntVal);
-        record.val.charVal[keyIntVal] = '\0';
+        std::memcpy(record_.val.charVal, key_charval_, key_intval_);
+        record_.val.charVal[key_intval_] = '\0';
     }
 
-    state = INDEX_GET;
-    checkIndexCond = true;
+    state_ = INDEX_GET;
+    check_index_cond_ = true;
 
     return 0;
 }
@@ -133,22 +133,22 @@ RC IndexScan::GetNext(Tuple &tuple)
     ErrCode ec;
     Tuple temp;
 
-    switch (state) {
+    switch (state_) {
     case INDEX_DONE:
         return -1;
 
     case INDEX_GET:
-        ec = get(index, txn, &record);
-        state = INDEX_GETNEXT;
+        ec = get(index_, txn_, &record_);
+        state_ = INDEX_GETNEXT;
 
         // GT: the first tuple will be returned in the while loop
         switch (ec) {
         case SUCCESS:
-            if (compOp == EQ) {
-                if (unique) {
-                    state = INDEX_DONE;
+            if (comp_op_ == EQ) {
+                if (unique_) {
+                    state_ = INDEX_DONE;
                 }
-                splitLine(file.begin() + record.address, file.end(), temp);
+                splitLine(file_.begin() + record_.address, file_.end(), temp);
 
                 if (execFilter(temp)) {
                     execProject(temp, tuple);
@@ -158,10 +158,10 @@ RC IndexScan::GetNext(Tuple &tuple)
             break;
 
         case KEY_NOTFOUND:
-            if (compOp == EQ) {
+            if (comp_op_ == EQ) {
                 return -1;
             } else { // GT
-                checkIndexCond = false;
+                check_index_cond_ = false;
             }
             break;
 
@@ -170,38 +170,38 @@ RC IndexScan::GetNext(Tuple &tuple)
         }
 
     case INDEX_GETNEXT:
-        while ((ec = getNext(index, txn, &record)) == SUCCESS) {
-            if (checkIndexCond) {
-                if (indexColType == INT) {
-                    if (compOp == EQ) {
-                        if (keyIntVal != record.val.intVal) {
+        while ((ec = getNext(index_, txn_, &record_)) == SUCCESS) {
+            if (check_index_cond_) {
+                if (index_col_type_ == INT) {
+                    if (comp_op_ == EQ) {
+                        if (key_intval_ != record_.val.intVal) {
                             return -1;
                         }
                     } else { // GT
-                        if (keyIntVal >= record.val.intVal) {
+                        if (key_intval_ >= record_.val.intVal) {
                             continue;
                         }
-                        checkIndexCond = false;
+                        check_index_cond_ = false;
                     }
                 } else { // STRING
-                    if (compOp == EQ) {
-                        if (record.val.charVal[keyIntVal] != '\0'
-                            || std::memcmp(keyCharVal, record.val.charVal, keyIntVal)) {
+                    if (comp_op_ == EQ) {
+                        if (record_.val.charVal[key_intval_] != '\0'
+                            || std::memcmp(key_charval_, record_.val.charVal, key_intval_)) {
                             return -1;
                         }
                     } else { // GT
-                        uint32_t charValLen = std::strlen(record.val.charVal);
-                        int cmp = std::memcmp(keyCharVal, record.val.charVal,
-                                              std::min(keyIntVal, charValLen));
-                        if (cmp > 0 || (cmp == 0 && keyIntVal >= charValLen)) {
+                        uint32_t charValLen = std::strlen(record_.val.charVal);
+                        int cmp = std::memcmp(key_charval_, record_.val.charVal,
+                                              std::min(key_intval_, charValLen));
+                        if (cmp > 0 || (cmp == 0 && key_intval_ >= charValLen)) {
                             continue;
                         }
-                        checkIndexCond = false;
+                        check_index_cond_ = false;
                     }
                 }
             }
 
-            splitLine(file.begin() + record.address, file.end(), temp);
+            splitLine(file_.begin() + record_.address, file_.end(), temp);
 
             if (execFilter(temp)) {
                 execProject(temp, tuple);
@@ -216,9 +216,9 @@ RC IndexScan::GetNext(Tuple &tuple)
 
 RC IndexScan::Close()
 {
-    commitTransaction(txn);
-    closeIndex(index);
-    file.close();
+    commitTransaction(txn_);
+    closeIndex(index_);
+    file_.close();
 
     return 0;
 }
@@ -226,17 +226,17 @@ RC IndexScan::Close()
 void IndexScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "IndexScan@" << getNodeID() << " " << fileName << " ";
-    if (unique) {
+    os << "IndexScan@" << getNodeID() << " " << filename_ << " ";
+    if (unique_) {
         os << "unique ";
     }
-    os << indexCol << ((compOp == EQ) ? "=" : ">");
-    if (!value) { // NLIJ
+    os << index_col_ << ((comp_op_ == EQ) ? "=" : ">");
+    if (!value_) { // NLIJ
         os << "leftValue";
-    } else if (value->type == INT) {
-        os << value->intVal;
+    } else if (value_->type == INT) {
+        os << value_->intVal;
     } else { // STRING
-        os << "'" << value->charVal << "'";
+        os << "'" << value_->charVal << "'";
     }
     os << " #cols=" << numOutputCols();
     os << " len=" << estTupleLength();
@@ -274,23 +274,23 @@ double IndexScan::estCost() const
     double seqPages = 0;
     double randomPages = 0;
 
-    if (!value) { // NLIJ
-        randomPages = MACKERT_LOHMAN(stats->numPages,
-                                     (unique) ? 1 : 3, outerCardinality)
-                      / outerCardinality;
+    if (!value_) { // NLIJ
+        randomPages = MACKERT_LOHMAN(stats_->num_pages_,
+                                     (unique_) ? 1 : 3, outer_cardinality_)
+                      / outer_cardinality_;
     } else {
-        if (compOp == EQ) {
-            if (unique) {
-                seqPages = MACKERT_LOHMAN(stats->numPages, 1);
+        if (comp_op_ == EQ) {
+            if (unique_) {
+                seqPages = MACKERT_LOHMAN(stats_->num_pages_, 1);
             } else {
-                randomPages = MACKERT_LOHMAN(stats->numPages, 3);
+                randomPages = MACKERT_LOHMAN(stats_->num_pages_, 3);
             }
         } else { // GT
-            if (unique) {
-                seqPages = stats->numPages * SELECTIVITY_GT;
+            if (unique_) {
+                seqPages = stats_->num_pages_ * SELECTIVITY_GT;
             } else {
-                randomPages = MACKERT_LOHMAN(stats->numPages,
-                                             stats->cardinality * SELECTIVITY_GT);
+                randomPages = MACKERT_LOHMAN(stats_->num_pages_,
+                                             stats_->cardinality_ * SELECTIVITY_GT);
             }
         }
     }
@@ -301,11 +301,11 @@ double IndexScan::estCost() const
 
 double IndexScan::estCardinality() const
 {
-    double card = stats->cardinality;
+    double card = stats_->cardinality_;
 
-    if (compOp == EQ) {
-        if (unique) {
-            card /= stats->cardinality;
+    if (comp_op_ == EQ) {
+        if (unique_) {
+            card /= stats_->cardinality_;
         } else {
             card *= SELECTIVITY_EQ;
         }
@@ -313,10 +313,10 @@ double IndexScan::estCardinality() const
         card *= SELECTIVITY_GT;
     }
 
-    for (size_t i = 0; i < gteqConds.size(); ++i) {
-        if (gteqConds[i].get<2>() == EQ) {
-            if (gteqConds[i].get<0>() == 0) {
-                card /= stats->cardinality;
+    for (size_t i = 0; i < gteq_conds_.size(); ++i) {
+        if (gteq_conds_[i].get<2>() == EQ) {
+            if (gteq_conds_[i].get<0>() == 0) {
+                card /= stats_->cardinality_;
             } else {
                 card *= SELECTIVITY_EQ;
             }
@@ -325,7 +325,7 @@ double IndexScan::estCardinality() const
         }
     }
 
-    if (!joinConds.empty()) {
+    if (!join_conds_.empty()) {
         card *= SELECTIVITY_EQ;
     }
 

@@ -35,11 +35,11 @@ protected:
     Remote();
     Remote(const Remote &);
 
-    Operator::Ptr child;
-    const std::string ipAddress;
+    Operator::Ptr child_;
+    const std::string hostname_;
 
-    boost::asio::ip::tcp::iostream tcpstream;
-    boost::scoped_array<char> lineBuffer;
+    boost::asio::ip::tcp::iostream tcpstream_;
+    boost::scoped_array<char> line_buffer_;
 
 private:
     Remote& operator=(const Remote &);
@@ -47,8 +47,8 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
-        ar & child;
-        ar & const_cast<std::string &>(ipAddress);
+        ar & child_;
+        ar & const_cast<std::string &>(hostname_);
     }
 };
 

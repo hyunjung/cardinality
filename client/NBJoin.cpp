@@ -10,22 +10,22 @@ using namespace ca;
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
-      state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
-      mainBuffer(), overflowBuffer()
+      state_(), left_done_(), left_tuples_(), left_tuples_it_(), right_tuple_(),
+      main_buffer_(), overflow_buffer_()
 {
 }
 
 NBJoin::NBJoin()
     : Join(),
-      state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
-      mainBuffer(), overflowBuffer()
+      state_(), left_done_(), left_tuples_(), left_tuples_it_(), right_tuple_(),
+      main_buffer_(), overflow_buffer_()
 {
 }
 
 NBJoin::NBJoin(const NBJoin &x)
     : Join(x),
-      state(), leftDone(), leftTuples(), leftTuplesIt(), rightTuple(),
-      mainBuffer(), overflowBuffer()
+      state_(), left_done_(), left_tuples_(), left_tuples_it_(), right_tuple_(),
+      main_buffer_(), overflow_buffer_()
 {
 }
 
@@ -40,9 +40,9 @@ Operator::Ptr NBJoin::clone() const
 
 RC NBJoin::Open(const char *, const uint32_t)
 {
-    mainBuffer.reset(new char[NBJOIN_BUFSIZE]);
-    state = RIGHT_OPEN;
-    return leftChild->Open();
+    main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
+    state_ = RIGHT_OPEN;
+    return left_child_->Open();
 }
 
 RC NBJoin::ReOpen(const char *, const uint32_t)
@@ -53,27 +53,27 @@ RC NBJoin::ReOpen(const char *, const uint32_t)
 RC NBJoin::GetNext(Tuple &tuple)
 {
     while (true) {
-        switch (state) {
+        switch (state_) {
         case RIGHT_OPEN:
         case RIGHT_REOPEN: {
             Tuple leftTuple;
-            for (char *pos = mainBuffer.get();
-                 pos - mainBuffer.get() < NBJOIN_BUFSIZE - 512
-                 && !(leftDone = leftChild->GetNext(leftTuple)); ) {
+            for (char *pos = main_buffer_.get();
+                 pos - main_buffer_.get() < NBJOIN_BUFSIZE - 512
+                 && !(left_done_ = left_child_->GetNext(leftTuple)); ) {
                 for (size_t i = 0; i < leftTuple.size(); ++i) {
                     uint32_t len = leftTuple[i].second;
-                    if (pos + len < mainBuffer.get() + NBJOIN_BUFSIZE) {
+                    if (pos + len < main_buffer_.get() + NBJOIN_BUFSIZE) {
                         std::memcpy(pos, leftTuple[i].first, len);
                         pos[len] = '\0';
                         leftTuple[i].first = pos;
                         pos += len + 1;
-                    } else { // mainBuffer doesn't have enough space
+                    } else { // main_buffer_ doesn't have enough space
                         int overflowLen = len + 1;
                         for (size_t j = i + 1; j < leftTuple.size(); ++j) {
                             overflowLen += leftTuple[j].second + 1;
                         }
-                        overflowBuffer.reset(new char[overflowLen]);
-                        pos = overflowBuffer.get();
+                        overflow_buffer_.reset(new char[overflowLen]);
+                        pos = overflow_buffer_.get();
                         for (; i < leftTuple.size(); ++i) {
                             uint32_t len = leftTuple[i].second;
                             std::memcpy(pos, leftTuple[i].first, len);
@@ -81,48 +81,48 @@ RC NBJoin::GetNext(Tuple &tuple)
                             leftTuple[i].first = pos;
                             pos += len + 1;
                         }
-                        pos = mainBuffer.get() + NBJOIN_BUFSIZE;
+                        pos = main_buffer_.get() + NBJOIN_BUFSIZE;
                     }
                 }
-                leftTuples.push_back(leftTuple);
+                left_tuples_.push_back(leftTuple);
             }
 
-            if (leftTuples.empty()) {
-                if (state == RIGHT_REOPEN) {
-                    rightChild->Close();
+            if (left_tuples_.empty()) {
+                if (state_ == RIGHT_REOPEN) {
+                    right_child_->Close();
                 }
                 return -1;
             }
 
-            if (state == RIGHT_OPEN) {
-                rightChild->Open();
+            if (state_ == RIGHT_OPEN) {
+                right_child_->Open();
             } else { // RIGHT_REOPEN
-                rightChild->ReOpen();
+                right_child_->ReOpen();
             }
-            state = RIGHT_GETNEXT;
+            state_ = RIGHT_GETNEXT;
         }
 
         case RIGHT_GETNEXT:
-            if (rightChild->GetNext(rightTuple)) {
-                leftTuples.clear();
-                if (leftDone) {
-                    rightChild->Close();
+            if (right_child_->GetNext(right_tuple_)) {
+                left_tuples_.clear();
+                if (left_done_) {
+                    right_child_->Close();
                     return -1;
                 }
-                state = RIGHT_REOPEN;
+                state_ = RIGHT_REOPEN;
                 break;
             }
-            leftTuplesIt = leftTuples.begin();
-            state = RIGHT_SWEEPBUFFER;
+            left_tuples_it_ = left_tuples_.begin();
+            state_ = RIGHT_SWEEPBUFFER;
 
         case RIGHT_SWEEPBUFFER:
-            for (; leftTuplesIt < leftTuples.end(); ++leftTuplesIt) {
-                if (execFilter(*leftTuplesIt, rightTuple)) {
-                    execProject(*leftTuplesIt++, rightTuple, tuple);
+            for (; left_tuples_it_ < left_tuples_.end(); ++left_tuples_it_) {
+                if (execFilter(*left_tuples_it_, right_tuple_)) {
+                    execProject(*left_tuples_it_++, right_tuple_, tuple);
                     return 0;
                 }
             }
-            state = RIGHT_GETNEXT;
+            state_ = RIGHT_GETNEXT;
             break;
         }
     }
@@ -132,9 +132,9 @@ RC NBJoin::GetNext(Tuple &tuple)
 
 RC NBJoin::Close()
 {
-    mainBuffer.reset();
-    overflowBuffer.reset();
-    return leftChild->Close();
+    main_buffer_.reset();
+    overflow_buffer_.reset();
+    return left_child_->Close();
 }
 
 void NBJoin::print(std::ostream &os, const int tab) const
@@ -147,13 +147,13 @@ void NBJoin::print(std::ostream &os, const int tab) const
     os << " cost=" << estCost();
     os << std::endl;
 
-    leftChild->print(os, tab + 1);
-    rightChild->print(os, tab + 1);
+    left_child_->print(os, tab + 1);
+    right_child_->print(os, tab + 1);
 }
 
 double NBJoin::estCost() const
 {
-    return leftChild->estCost()
-           + std::ceil(leftChild->estCardinality() * leftChild->estTupleLength() / NBJOIN_BUFSIZE)
-             * rightChild->estCost();
+    return left_child_->estCost()
+           + std::ceil(left_child_->estCardinality() * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
+             * right_child_->estCost();
 }

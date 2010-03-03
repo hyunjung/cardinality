@@ -46,19 +46,19 @@ protected:
     void execProject(const Tuple &, Tuple &) const;
     const char *splitLine(const char *, const char *, Tuple &) const;
 
-    const std::string fileName;
-    std::vector<boost::tuple<ColID, Value *, CompOp> > gteqConds;
-    std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
-    const int numInputCols;
+    const std::string filename_;
+    std::vector<boost::tuple<ColID, Value *, CompOp> > gteq_conds_;
+    std::vector<boost::tuple<ColID, ColID, ValueType> > join_conds_;
+    const int num_input_cols_;
 
-    const std::string alias;
-    const Table *table;
-    const PartitionStats *stats;
+    const std::string alias_;
+    const Table *table_;
+    const PartitionStats *stats_;
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
-    boost::iostreams::mapped_file_source file;
+    boost::iostreams::mapped_file_source file_;
 #else
-    std::ifstream file;
-    boost::scoped_array<char> lineBuffer;
+    std::ifstream file_;
+    boost::scoped_array<char> line_buffer_;
 #endif
 
 private:
@@ -67,10 +67,10 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
-        ar & const_cast<std::string &>(fileName);
-        ar & gteqConds;
-        ar & joinConds;
-        ar & const_cast<int &>(numInputCols);
+        ar & const_cast<std::string &>(filename_);
+        ar & gteq_conds_;
+        ar & join_conds_;
+        ar & const_cast<int &>(num_input_cols_);
     }
 };
 

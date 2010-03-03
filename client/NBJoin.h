@@ -29,13 +29,13 @@ protected:
     NBJoin();
     NBJoin(const NBJoin &);
 
-    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state;
-    bool leftDone;
-    std::vector<Tuple> leftTuples;
-    std::vector<Tuple>::const_iterator leftTuplesIt;
-    Tuple rightTuple;
-    boost::scoped_array<char> mainBuffer;
-    boost::scoped_array<char> overflowBuffer;
+    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state_;
+    bool left_done_;
+    std::vector<Tuple> left_tuples_;
+    std::vector<Tuple>::const_iterator left_tuples_it_;
+    Tuple right_tuple_;
+    boost::scoped_array<char> main_buffer_;
+    boost::scoped_array<char> overflow_buffer_;
 
 private:
     NBJoin& operator=(const NBJoin &);

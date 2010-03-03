@@ -33,10 +33,10 @@ protected:
     Union();
     Union(const Union &);
 
-    std::vector<Operator::Ptr> children;
+    std::vector<Operator::Ptr> children_;
 
-    size_t j;
-    std::vector<bool> done;
+    size_t it_;
+    std::vector<bool> done_;
 
 private:
     Union& operator=(const Union &);
@@ -44,7 +44,7 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
-        ar & children;
+        ar & children_;
     }
 };
 

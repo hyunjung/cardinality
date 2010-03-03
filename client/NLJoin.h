@@ -28,11 +28,11 @@ protected:
     NLJoin();
     NLJoin(const NLJoin &);
 
-    ColID idxJoinColID;
+    ColID index_join_col_id_;
     static const ColID NOT_INDEX_JOIN = -1;
 
-    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT } state;
-    Tuple leftTuple;
+    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT } state_;
+    Tuple left_tuple_;
 
 private:
     NLJoin& operator=(const NLJoin &);
@@ -40,7 +40,7 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Join>(*this);
-        ar & idxJoinColID;
+        ar & index_join_col_id_;
     }
 };
 

@@ -31,9 +31,9 @@ protected:
     bool execFilter(const Tuple &, const Tuple &) const;
     void execProject(const Tuple &, const Tuple &, Tuple &) const;
 
-    Operator::Ptr leftChild;
-    Operator::Ptr rightChild;
-    std::vector<boost::tuple<ColID, ColID, ValueType> > joinConds;
+    Operator::Ptr left_child_;
+    Operator::Ptr right_child_;
+    std::vector<boost::tuple<ColID, ColID, ValueType> > join_conds_;
 
 private:
     Join& operator=(const Join &);
@@ -41,9 +41,9 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
-        ar & leftChild;
-        ar & rightChild;
-        ar & joinConds;
+        ar & left_child_;
+        ar & right_child_;
+        ar & join_conds_;
     }
 };
 

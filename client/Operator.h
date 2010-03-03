@@ -55,16 +55,16 @@ protected:
 
     void initProject(const Query *q);
 
-    const NodeID nodeID;
-    std::vector<ColID> selectedInputColIDs;
+    const NodeID node_id_;
+    std::vector<ColID> selected_input_col_ids_;
 
 private:
     Operator& operator=(const Operator &);
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
-        ar & const_cast<NodeID &>(nodeID);
-        ar & selectedInputColIDs;
+        ar & const_cast<NodeID &>(node_id_);
+        ar & selected_input_col_ids_;
     }
 };
 
