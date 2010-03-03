@@ -12,7 +12,6 @@
 #include "Operator.h"
 #include "PartitionStats.h"
 #include "Value.h"
-#include "optimizer.h"
 
 
 namespace ca {

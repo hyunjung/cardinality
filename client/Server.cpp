@@ -1,5 +1,6 @@
-#include <boost/thread.hpp>
-#include <boost/bind.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/bind/bind.hpp>
+#include <boost/asio/placeholders.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include "Server.h"
