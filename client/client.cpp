@@ -1,4 +1,5 @@
-#include <boost/thread.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -14,15 +15,20 @@ struct Connection {
     ca::Tuple tuple;
 };
 
+// on master
 const Nodes *gNodes;
 std::map<std::string, Table * > gTables;
 std::map<std::pair<std::string, int>, ca::PartitionStats * > gStats;
+static boost::mutex stats_mutex;
+
+// on both master and slave
+ca::Server *g_server;
 
 
 static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 {
     boost::asio::ip::tcp::iostream tcpstream;
-    for (int attempt = 0; attempt < 5; ++attempt) {
+    for (int attempt = 0; attempt < 20; ++attempt) {
         tcpstream.connect(gNodes->nodes[n].ip, boost::lexical_cast<std::string>(17000 + n));
         if (tcpstream.good()) {
             break;
@@ -51,6 +57,8 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
             ca::PartitionStats *stats;
             ia >> stats;
+
+            boost::mutex::scoped_lock lock(stats_mutex);
             gStats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
         }
     }
@@ -81,22 +89,22 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
             ca::PartitionStats *stats = new ca::PartitionStats(data->tables[i].partitions[j].fileName,
                                                                data->tables[i].nbFields,
                                                                data->tables[i].fieldsType[0]);
+
+            boost::mutex::scoped_lock lock(stats_mutex);
             gStats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
         }
     }
 
-    // TODO: *ps will be leaked
-    ca::Server *ps = new ca::Server(17000);
-    boost::thread t(boost::bind(&ca::Server::run, ps));
+    g_server = new ca::Server(17000);
+    boost::thread t(boost::bind(&ca::Server::run, g_server));
 
     threads.join_all();
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)
 {
-    // TODO: *ps will be leaked
-    ca::Server *ps = new ca::Server(17000 + currentNode->iNode);
-    boost::thread t(boost::bind(&ca::Server::run, ps));
+    g_server = new ca::Server(17000 + currentNode->iNode);
+    boost::thread t(boost::bind(&ca::Server::run, g_server));
 }
 
 Connection *createConnection()
@@ -127,7 +135,16 @@ void performQuery(Connection *conn, const Query *q)
 
     // choose an optimal query plan and open an iterator
     conn->q = q;
-    conn->root = buildQueryPlan(q);
+    int maxParts = 0;
+    for (int i = 0; i < q->nbTable; ++i) {
+        Table *table = gTables[std::string(q->tableNames[i])];
+        maxParts = std::max(maxParts, table->nbPartitions);
+    }
+    if (maxParts == 1 || q->nbTable >= 2) {
+        conn->root = buildQueryPlanIgnoringPartitions(q);
+    } else {
+        conn->root = buildSimpleQueryPlanForOneTable(q);
+    }
     conn->root->Open();
 }
 

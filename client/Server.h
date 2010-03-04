@@ -17,6 +17,7 @@ public:
 
     void run();
     void stop();
+    boost::asio::io_service & io_service();
 
 protected:
     void handle_accept(const boost::system::error_code &e);

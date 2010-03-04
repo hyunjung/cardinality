@@ -1,4 +1,6 @@
-#include <boost/lexical_cast.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/write.hpp>
+#include <boost/asio/read_until.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include "Remote.h"
 #include "NLJoin.h"
@@ -6,14 +8,19 @@
 #include "SeqScan.h"
 #include "IndexScan.h"
 #include "Union.h"
+#include "Server.h"
 
+
+extern ca::Server *g_server; // client.cpp
 
 namespace ca {
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
     : Operator(n),
-      child_(c), hostname_(i),
-      tcpstream_(), line_buffer_()
+      child_(c), ip_address_(i),
+      socket_(g_server->io_service()),
+      line_buffer_(),
+      response_()
 {
     for (size_t i = 0; i < child_->numOutputCols(); ++i) {
         selected_input_col_ids_.push_back(i);
@@ -22,15 +29,19 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
 
 Remote::Remote()
     : Operator(),
-      child_(), hostname_(),
-      tcpstream_(), line_buffer_()
+      child_(), ip_address_(),
+      socket_(g_server->io_service()),
+      line_buffer_(),
+      response_()
 {
 }
 
 Remote::Remote(const Remote &x)
     : Operator(x),
-      child_(x.child_->clone()), hostname_(x.hostname_),
-      tcpstream_(), line_buffer_()
+      child_(x.child_->clone()), ip_address_(x.ip_address_),
+      socket_(g_server->io_service()),
+      line_buffer_(),
+      response_()
 {
 }
 
@@ -48,27 +59,33 @@ RC Remote::Open(const char *left_ptr, const uint32_t left_len)
     line_buffer_.reset(new char[std::max(static_cast<size_t>(1),
                                        (MAX_VARCHAR_LEN + 1) * child_->numOutputCols())]);
 
-    tcpstream_.connect(hostname_, boost::lexical_cast<std::string>(17000 + child_->getNodeID()));
-    if (tcpstream_.fail()) {
-        throw std::runtime_error("tcp::iostream.connect() failed");
+    boost::asio::ip::tcp::endpoint endpoint
+        = boost::asio::ip::tcp::endpoint(
+              boost::asio::ip::address::from_string(ip_address_), 17000 + child_->getNodeID());
+
+    boost::system::error_code error;
+    socket_.connect(endpoint, error);
+    if (error) {
+        throw boost::system::system_error(error);
     }
 
     if (left_ptr) {
-        tcpstream_.put('P');
-
-        boost::archive::binary_oarchive oa(tcpstream_);
+        boost::asio::streambuf request;
+        std::ostream request_stream(&request);
+        request_stream << "P";
+        boost::archive::binary_oarchive oa(request_stream);
         oa.register_type(static_cast<IndexScan *>(NULL));
 
         oa << child_;
-
-        tcpstream_ << left_len << '\n';
-        tcpstream_.write(left_ptr, left_len);
-        tcpstream_ << std::flush;
+        request_stream << left_len << '\n';
+        request_stream.write(left_ptr, left_len);
+        boost::asio::write(socket_, request);
 
     } else {
-        tcpstream_.put('Q');
-
-        boost::archive::binary_oarchive oa(tcpstream_);
+        boost::asio::streambuf request;
+        std::ostream request_stream(&request);
+        request_stream << "Q";
+        boost::archive::binary_oarchive oa(request_stream);
         oa.register_type(static_cast<NLJoin *>(NULL));
         oa.register_type(static_cast<NBJoin *>(NULL));
         oa.register_type(static_cast<SeqScan *>(NULL));
@@ -77,6 +94,7 @@ RC Remote::Open(const char *left_ptr, const uint32_t left_len)
         oa.register_type(static_cast<Union *>(NULL));
 
         oa << child_;
+        boost::asio::write(socket_, request);
     }
 
     return 0;
@@ -85,11 +103,13 @@ RC Remote::Open(const char *left_ptr, const uint32_t left_len)
 RC Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (left_ptr) {
-        tcpstream_ << left_len << '\n';
-        tcpstream_.write(left_ptr, left_len);
-        tcpstream_ << std::flush;
+        boost::asio::streambuf request;
+        std::ostream request_stream(&request);
+        request_stream << left_len << '\n';
+        request_stream.write(left_ptr, left_len);
+        boost::asio::write(socket_, request);
     } else {
-        tcpstream_.close();
+        socket_.close();
         Open();
     }
 
@@ -99,11 +119,17 @@ RC Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 RC Remote::GetNext(Tuple &tuple)
 {
     tuple.clear();
-    tcpstream_.getline(line_buffer_.get(),
-                      std::max(static_cast<size_t>(1),
-                               (MAX_VARCHAR_LEN + 1) * child_->numOutputCols()));
+    try {
+        boost::asio::read_until(socket_, response_, '\n');
+    } catch (boost::system::system_error &e) {
+        return -1;
+    }
+    std::istream is(&response_);
+    is.getline(line_buffer_.get(),
+               std::max(static_cast<size_t>(1),
+                        (MAX_VARCHAR_LEN + 1) * child_->numOutputCols()));
     if (*line_buffer_.get() == '\0') {
-        return (tcpstream_.eof()) ? -1 : 0;
+        return 0;
     }
     if (*line_buffer_.get() == '|') {
         return -1;
@@ -131,7 +157,7 @@ RC Remote::GetNext(Tuple &tuple)
 
 RC Remote::Close()
 {
-    tcpstream_.close();
+    socket_.close();
     line_buffer_.reset();
 
     return 0;

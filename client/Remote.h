@@ -2,6 +2,7 @@
 #define CLIENT_REMOTE_H_
 
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/streambuf.hpp>
 #include <boost/scoped_array.hpp>
 #include "Operator.h"
 
@@ -36,10 +37,11 @@ protected:
     Remote(const Remote &);
 
     Operator::Ptr child_;
-    const std::string hostname_;
+    const std::string ip_address_;
 
-    boost::asio::ip::tcp::iostream tcpstream_;
+    boost::asio::ip::tcp::socket socket_;
     boost::scoped_array<char> line_buffer_;
+    boost::asio::streambuf response_;
 
 private:
     Remote& operator=(const Remote &);
@@ -48,7 +50,7 @@ private:
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & boost::serialization::base_object<Operator>(*this);
         ar & child_;
-        ar & const_cast<std::string &>(hostname_);
+        ar & const_cast<std::string &>(ip_address_);
     }
 };
 

@@ -3,7 +3,7 @@ FLAGS = -fPIC -O2 -g
 LIBS = -ldl -pthread
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
-MYFLAGS = -Wall -I/u/hyunjung/boost_1_42_0 #-DDISABLE_JOIN_REORDERING
+MYFLAGS = -Wall -I/u/hyunjung/boost_1_42_0
 MYOBJS = objs/Operator.o objs/Scan.o objs/Join.o objs/SeqScan.o objs/IndexScan.o objs/NLJoin.o objs/NBJoin.o objs/Remote.o objs/Union.o objs/PartitionStats.o objs/client.o objs/Server.o objs/optimizer.o
 MYLIBS = lib/thirdparty/libboost_serialization.a lib/thirdparty/libboost_system.a lib/thirdparty/libboost_iostreams.a lib/thirdparty/libboost_thread.a lib/thirdparty/libboost_filesystem.a lib/thirdparty/libtcmalloc_minimal.a lib/thirdparty/rawmemchr.os
 

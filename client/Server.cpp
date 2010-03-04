@@ -38,6 +38,11 @@ void Server::stop()
     io_service_.stop();
 }
 
+boost::asio::io_service & Server::io_service()
+{
+    return io_service_;
+}
+
 static void handle_query(tcpstream_ptr &conn)
 {
     boost::archive::binary_iarchive ia(*conn);
