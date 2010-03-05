@@ -16,10 +16,10 @@ struct Connection {
 };
 
 // on master
-const Nodes *gNodes;
-std::map<std::string, Table * > gTables;
-std::map<std::pair<std::string, int>, ca::PartitionStats * > gStats;
-static boost::mutex stats_mutex;
+const Nodes *g_nodes;
+std::map<std::string, Table * > g_tables;
+std::map<std::pair<std::string, int>, ca::PartitionStats * > g_stats;
+static boost::mutex g_stats_mutex;
 
 // on both master and slave
 ca::Server *g_server;
@@ -29,7 +29,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 {
     boost::asio::ip::tcp::iostream tcpstream;
     for (int attempt = 0; attempt < 20; ++attempt) {
-        tcpstream.connect(gNodes->nodes[n].ip, boost::lexical_cast<std::string>(17000 + n));
+        tcpstream.connect(g_nodes->nodes[n].ip, boost::lexical_cast<std::string>(17000 + n));
         if (tcpstream.good()) {
             break;
         }
@@ -58,8 +58,8 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             ca::PartitionStats *stats;
             ia >> stats;
 
-            boost::mutex::scoped_lock lock(stats_mutex);
-            gStats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
+            boost::mutex::scoped_lock lock(g_stats_mutex);
+            g_stats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
         }
     }
 
@@ -68,16 +68,16 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data, const Queries *preset)
 {
-    gNodes = nodes;
+    g_nodes = nodes;
 
     for (int i = 0; i < data->nbTables; ++i) {
-        gTables[std::string(data->tables[i].tableName)] = &data->tables[i];
+        g_tables[std::string(data->tables[i].tableName)] = &data->tables[i];
     }
 
     usleep(50000); // 0.05s
 
     boost::thread_group threads;
-    for (int n = 1; n < gNodes->nbNodes; ++n) {
+    for (int n = 1; n < g_nodes->nbNodes; ++n) {
         threads.create_thread(boost::bind(&startPreTreatmentSlave, n, data));
     }
 
@@ -90,8 +90,8 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
                                                                data->tables[i].nbFields,
                                                                data->tables[i].fieldsType[0]);
 
-            boost::mutex::scoped_lock lock(stats_mutex);
-            gStats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
+            boost::mutex::scoped_lock lock(g_stats_mutex);
+            g_stats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
         }
     }
 
@@ -135,16 +135,25 @@ void performQuery(Connection *conn, const Query *q)
 
     // choose an optimal query plan and open an iterator
     conn->q = q;
+
     int maxParts = 0;
     for (int i = 0; i < q->nbTable; ++i) {
-        Table *table = gTables[std::string(q->tableNames[i])];
+        Table *table = g_tables[std::string(q->tableNames[i])];
         maxParts = std::max(maxParts, table->nbPartitions);
     }
-    if (maxParts == 1 || q->nbTable >= 2) {
+
+    if (maxParts == 1) {
         conn->root = buildQueryPlanIgnoringPartitions(q);
     } else {
-        conn->root = buildSimpleQueryPlanForOneTable(q);
+        conn->root.reset();
+        if (q->nbTable == 1) {
+            conn->root = buildSimpleQueryPlanForSingleTable(q);
+        }
+        if (!conn->root.get()) {
+            conn->root = buildSimpleQueryPlan(q);
+        }
     }
+
     conn->root->Open();
 }
 

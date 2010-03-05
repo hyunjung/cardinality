@@ -4,11 +4,12 @@
 #include "NLJoin.h"
 #include "NBJoin.h"
 #include "Remote.h"
+#include "Union.h"
 
 
-extern const Nodes *gNodes;
-extern std::map<std::string, Table * > gTables;
-extern std::map<std::pair<std::string, int>, ca::PartitionStats * > gStats;
+extern const Nodes *g_nodes;
+extern std::map<std::string, Table * > g_tables;
+extern std::map<std::pair<std::string, int>, ca::PartitionStats * > g_stats;
 
 
 static inline bool HASIDXCOL(const char *col, const char *alias)
@@ -18,14 +19,13 @@ static inline bool HASIDXCOL(const char *col, const char *alias)
            && !std::memcmp(col, alias, aliasLen);
 }
 
-#ifndef DISABLE_JOIN_REORDERING
 static void buildScans(const Query *q,
                        std::vector<ca::Operator::Ptr> &plans)
 {
     for (int i = 0; i < q->nbTable; ++i) {
-        Table *table = gTables[std::string(q->tableNames[i])];
+        Table *table = g_tables[std::string(q->tableNames[i])];
         Partition *part = &table->partitions[0];
-        ca::PartitionStats *stats = gStats[std::make_pair(std::string(q->tableNames[i]), 0)];
+        ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), 0)];
 
         plans.push_back(ca::Scan::Ptr(
                         new ca::SeqScan(part->iNode,
@@ -54,16 +54,16 @@ static void buildJoins(const Query *q,
                 continue;
             }
 
-            Table *table = gTables[std::string(q->tableNames[i])];
+            Table *table = g_tables[std::string(q->tableNames[i])];
             Partition *part = &table->partitions[0];
-            ca::PartitionStats *stats = gStats[std::make_pair(std::string(q->tableNames[i]), 0)];
+            ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), 0)];
             root = subPlans[k];
 
             // add Remote operator if needed
             if (root->getNodeID() != part->iNode) {
                 root = ca::Operator::Ptr(
                        new ca::Remote(part->iNode, root,
-                                      gNodes->nodes[root->getNodeID()].ip));
+                                      g_nodes->nodes[root->getNodeID()].ip));
             }
 
             // Nested Loop Index Join
@@ -114,7 +114,7 @@ static void buildJoins(const Query *q,
     }
 }
 
-ca::Operator::Ptr buildQueryPlan(const Query *q)
+ca::Operator::Ptr buildQueryPlanIgnoringPartitions(const Query *q)
 {
     std::vector<ca::Operator::Ptr> plans;
     std::vector<ca::Operator::Ptr> subPlans;
@@ -138,7 +138,7 @@ ca::Operator::Ptr buildQueryPlan(const Query *q)
         ca::Operator::Ptr root = plans[k];
         if (root->getNodeID() != 0) {
             root = ca::Operator::Ptr(
-                   new ca::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
+                   new ca::Remote(0, root, g_nodes->nodes[root->getNodeID()].ip));
             plans[k] = root;
         }
 
@@ -152,14 +152,14 @@ ca::Operator::Ptr buildQueryPlan(const Query *q)
     bestPlan->print(std::cout);
     return bestPlan;
 }
-#else
-ca::Operator::Ptr buildQueryPlan(const Query *q)
+
+ca::Operator::Ptr buildSimpleQueryPlanIgnoringPartitions(const Query *q)
 {
     ca::Operator::Ptr root;
     ca::Scan::Ptr right;
 
     for (int i = 0; i < q->nbTable; ++i) {
-        Table *table = gTables[std::string(q->tableNames[i])];
+        Table *table = g_tables[std::string(q->tableNames[i])];
         Partition *part = &table->partitions[0];
 
         if (i == 0) {
@@ -181,7 +181,7 @@ ca::Operator::Ptr buildQueryPlan(const Query *q)
             if (root->getNodeID() != part->iNode) {
                 root = ca::Operator::Ptr(
                        new ca::Remote(part->iNode, root,
-                                      gNodes->nodes[root->getNodeID()].ip));
+                                      g_nodes->nodes[root->getNodeID()].ip));
             }
 
             int j;
@@ -233,9 +233,204 @@ ca::Operator::Ptr buildQueryPlan(const Query *q)
 
     if (root->getNodeID() != 0) {
         root = ca::Operator::Ptr(
-               new ca::Remote(0, root, gNodes->nodes[root->getNodeID()].ip));
+               new ca::Remote(0, root, g_nodes->nodes[root->getNodeID()].ip));
     }
 
     return root;
 }
+
+ca::Operator::Ptr buildSimpleQueryPlanForSingleTable(const Query *q)
+{
+    ca::Operator::Ptr root;
+    Table *table = g_tables[std::string(q->tableNames[0])];
+
+    for (int j = 0; j < q->nbRestrictionsEqual; ++j) {
+        if (!std::strcmp(q->restrictionEqualFields[j]
+                         + std::strlen(q->aliasNames[0]) + 1,
+                         table->fieldsName[0])) { // primary key
+            Value *v = &q->restrictionEqualValues[j];
+            for (int k = 0; k < table->nbPartitions; ++k) {
+                ca::PartitionStats *stats
+                    = g_stats[std::make_pair(std::string(q->tableNames[0]), k)];
+                if ((v->type == INT
+                     && stats->min_val_.intVal <= v->intVal
+                     && stats->max_val_.intVal >= v->intVal)
+                    || (v->type == STRING
+                        && std::strcmp(stats->min_val_.charVal, v->charVal) <= 0
+                        && std::strcmp(stats->max_val_.charVal, v->charVal) >= 0)) {
+                    Partition *part = &table->partitions[k];
+                    root = ca::Scan::Ptr(
+                           new ca::IndexScan(part->iNode,
+                                             part->fileName, q->aliasNames[0],
+                                             table, NULL, q));
+                    break;
+                }
+            }
+
+            if (root.get() == NULL) {
+                Partition *part = &table->partitions[0];
+                root = ca::Scan::Ptr(
+                       new ca::IndexScan(part->iNode,
+                                         part->fileName, q->aliasNames[0],
+                                         table, NULL, q));
+            }
+            if (root->getNodeID() != 0) {
+                root = ca::Operator::Ptr(
+                       new ca::Remote(0, root, g_nodes->nodes[root->getNodeID()].ip));
+            }
+            break;
+        }
+    }
+
+    return root;
+}
+
+static ca::Operator::Ptr buildUnion(const ca::NodeID n, std::vector<ca::Operator::Ptr> children)
+{
+    for (size_t k = 0; k < children.size(); ++k) {
+        if (children[k]->getNodeID() != n) {
+            children[k] = ca::Operator::Ptr(
+                          new ca::Remote(n, children[k],
+                                         g_nodes->nodes[children[k]->getNodeID()].ip));
+        }
+    }
+
+    if (children.size() > 1) {
+        return ca::Operator::Ptr(new ca::Union(n, children));
+    } else {
+        return children[0];
+    }
+}
+
+ca::Operator::Ptr buildSimpleQueryPlan(const Query *q)
+{
+    std::vector<ca::Operator::Ptr> roots;
+    std::vector<ca::Operator::Ptr> roots0;
+    ca::Operator::Ptr root;
+    ca::Scan::Ptr right;
+
+    for (int i = 0; i < q->nbTable; ++i) {
+        Table *table = g_tables[std::string(q->tableNames[i])];
+        int nbPartitions = 0;
+        int *m = new int[table->nbPartitions];
+        for (int k = 0; k < table->nbPartitions; ++k) {
+            int j;
+            for (j = 0; j < nbPartitions; ++j) {
+                ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), k)];
+                ca::PartitionStats *s = g_stats[std::make_pair(std::string(q->tableNames[i]), m[j])];
+                if (stats->min_val_.type == s->min_val_.type
+                    && stats->min_val_.intVal == s->min_val_.intVal
+                    && (stats->min_val_.type == INT
+                        || !memcmp(stats->min_val_.charVal, s->min_val_.charVal, s->min_val_.intVal))) {
+                    break;
+                }
+            }
+            if (j == nbPartitions) {
+                m[nbPartitions++] = k;
+            }
+        }
+
+        if (i == 0) {
+            for (int k = 0; k < nbPartitions; ++k) {
+                Partition *part = &table->partitions[m[k]];
+                ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), m[k])];
+#ifndef DISABLE_INDEXSCAN
+                try {
+                    roots.push_back(ca::Scan::Ptr(
+                                    new ca::IndexScan(part->iNode,
+                                                      part->fileName, q->aliasNames[i],
+                                                      table, stats, q)));
+                } catch (std::runtime_error &e) {
 #endif
+                    roots.push_back(ca::Scan::Ptr(
+                                    new ca::SeqScan(part->iNode,
+                                                    part->fileName, q->aliasNames[i],
+                                                    table, stats, q)));
+#ifndef DISABLE_INDEXSCAN
+                }
+#endif
+            }
+
+        } else {
+
+            roots0.clear();
+            roots.swap(roots0);
+
+            int j = q->nbJoins;
+
+            // Nested Loop Index Join
+#ifndef DISABLE_INDEXJOIN
+            for (j = 0; j < q->nbJoins; ++j) {
+                if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i])
+                    && roots0[0]->hasCol(q->joinFields2[j])) {
+                    for (int k = 0; k < nbPartitions; ++k) {
+                        Partition *part = &table->partitions[m[k]];
+                        ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), m[k])];
+                        root = buildUnion(part->iNode, roots0);
+
+                        right = ca::Scan::Ptr(
+                                new ca::IndexScan(part->iNode,
+                                                  part->fileName, q->aliasNames[i],
+                                                  table, stats, q, q->joinFields1[j],
+                                                  root->estCardinality()));
+                        roots.push_back(ca::Operator::Ptr(
+                                        new ca::NLJoin(right->getNodeID(), root, right,
+                                                       q, j, q->joinFields2[j])));
+                    }
+                    break;
+                }
+                if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i])
+                    && roots0[0]->hasCol(q->joinFields1[j])) {
+                    for (int k = 0; k < nbPartitions; ++k) {
+                        Partition *part = &table->partitions[m[k]];
+                        ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), m[k])];
+                        root = buildUnion(part->iNode, roots0);
+
+                        right = ca::Scan::Ptr(
+                                new ca::IndexScan(part->iNode,
+                                                  part->fileName, q->aliasNames[i],
+                                                  table, stats, q, q->joinFields2[j],
+                                                  root->estCardinality()));
+                        roots.push_back(ca::Operator::Ptr(
+                                        new ca::NLJoin(right->getNodeID(), root, right,
+                                                       q, j, q->joinFields1[j])));
+                    }
+                    break;
+                }
+            }
+#endif
+
+            // Nested Block Join
+            if (j == q->nbJoins) {
+                for (int k = 0; k < nbPartitions; ++k) {
+                    Partition *part = &table->partitions[m[k]];
+                    ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), m[k])];
+                    root = buildUnion(part->iNode, roots0);
+
+#ifndef DISABLE_INDEXSCAN
+                    try {
+                        right = ca::Scan::Ptr(
+                                new ca::IndexScan(part->iNode,
+                                                  part->fileName, q->aliasNames[i],
+                                                  table, stats, q));
+                    } catch (std::runtime_error &e) {
+#endif
+                        right = ca::Scan::Ptr(
+                                new ca::SeqScan(part->iNode,
+                                                part->fileName, q->aliasNames[i],
+                                                table, stats, q));
+#ifndef DISABLE_INDEXSCAN
+                    }
+#endif
+                    roots.push_back(ca::Operator::Ptr(
+                                    new ca::NBJoin(right->getNodeID(), root->clone(), right, q)));
+                }
+            }
+        }
+    }
+
+    root = buildUnion(0, roots);
+
+    root->print(std::cout);
+    return root;
+}
