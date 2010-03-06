@@ -1,7 +1,7 @@
-#include "IndexScan.h"
+#include "client/IndexScan.h"
 
 
-namespace ca {
+namespace cardinality {
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
@@ -10,10 +10,11 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
       index_col_(), index_col_type_(),
       comp_op_(EQ), value_(NULL), unique_(),
       index_(), txn_(), record_(),
-      state_(), check_index_cond_(), key_intval_(), key_charval_(),
+      state_(), check_index_cond_(),
+      key_intval_(), key_charval_(),
       outer_cardinality_(o)
 {
-    if (col) { // NLIJ
+    if (col) {  // NLIJ
         const char *dot = std::strchr(col, '.');
         if (dot == NULL) {
             throw std::runtime_error("invalid column name");
@@ -50,7 +51,8 @@ IndexScan::IndexScan()
       index_col_(), index_col_type_(),
       comp_op_(), value_(), unique_(),
       index_(), txn_(), record_(),
-      state_(), check_index_cond_(), key_intval_(), key_charval_(),
+      state_(), check_index_cond_(),
+      key_intval_(), key_charval_(),
       outer_cardinality_()
 {
 }
@@ -60,7 +62,8 @@ IndexScan::IndexScan(const IndexScan &x)
       index_col_(x.index_col_), index_col_type_(x.index_col_type_),
       comp_op_(x.comp_op_), value_(x.value_), unique_(x.unique_),
       index_(), txn_(), record_(),
-      state_(), check_index_cond_(), key_intval_(), key_charval_(),
+      state_(), check_index_cond_(),
+      key_intval_(), key_charval_(),
       outer_cardinality_(x.outer_cardinality_)
 {
 }
@@ -74,7 +77,7 @@ Operator::Ptr IndexScan::clone() const
     return Operator::Ptr(new IndexScan(*this));
 }
 
-RC IndexScan::Open(const char *left_ptr, const uint32_t left_len)
+void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
 {
     file_.open(filename_);
     openIndex(index_col_.c_str(), &index_);
@@ -87,7 +90,7 @@ RC IndexScan::Open(const char *left_ptr, const uint32_t left_len)
             key_intval_ = value_->intVal;
         }
         record_.val.intVal = key_intval_;
-    } else { // STRING
+    } else {  // STRING
         if (left_ptr) {
             key_charval_ = left_ptr;
             key_intval_ = left_len;
@@ -102,18 +105,16 @@ RC IndexScan::Open(const char *left_ptr, const uint32_t left_len)
     beginTransaction(&txn_);
     state_ = INDEX_GET;
     check_index_cond_ = true;
-
-    return 0;
 }
 
-RC IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
+void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (index_col_type_ == INT) {
         if (left_ptr) {
             key_intval_ = parseInt(left_ptr, left_len);
         }
         record_.val.intVal = key_intval_;
-    } else { // STRING
+    } else {  // STRING
         if (left_ptr) {
             key_charval_ = left_ptr;
             key_intval_ = left_len;
@@ -124,18 +125,16 @@ RC IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
 
     state_ = INDEX_GET;
     check_index_cond_ = true;
-
-    return 0;
 }
 
-RC IndexScan::GetNext(Tuple &tuple)
+bool IndexScan::GetNext(Tuple &tuple)
 {
     ErrCode ec;
     Tuple temp;
 
     switch (state_) {
     case INDEX_DONE:
-        return -1;
+        return true;
 
     case INDEX_GET:
         ec = get(index_, txn_, &record_);
@@ -152,15 +151,15 @@ RC IndexScan::GetNext(Tuple &tuple)
 
                 if (execFilter(temp)) {
                     execProject(temp, tuple);
-                    return 0;
+                    return false;
                 }
             }
             break;
 
         case KEY_NOTFOUND:
             if (comp_op_ == EQ) {
-                return -1;
-            } else { // GT
+                return true;
+            } else {  // GT
                 check_index_cond_ = false;
             }
             break;
@@ -175,21 +174,21 @@ RC IndexScan::GetNext(Tuple &tuple)
                 if (index_col_type_ == INT) {
                     if (comp_op_ == EQ) {
                         if (key_intval_ != record_.val.intVal) {
-                            return -1;
+                            return true;
                         }
-                    } else { // GT
+                    } else {  // GT
                         if (key_intval_ >= record_.val.intVal) {
                             continue;
                         }
                         check_index_cond_ = false;
                     }
-                } else { // STRING
+                } else {  // STRING
                     if (comp_op_ == EQ) {
                         if (record_.val.charVal[key_intval_] != '\0'
                             || std::memcmp(key_charval_, record_.val.charVal, key_intval_)) {
-                            return -1;
+                            return true;
                         }
-                    } else { // GT
+                    } else {  // GT
                         uint32_t charval_len = std::strlen(record_.val.charVal);
                         int cmp = std::memcmp(key_charval_, record_.val.charVal,
                                               std::min(key_intval_, charval_len));
@@ -205,37 +204,35 @@ RC IndexScan::GetNext(Tuple &tuple)
 
             if (execFilter(temp)) {
                 execProject(temp, tuple);
-                return 0;
+                return false;
             }
         }
         break;
     }
 
-    return -1;
+    return true;
 }
 
-RC IndexScan::Close()
+void IndexScan::Close()
 {
     commitTransaction(txn_);
     closeIndex(index_);
     file_.close();
-
-    return 0;
 }
 
 void IndexScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "IndexScan@" << getNodeID() << " " << filename_ << " ";
+    os << "IndexScan@" << node_id() << " " << filename_ << " ";
     if (unique_) {
         os << "unique ";
     }
     os << index_col_ << ((comp_op_ == EQ) ? "=" : ">");
-    if (!value_) { // NLIJ
+    if (!value_) {  // NLIJ
         os << "leftValue";
     } else if (value_->type == INT) {
         os << value_->intVal;
-    } else { // STRING
+    } else {  // STRING
         os << "'" << value_->charVal << "'";
     }
     os << " #cols=" << numOutputCols();
@@ -257,7 +254,7 @@ static double MACKERT_LOHMAN(double T, double D, double x = 1)
 
     if (T <= b) {
         Y = std::min(T, (2.0 * T * Dx) / (2.0 * T + Dx));
-    } else { // T > b
+    } else {  // T > b
         double l = (2.0 * T * b) / (2.0 * T - b);
         if (Dx <= l) {
             Y = (2.0 * T * Dx) / (2.0 * T + Dx);
@@ -274,10 +271,10 @@ double IndexScan::estCost() const
     double seq_pages = 0;
     double random_pages = 0;
 
-    if (!value_) { // NLIJ
+    if (!value_) {  // NLIJ
         random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                     (unique_) ? 1 : 3, outer_cardinality_)
-                      / outer_cardinality_;
+                                      (unique_) ? 1 : 3, outer_cardinality_)
+                       / outer_cardinality_;
     } else {
         if (comp_op_ == EQ) {
             if (unique_) {
@@ -285,12 +282,12 @@ double IndexScan::estCost() const
             } else {
                 random_pages = MACKERT_LOHMAN(stats_->num_pages_, 3);
             }
-        } else { // GT
+        } else {  // GT
             if (unique_) {
                 seq_pages = stats_->num_pages_ * SELECTIVITY_GT;
             } else {
                 random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                             stats_->cardinality_ * SELECTIVITY_GT);
+                                              stats_->cardinality_ * SELECTIVITY_GT);
             }
         }
     }
@@ -309,7 +306,7 @@ double IndexScan::estCardinality() const
         } else {
             card *= SELECTIVITY_EQ;
         }
-    } else { // GT
+    } else {  // GT
         card *= SELECTIVITY_GT;
     }
 
@@ -320,7 +317,7 @@ double IndexScan::estCardinality() const
             } else {
                 card *= SELECTIVITY_EQ;
             }
-        } else { // GT
+        } else {  // GT
             card *= SELECTIVITY_GT;
         }
     }
@@ -332,4 +329,4 @@ double IndexScan::estCardinality() const
     return card;
 }
 
-}  // namespace ca
+}  // namespace cardinality

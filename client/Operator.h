@@ -7,7 +7,7 @@
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
-#include "../include/client.h"
+#include "include/client.h"
 
 #define COST_DISK_READ_PAGE 1.0
 #define COST_DISK_SEEK_PAGE 0.5
@@ -16,9 +16,8 @@
 #define SELECTIVITY_GT 0.4
 
 
-namespace ca {
+namespace cardinality {
 
-typedef int RC;
 typedef int ColID;
 typedef int NodeID;
 
@@ -30,14 +29,14 @@ class Operator {
 public:
     typedef boost::shared_ptr<Operator> Ptr;
 
-    Operator(const NodeID);
+    explicit Operator(const NodeID);
     virtual ~Operator();
     virtual Operator::Ptr clone() const = 0;
 
-    virtual RC Open(const char * = NULL, const uint32_t = 0) = 0;
-    virtual RC ReOpen(const char * = NULL, const uint32_t = 0) = 0;
-    virtual RC GetNext(Tuple &) = 0;
-    virtual RC Close() = 0;
+    virtual void Open(const char * = NULL, const uint32_t = 0) = 0;
+    virtual void ReOpen(const char * = NULL, const uint32_t = 0) = 0;
+    virtual bool GetNext(Tuple &) = 0;
+    virtual void Close() = 0;
 
     virtual void print(std::ostream &, const int = 0) const = 0;
     virtual bool hasCol(const char *) const = 0;
@@ -49,7 +48,7 @@ public:
     virtual double estTupleLength() const = 0;
     virtual double estColLength(ColID) const = 0;
 
-    NodeID getNodeID() const;
+    NodeID node_id() const;
     size_t numOutputCols() const;
     ColID getOutputColID(const char *) const;
 
@@ -74,9 +73,9 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Operator)
-BOOST_SERIALIZATION_SHARED_PTR(ca::Operator)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Operator)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::Operator)
 
 #endif  // CLIENT_OPERATOR_H_

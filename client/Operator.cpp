@@ -1,23 +1,26 @@
+#include "client/Operator.h"
 #include <algorithm>
 #include <set>
 #include <boost/spirit/include/qi.hpp>
-#include "Operator.h"
 
 
-namespace ca {
+namespace cardinality {
 
 Operator::Operator(const NodeID n)
-    : node_id_(n), selected_input_col_ids_()
+    : node_id_(n),
+      selected_input_col_ids_()
 {
 }
 
 Operator::Operator()
-    : node_id_(), selected_input_col_ids_()
+    : node_id_(),
+      selected_input_col_ids_()
 {
 }
 
 Operator::Operator(const Operator &x)
-    : node_id_(x.node_id_), selected_input_col_ids_(x.selected_input_col_ids_)
+    : node_id_(x.node_id_),
+      selected_input_col_ids_(x.selected_input_col_ids_)
 {
 }
 
@@ -25,7 +28,7 @@ Operator::~Operator()
 {
 }
 
-NodeID Operator::getNodeID() const
+NodeID Operator::node_id() const
 {
     return node_id_;
 }
@@ -37,7 +40,9 @@ size_t Operator::numOutputCols() const
 
 ColID Operator::getOutputColID(const char *col) const
 {
-    return std::find(selected_input_col_ids_.begin(), selected_input_col_ids_.end(), getInputColID(col))
+    return std::find(selected_input_col_ids_.begin(),
+                     selected_input_col_ids_.end(),
+                     getInputColID(col))
            - selected_input_col_ids_.begin();
 }
 
@@ -72,4 +77,4 @@ uint32_t Operator::parseInt(const char *str, const uint32_t len)
     return intval;
 }
 
-}  // namespace ca
+}  // namespace cardinality

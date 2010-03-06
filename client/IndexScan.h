@@ -1,11 +1,11 @@
 #ifndef CLIENT_INDEXSCAN_H_
 #define CLIENT_INDEXSCAN_H_
 
-#include "Scan.h"
-#include "../lib/index/include/server.h"
+#include "client/Scan.h"
+#include "lib/index/include/server.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class IndexScan: public Scan {
 public:
@@ -17,10 +17,10 @@ public:
     ~IndexScan();
     Operator::Ptr clone() const;
 
-    RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReOpen(const char * = NULL, const uint32_t = 0);
-    RC GetNext(Tuple &);
-    RC Close();
+    void Open(const char * = NULL, const uint32_t = 0);
+    void ReOpen(const char * = NULL, const uint32_t = 0);
+    bool GetNext(Tuple &);
+    void Close();
 
     void print(std::ostream &, const int) const;
 
@@ -60,8 +60,8 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(ca::IndexScan)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::IndexScan)
 
 #endif  // CLIENT_INDEXSCAN_H_

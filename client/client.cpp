@@ -3,11 +3,13 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include "../include/client.h"
-#include "Server.h"
-#include "PartitionStats.h"
-#include "optimizer.h"
+#include "include/client.h"
+#include "client/Server.h"
+#include "client/PartitionStats.h"
+#include "client/optimizer.h"
 
+
+namespace ca = cardinality;
 
 struct Connection {
     const Query *q;
@@ -34,7 +36,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             break;
         }
         tcpstream.clear();
-        usleep(100000); // 0.1s
+        usleep(100000);  // 0.1s
     }
     if (tcpstream.fail()) {
         throw std::runtime_error("tcp::iostream.connect() failed");
@@ -66,7 +68,8 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     tcpstream.close();
 }
 
-void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data, const Queries *preset)
+void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
+                             const Data *data, const Queries *preset)
 {
     g_nodes = nodes;
 
@@ -74,7 +77,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
         g_tables[std::string(data->tables[i].tableName)] = &data->tables[i];
     }
 
-    usleep(50000); // 0.05s
+    usleep(50000);  // 0.05s
 
     boost::thread_group threads;
     for (int n = 1; n < g_nodes->nbNodes; ++n) {
@@ -86,9 +89,10 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes, const Data *data
             if (data->tables[i].partitions[j].iNode) {
                 continue;
             }
-            ca::PartitionStats *stats = new ca::PartitionStats(data->tables[i].partitions[j].fileName,
-                                                               data->tables[i].nbFields,
-                                                               data->tables[i].fieldsType[0]);
+            ca::PartitionStats *stats
+                = new ca::PartitionStats(data->tables[i].partitions[j].fileName,
+                                         data->tables[i].nbFields,
+                                         data->tables[i].fieldsType[0]);
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
@@ -168,7 +172,8 @@ ErrCode fetchRow(Connection *conn, Value *values)
         ca::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
         values[i].type = conn->root->getColType(conn->q->outputFields[i]);
         if (values[i].type == INT) {
-            values[i].intVal = ca::Operator::parseInt(conn->tuple[cid].first, conn->tuple[cid].second);
+            values[i].intVal = ca::Operator::parseInt(conn->tuple[cid].first,
+                                                      conn->tuple[cid].second);
 #ifdef PRINT_TUPLES
             std::cout << values[i].intVal << "|";
 #endif

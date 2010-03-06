@@ -1,11 +1,11 @@
+#include "client/PartitionStats.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
-#include "PartitionStats.h"
 
 #define PAGE_SIZE 4096
 
 
-namespace ca {
+namespace cardinality {
 
 PartitionStats::PartitionStats(const std::string filename,
                                const int num_input_cols,
@@ -39,8 +39,8 @@ static inline void extractPrimaryKey(const char *pos,
 #endif
     v.type = pkey_type;
     if (v.type == INT) {
-        v.intVal = ca::Operator::parseInt(pos, delim - pos);
-    } else { // STRING
+        v.intVal = cardinality::Operator::parseInt(pos, delim - pos);
+    } else {  // STRING
         v.intVal = delim - pos;
         std::memcpy(v.charVal, pos, v.intVal);
         v.charVal[v.intVal] = '\0';
@@ -68,8 +68,9 @@ void PartitionStats::init(const std::string filename,
     int i = 0;
     for (; pos < file.end(); ++num_tuples, i = 0) {
         for (; i < num_input_cols; ++i) {
-            const char *delim = static_cast<const char *>(
-                                    std::memchr(pos, (i == num_input_cols - 1) ? '\n' : '|', file.end() - pos));
+            const char *delim
+                = static_cast<const char *>(
+                      std::memchr(pos, (i == num_input_cols - 1) ? '\n' : '|', file.end() - pos));
             if (delim == NULL) {
                 pos = file.end();
                 break;
@@ -82,7 +83,8 @@ void PartitionStats::init(const std::string filename,
     // map the last part of file
     if (sample_size < file_size) {
         file.close();
-        size_t offset = (file_size - sample_size) & ~(boost::iostreams::mapped_file_source::alignment() - 1);
+        size_t offset = (file_size - sample_size)
+                        & ~(boost::iostreams::mapped_file_source::alignment() - 1);
         file.open(filename, file_size - offset, offset);
     }
 
@@ -106,4 +108,4 @@ void PartitionStats::init(const std::string filename,
     cardinality_ = file_size / tuple_length;
 }
 
-}  // namespace ca
+}  // namespace cardinality

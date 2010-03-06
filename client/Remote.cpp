@@ -1,23 +1,24 @@
+#include "client/Remote.h"
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include "Remote.h"
-#include "NLJoin.h"
-#include "NBJoin.h"
-#include "SeqScan.h"
-#include "IndexScan.h"
-#include "Union.h"
-#include "Server.h"
+#include "client/NLJoin.h"
+#include "client/NBJoin.h"
+#include "client/SeqScan.h"
+#include "client/IndexScan.h"
+#include "client/Union.h"
+#include "client/Server.h"
 
 
-extern ca::Server *g_server; // client.cpp
+extern cardinality::Server *g_server;  // client.cpp
 
-namespace ca {
+namespace cardinality {
 
 Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
     : Operator(n),
-      child_(c), ip_address_(i),
+      child_(c),
+      ip_address_(i),
       socket_(g_server->io_service()),
       line_buffer_(),
       response_()
@@ -29,7 +30,8 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
 
 Remote::Remote()
     : Operator(),
-      child_(), ip_address_(),
+      child_(),
+      ip_address_(),
       socket_(g_server->io_service()),
       line_buffer_(),
       response_()
@@ -38,7 +40,8 @@ Remote::Remote()
 
 Remote::Remote(const Remote &x)
     : Operator(x),
-      child_(x.child_->clone()), ip_address_(x.ip_address_),
+      child_(x.child_->clone()),
+      ip_address_(x.ip_address_),
       socket_(g_server->io_service()),
       line_buffer_(),
       response_()
@@ -54,14 +57,14 @@ Operator::Ptr Remote::clone() const
     return Operator::Ptr(new Remote(*this));
 }
 
-RC Remote::Open(const char *left_ptr, const uint32_t left_len)
+void Remote::Open(const char *left_ptr, const uint32_t left_len)
 {
     line_buffer_.reset(new char[std::max(static_cast<size_t>(1),
-                                       (MAX_VARCHAR_LEN + 1) * child_->numOutputCols())]);
+                                         (MAX_VARCHAR_LEN + 1) * child_->numOutputCols())]);
 
     boost::asio::ip::tcp::endpoint endpoint
         = boost::asio::ip::tcp::endpoint(
-              boost::asio::ip::address::from_string(ip_address_), 17000 + child_->getNodeID());
+              boost::asio::ip::address::from_string(ip_address_), 17000 + child_->node_id());
 
     boost::system::error_code error;
     socket_.connect(endpoint, error);
@@ -96,11 +99,9 @@ RC Remote::Open(const char *left_ptr, const uint32_t left_len)
         oa << child_;
         boost::asio::write(socket_, request);
     }
-
-    return 0;
 }
 
-RC Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
+void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (left_ptr) {
         boost::asio::streambuf request;
@@ -112,27 +113,25 @@ RC Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
         socket_.close();
         Open();
     }
-
-    return 0;
 }
 
-RC Remote::GetNext(Tuple &tuple)
+bool Remote::GetNext(Tuple &tuple)
 {
     tuple.clear();
     try {
         boost::asio::read_until(socket_, response_, '\n');
     } catch (boost::system::system_error &e) {
-        return -1;
+        return true;
     }
     std::istream is(&response_);
     is.getline(line_buffer_.get(),
                std::max(static_cast<size_t>(1),
                         (MAX_VARCHAR_LEN + 1) * child_->numOutputCols()));
     if (*line_buffer_.get() == '\0') {
-        return 0;
+        return false;
     }
     if (*line_buffer_.get() == '|') {
-        return -1;
+        return true;
     }
 
     const char *pos = line_buffer_.get();
@@ -142,31 +141,31 @@ RC Remote::GetNext(Tuple &tuple)
 
     for (size_t i = 0; i < child_->numOutputCols(); ++i) {
 #ifdef _GNU_SOURCE
-        const char *delim = static_cast<const char *>(
-                                rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|'));
+        const char *delim
+            = static_cast<const char *>(
+                  rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|'));
 #else
-        const char *delim = static_cast<const char *>(
-                                std::memchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|', eof - pos));
+        const char *delim
+            = static_cast<const char *>(
+                  std::memchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|', eof - pos));
 #endif
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }
 
-    return 0;
+    return false;
 }
 
-RC Remote::Close()
+void Remote::Close()
 {
     socket_.close();
     line_buffer_.reset();
-
-    return 0;
 }
 
 void Remote::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "Remote@" << getNodeID();
+    os << "Remote@" << node_id();
     os << " cost=" << estCost();
     os << std::endl;
 
@@ -208,4 +207,4 @@ double Remote::estColLength(const ColID cid) const
     return child_->estColLength(cid);
 }
 
-}  // namespace ca
+}  // namespace cardinality

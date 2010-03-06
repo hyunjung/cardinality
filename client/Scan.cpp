@@ -1,12 +1,13 @@
-#include "Scan.h"
+#include "client/Scan.h"
 
 
-namespace ca {
+namespace cardinality {
 
 Scan::Scan(const NodeID n, const char *f, const char *a,
            const Table *t, const PartitionStats *p, const Query *q)
     : Operator(n),
-      filename_(f), gteq_conds_(), join_conds_(),
+      filename_(f),
+      gteq_conds_(), join_conds_(),
       num_input_cols_(t->nbFields),
       alias_(a), table_(t), stats_(p), file_()
 {
@@ -16,7 +17,8 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
 
 Scan::Scan()
     : Operator(),
-      filename_(), gteq_conds_(), join_conds_(),
+      filename_(),
+      gteq_conds_(), join_conds_(),
       num_input_cols_(),
       alias_(), table_(), stats_(), file_()
 {
@@ -24,7 +26,8 @@ Scan::Scan()
 
 Scan::Scan(const Scan &x)
     : Operator(x),
-      filename_(x.filename_), gteq_conds_(x.gteq_conds_), join_conds_(x.join_conds_),
+      filename_(x.filename_),
+      gteq_conds_(x.gteq_conds_), join_conds_(x.join_conds_),
       num_input_cols_(x.num_input_cols_),
       alias_(x.alias_), table_(x.table_), stats_(x.stats_), file_()
 {
@@ -102,7 +105,7 @@ bool Scan::execFilter(const Tuple &tuple) const
                 || (gteq_conds_[i].get<2>() == GT && cmp >= 0)) {
                 return false;
             }
-        } else { // STRING
+        } else {  // STRING
             if (gteq_conds_[i].get<2>() == EQ) {
                 if ((gteq_conds_[i].get<1>()->intVal
                      != tuple[gteq_conds_[i].get<0>()].second)
@@ -111,13 +114,15 @@ bool Scan::execFilter(const Tuple &tuple) const
                                     tuple[gteq_conds_[i].get<0>()].second))) {
                     return false;
                 }
-            } else { // GT
+            } else {  // GT
                 int cmp = std::memcmp(gteq_conds_[i].get<1>()->charVal,
                                       tuple[gteq_conds_[i].get<0>()].first,
                                       std::min(gteq_conds_[i].get<1>()->intVal,
                                                tuple[gteq_conds_[i].get<0>()].second));
                 if (cmp > 0
-                    || (cmp == 0 && gteq_conds_[i].get<1>()->intVal >= tuple[gteq_conds_[i].get<0>()].second)) {
+                    || (cmp == 0
+                        && gteq_conds_[i].get<1>()->intVal
+                           >= tuple[gteq_conds_[i].get<0>()].second)) {
                     return false;
                 }
             }
@@ -132,7 +137,7 @@ bool Scan::execFilter(const Tuple &tuple) const
                             tuple[join_conds_[i].get<1>()].second)) {
                 return false;
             }
-        } else { // STRING
+        } else {  // STRING
             if ((tuple[join_conds_[i].get<0>()].second
                  != tuple[join_conds_[i].get<1>()].second)
                 || (std::memcmp(tuple[join_conds_[i].get<0>()].first,
@@ -196,4 +201,4 @@ double Scan::estColLength(const ColID cid) const
     return stats_->col_lengths_[selected_input_col_ids_[cid]];
 }
 
-}  // namespace ca
+}  // namespace cardinality

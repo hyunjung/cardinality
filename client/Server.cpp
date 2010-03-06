@@ -1,18 +1,18 @@
+#include "client/Server.h"
 #include <boost/thread/thread.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/asio/placeholders.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include "Server.h"
-#include "SeqScan.h"
-#include "IndexScan.h"
-#include "NLJoin.h"
-#include "NBJoin.h"
-#include "Remote.h"
-#include "Union.h"
+#include "client/SeqScan.h"
+#include "client/IndexScan.h"
+#include "client/NLJoin.h"
+#include "client/NBJoin.h"
+#include "client/Remote.h"
+#include "client/Union.h"
 
 
-namespace ca {
+namespace cardinality {
 
 Server::Server(const int port)
     : io_service_(),
@@ -20,8 +20,8 @@ Server::Server(const int port)
       new_tcpstream_(new boost::asio::ip::tcp::iostream())
 {
     acceptor_.async_accept(*new_tcpstream_->rdbuf(),
-                          boost::bind(&Server::handle_accept, this,
-                                      boost::asio::placeholders::error));
+                           boost::bind(&Server::handle_accept, this,
+                                       boost::asio::placeholders::error));
 }
 
 Server::~Server()
@@ -82,7 +82,7 @@ static void handle_param_query(tcpstream_ptr &conn)
     Operator::Ptr root;
     ia >> root;
 
-    while (true) {
+    for (;;) {
         conn->getline(buf, 16);
         if (buf[0] == '\0') {
             break;
@@ -118,7 +118,7 @@ static void handle_stats(tcpstream_ptr &conn)
 {
     char buf[1024];
 
-    while (true) {
+    for (;;) {
         conn->getline(buf, 1024);
         if (buf[0] == '\0') {
             break;
@@ -166,9 +166,9 @@ void Server::handle_accept(const boost::system::error_code &e)
         boost::thread t(boost::bind(handle_request, new_tcpstream_));
         new_tcpstream_.reset(new boost::asio::ip::tcp::iostream());
         acceptor_.async_accept(*new_tcpstream_->rdbuf(),
-                              boost::bind(&Server::handle_accept, this,
-                                          boost::asio::placeholders::error));
+                               boost::bind(&Server::handle_accept, this,
+                                           boost::asio::placeholders::error));
     }
 }
 
-}  // namespace ca
+}  // namespace cardinality

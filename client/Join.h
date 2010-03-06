@@ -1,11 +1,11 @@
 #ifndef CLIENT_JOIN_H_
 #define CLIENT_JOIN_H_
 
-#include "Operator.h"
-#include "Scan.h"
+#include "client/Operator.h"
+#include "client/Scan.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class Join: public Operator {
 public:
@@ -47,9 +47,9 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Join)
-BOOST_SERIALIZATION_SHARED_PTR(ca::Join)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Join)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::Join)
 
 #endif  // CLIENT_JOIN_H_

@@ -2,10 +2,10 @@
 #define CLIENT_NBJOIN_H_
 
 #include <boost/scoped_array.hpp>
-#include "Join.h"
+#include "client/Join.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class NBJoin: public Join {
 public:
@@ -16,10 +16,10 @@ public:
     ~NBJoin();
     Operator::Ptr clone() const;
 
-    RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReOpen(const char * = NULL, const uint32_t = 0);
-    RC GetNext(Tuple &);
-    RC Close();
+    void Open(const char * = NULL, const uint32_t = 0);
+    void ReOpen(const char * = NULL, const uint32_t = 0);
+    bool GetNext(Tuple &);
+    void Close();
 
     void print(std::ostream &, const int) const;
 
@@ -46,8 +46,8 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(ca::NBJoin)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::NBJoin)
 
 #endif  // CLIENT_NBJOIN_H_

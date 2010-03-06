@@ -6,13 +6,13 @@
 #include <boost/shared_ptr.hpp>
 
 
-namespace ca {
+namespace cardinality {
 
 typedef boost::shared_ptr<boost::asio::ip::tcp::iostream> tcpstream_ptr;
 
 class Server {
 public:
-    Server(const int port);
+    explicit Server(const int port);
     ~Server();
 
     void run();
@@ -31,6 +31,6 @@ private:
     Server& operator=(const Server &);
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
 #endif  // CLIENT_SERVER_H_

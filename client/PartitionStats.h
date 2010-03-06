@@ -1,11 +1,11 @@
 #ifndef CLIENT_PARTITIONSTATS_H_
 #define CLIENT_PARTITIONSTATS_H_
 
-#include "Operator.h"
-#include "Value.h"
+#include "client/Operator.h"
+#include "client/Value.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class PartitionStats {
 public:
@@ -36,6 +36,6 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
 #endif  // CLIENT_PARTITIONSTATS_H_

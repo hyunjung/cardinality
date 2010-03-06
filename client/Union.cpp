@@ -1,7 +1,7 @@
-#include "Union.h"
+#include "client/Union.h"
 
 
-namespace ca {
+namespace cardinality {
 
 Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
     : Operator(n),
@@ -38,7 +38,7 @@ Operator::Ptr Union::clone() const
     return Operator::Ptr(new Union(*this));
 }
 
-RC Union::Open(const char *left_ptr, const uint32_t left_len)
+void Union::Open(const char *left_ptr, const uint32_t left_len)
 {
     done_.resize(children_.size());
     for (size_t i = 0; i < children_.size(); ++i) {
@@ -46,22 +46,18 @@ RC Union::Open(const char *left_ptr, const uint32_t left_len)
         done_[i] = false;
     }
     it_ = 0;
-
-    return 0;
 }
 
-RC Union::ReOpen(const char *left_ptr, const uint32_t left_len)
+void Union::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     for (size_t i = 0; i < children_.size(); ++i) {
         children_[i]->ReOpen(left_ptr, left_len);
         done_[i] = false;
     }
     it_ = 0;
-
-    return 0;
 }
 
-RC Union::GetNext(Tuple &tuple)
+bool Union::GetNext(Tuple &tuple)
 {
     for (; it_ < children_.size(); ++it_) {
         if (!done_[it_]) {
@@ -69,7 +65,7 @@ RC Union::GetNext(Tuple &tuple)
                 done_[it_] = true;
             } else {
                 ++it_;
-                return 0;
+                return false;
             }
         }
     }
@@ -80,26 +76,25 @@ RC Union::GetNext(Tuple &tuple)
                 done_[it_] = true;
             } else {
                 ++it_;
-                return 0;
+                return false;
             }
         }
     }
 
-    return -1;
+    return true;
 }
 
-RC Union::Close()
+void Union::Close()
 {
     for (size_t i = 0; i < children_.size(); ++i) {
         children_[i]->Close();
     }
-    return 0;
 }
 
 void Union::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "Union@" << getNodeID();
+    os << "Union@" << node_id();
     os << " cost=" << estCost();
     os << std::endl;
 
@@ -153,4 +148,4 @@ double Union::estColLength(const ColID cid) const
     return children_[0]->estColLength(cid);
 }
 
-}  // namespace ca
+}  // namespace cardinality

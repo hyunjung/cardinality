@@ -9,12 +9,12 @@
 #include <cstring>
 #include <boost/scoped_array.hpp>
 #endif
-#include "Operator.h"
-#include "PartitionStats.h"
-#include "Value.h"
+#include "client/Operator.h"
+#include "client/PartitionStats.h"
+#include "client/Value.h"
 
 
-namespace ca {
+namespace cardinality {
 
 enum CompOp {
     EQ,
@@ -73,10 +73,10 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(ca::Scan)
-BOOST_SERIALIZATION_SHARED_PTR(ca::Scan)
+BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Scan)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::Scan)
 
 namespace boost {
 namespace serialization {

@@ -4,10 +4,10 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <boost/scoped_array.hpp>
-#include "Operator.h"
+#include "client/Operator.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class Remote: public Operator {
 public:
@@ -17,10 +17,10 @@ public:
     ~Remote();
     Operator::Ptr clone() const;
 
-    RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReOpen(const char * = NULL, const uint32_t = 0);
-    RC GetNext(Tuple &);
-    RC Close();
+    void Open(const char * = NULL, const uint32_t = 0);
+    void ReOpen(const char * = NULL, const uint32_t = 0);
+    bool GetNext(Tuple &);
+    void Close();
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
@@ -54,8 +54,8 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(ca::Remote)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::Remote)
 
 #endif  // CLIENT_REMOTE_H_

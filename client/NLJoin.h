@@ -1,10 +1,10 @@
 #ifndef CLIENT_NLJOIN_H_
 #define CLIENT_NLJOIN_H_
 
-#include "Join.h"
+#include "client/Join.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class NLJoin: public Join {
 public:
@@ -15,10 +15,10 @@ public:
     ~NLJoin();
     Operator::Ptr clone() const;
 
-    RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReOpen(const char * = NULL, const uint32_t = 0);
-    RC GetNext(Tuple &);
-    RC Close();
+    void Open(const char * = NULL, const uint32_t = 0);
+    void ReOpen(const char * = NULL, const uint32_t = 0);
+    bool GetNext(Tuple &);
+    void Close();
 
     void print(std::ostream &, const int) const;
 
@@ -44,8 +44,8 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(ca::NLJoin)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::NLJoin)
 
 #endif  // CLIENT_NLJOIN_H_

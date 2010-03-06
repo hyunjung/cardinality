@@ -1,30 +1,33 @@
-#include "NBJoin.h"
+#include "client/NBJoin.h"
 
 #ifndef NBJOIN_BUFSIZE
 #define NBJOIN_BUFSIZE 65536
 #endif
 
 
-namespace ca {
+namespace cardinality {
 
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
-      state_(), left_done_(), left_tuples_(), left_tuples_it_(), right_tuple_(),
+      state_(), left_done_(),
+      left_tuples_(), left_tuples_it_(), right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
 
 NBJoin::NBJoin()
     : Join(),
-      state_(), left_done_(), left_tuples_(), left_tuples_it_(), right_tuple_(),
+      state_(), left_done_(),
+      left_tuples_(), left_tuples_it_(), right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
 
 NBJoin::NBJoin(const NBJoin &x)
     : Join(x),
-      state_(), left_done_(), left_tuples_(), left_tuples_it_(), right_tuple_(),
+      state_(), left_done_(),
+      left_tuples_(), left_tuples_it_(), right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
@@ -38,21 +41,21 @@ Operator::Ptr NBJoin::clone() const
     return Operator::Ptr(new NBJoin(*this));
 }
 
-RC NBJoin::Open(const char *, const uint32_t)
+void NBJoin::Open(const char *, const uint32_t)
 {
     main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
     state_ = RIGHT_OPEN;
-    return left_child_->Open();
+    left_child_->Open();
 }
 
-RC NBJoin::ReOpen(const char *, const uint32_t)
+void NBJoin::ReOpen(const char *, const uint32_t)
 {
     throw std::runtime_error("NBJoin::ReOpen() called");
 }
 
-RC NBJoin::GetNext(Tuple &tuple)
+bool NBJoin::GetNext(Tuple &tuple)
 {
-    while (true) {
+    for (;;) {
         switch (state_) {
         case RIGHT_OPEN:
         case RIGHT_REOPEN: {
@@ -67,7 +70,7 @@ RC NBJoin::GetNext(Tuple &tuple)
                         pos[len] = '\0';
                         left_tuple[i].first = pos;
                         pos += len + 1;
-                    } else { // main_buffer_ doesn't have enough space
+                    } else {  // main_buffer_ doesn't have enough space
                         int overflow_len = len + 1;
                         for (size_t j = i + 1; j < left_tuple.size(); ++j) {
                             overflow_len += left_tuple[j].second + 1;
@@ -91,12 +94,12 @@ RC NBJoin::GetNext(Tuple &tuple)
                 if (state_ == RIGHT_REOPEN) {
                     right_child_->Close();
                 }
-                return -1;
+                return true;
             }
 
             if (state_ == RIGHT_OPEN) {
                 right_child_->Open();
-            } else { // RIGHT_REOPEN
+            } else {  // RIGHT_REOPEN
                 right_child_->ReOpen();
             }
             state_ = RIGHT_GETNEXT;
@@ -107,7 +110,7 @@ RC NBJoin::GetNext(Tuple &tuple)
                 left_tuples_.clear();
                 if (left_done_) {
                     right_child_->Close();
-                    return -1;
+                    return true;
                 }
                 state_ = RIGHT_REOPEN;
                 break;
@@ -119,7 +122,7 @@ RC NBJoin::GetNext(Tuple &tuple)
             for (; left_tuples_it_ < left_tuples_.end(); ++left_tuples_it_) {
                 if (execFilter(*left_tuples_it_, right_tuple_)) {
                     execProject(*left_tuples_it_++, right_tuple_, tuple);
-                    return 0;
+                    return false;
                 }
             }
             state_ = RIGHT_GETNEXT;
@@ -127,20 +130,20 @@ RC NBJoin::GetNext(Tuple &tuple)
         }
     }
 
-    return 0;
+    return false;
 }
 
-RC NBJoin::Close()
+void NBJoin::Close()
 {
     main_buffer_.reset();
     overflow_buffer_.reset();
-    return left_child_->Close();
+    left_child_->Close();
 }
 
 void NBJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "NBJoin@" << getNodeID();
+    os << "NBJoin@" << node_id();
     os << " #cols=" << numOutputCols();
     os << " len=" << estTupleLength();
     os << " card=" << estCardinality();
@@ -154,8 +157,9 @@ void NBJoin::print(std::ostream &os, const int tab) const
 double NBJoin::estCost() const
 {
     return left_child_->estCost()
-           + std::ceil(left_child_->estCardinality() * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
+           + std::ceil(left_child_->estCardinality()
+                       * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
              * right_child_->estCost();
 }
 
-}  // namespace ca
+}  // namespace cardinality

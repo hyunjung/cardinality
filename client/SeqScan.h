@@ -1,10 +1,10 @@
 #ifndef CLIENT_SEQSCAN_H_
 #define CLIENT_SEQSCAN_H_
 
-#include "Scan.h"
+#include "client/Scan.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class SeqScan: public Scan {
 public:
@@ -15,10 +15,10 @@ public:
     ~SeqScan();
     Operator::Ptr clone() const;
 
-    RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReOpen(const char * = NULL, const uint32_t = 0);
-    RC GetNext(Tuple &);
-    RC Close();
+    void Open(const char * = NULL, const uint32_t = 0);
+    void ReOpen(const char * = NULL, const uint32_t = 0);
+    bool GetNext(Tuple &);
+    void Close();
 
     void print(std::ostream &, const int) const;
 
@@ -40,8 +40,8 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(ca::SeqScan)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::SeqScan)
 
 #endif  // CLIENT_SEQSCAN_H_

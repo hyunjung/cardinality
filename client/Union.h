@@ -1,10 +1,10 @@
 #ifndef CLIENT_UNION_H_
 #define CLIENT_UNION_H_
 
-#include "Operator.h"
+#include "client/Operator.h"
 
 
-namespace ca {
+namespace cardinality {
 
 class Union: public Operator {
 public:
@@ -14,10 +14,10 @@ public:
     ~Union();
     Operator::Ptr clone() const;
 
-    RC Open(const char * = NULL, const uint32_t = 0);
-    RC ReOpen(const char * = NULL, const uint32_t = 0);
-    RC GetNext(Tuple &);
-    RC Close();
+    void Open(const char * = NULL, const uint32_t = 0);
+    void ReOpen(const char * = NULL, const uint32_t = 0);
+    bool GetNext(Tuple &);
+    void Close();
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
@@ -48,8 +48,8 @@ private:
     }
 };
 
-}  // namespace ca
+}  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(ca::Union)
+BOOST_SERIALIZATION_SHARED_PTR(cardinality::Union)
 
 #endif  // CLIENT_UNION_H_

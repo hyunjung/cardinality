@@ -1,7 +1,7 @@
-#include "SeqScan.h"
+#include "client/SeqScan.h"
 
 
-namespace ca {
+namespace cardinality {
 
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
                  const Table *t, const PartitionStats *p, const Query *q)
@@ -31,7 +31,7 @@ Operator::Ptr SeqScan::clone() const
     return Operator::Ptr(new SeqScan(*this));
 }
 
-RC SeqScan::Open(const char *, const uint32_t)
+void SeqScan::Open(const char *, const uint32_t)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     file_.open(filename_);
@@ -43,10 +43,9 @@ RC SeqScan::Open(const char *, const uint32_t)
         throw std::runtime_error("ifstream.open() failed");
     }
 #endif
-    return 0;
 }
 
-RC SeqScan::ReOpen(const char *, const uint32_t)
+void SeqScan::ReOpen(const char *, const uint32_t)
 {
 #ifndef USE_STD_IFSTREAM_FOR_SCAN
     pos_ = file_.begin();
@@ -54,10 +53,9 @@ RC SeqScan::ReOpen(const char *, const uint32_t)
     file_.clear();
     file_.seekg(0, std::ios::beg);
 #endif
-    return 0;
 }
 
-RC SeqScan::GetNext(Tuple &tuple)
+bool SeqScan::GetNext(Tuple &tuple)
 {
     Tuple temp;
 
@@ -67,19 +65,19 @@ RC SeqScan::GetNext(Tuple &tuple)
 
         if (execFilter(temp)) {
             execProject(temp, tuple);
-            return 0;
+            return false;
         }
     }
 
-    return -1;
+    return true;
 #else
-    while (true) {
+    for (;;) {
         if (file_.eof()) {
-            return -1;
+            return true;
         }
         file_.getline(line_buffer_.get(), (MAX_VARCHAR_LEN + 1) * num_input_cols_);
         if (*line_buffer_.get() == '\0') {
-            return -1;
+            return true;
         }
 
         temp.clear();
@@ -88,30 +86,30 @@ RC SeqScan::GetNext(Tuple &tuple)
         const char *eof = line_buffer_.get() + std::strlen(line_buffer_.get()) + 1;
 
         for (int i = 0; i < num_input_cols_; ++i) {
-            const char *delim = static_cast<const char *>(
-                                    std::memchr(pos, (i == num_input_cols_ - 1) ? '\0' : '|', eof - pos));
+            const char *delim
+                = static_cast<const char *>(
+                      std::memchr(pos, (i == num_input_cols_ - 1) ? '\0' : '|', eof - pos));
             temp.push_back(std::make_pair(pos, delim - pos));
             pos = delim + 1;
         }
 
         if (execFilter(temp)) {
             execProject(temp, tuple);
-            return 0;
+            return false;
         }
     }
 #endif
 }
 
-RC SeqScan::Close()
+void SeqScan::Close()
 {
     file_.close();
-    return 0;
 }
 
 void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
-    os << "SeqScan@" << getNodeID() << " " << filename_;
+    os << "SeqScan@" << node_id() << " " << filename_;
     os << " #cols=" << numOutputCols();
     os << " len=" << estTupleLength();
     os << " card=" << estCardinality();
@@ -135,7 +133,7 @@ double SeqScan::estCardinality() const
             } else {
                 card *= SELECTIVITY_EQ;
             }
-        } else { // GT
+        } else {  // GT
             card *= SELECTIVITY_GT;
         }
     }
@@ -147,4 +145,4 @@ double SeqScan::estCardinality() const
     return card;
 }
 
-}  // namespace ca
+}  // namespace cardinality

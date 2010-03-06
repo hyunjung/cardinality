@@ -1,12 +1,13 @@
-#include "Join.h"
+#include "client/Join.h"
 
 
-namespace ca {
+namespace cardinality {
 
 Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
            const Query *q, const int x)
     : Operator(n),
-      left_child_(l), right_child_(r),
+      left_child_(l),
+      right_child_(r),
       join_conds_()
 {
     initProject(q);
@@ -15,14 +16,16 @@ Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 
 Join::Join()
     : Operator(),
-      left_child_(), right_child_(),
+      left_child_(),
+      right_child_(),
       join_conds_()
 {
 }
 
 Join::Join(const Join &x)
     : Operator(x),
-      left_child_(x.left_child_->clone()), right_child_(x.right_child_->clone()),
+      left_child_(x.left_child_->clone()),
+      right_child_(x.right_child_->clone()),
       join_conds_(x.join_conds_)
 {
 }
@@ -34,17 +37,21 @@ Join::~Join()
 void Join::initFilter(const Query *q, const int x)
 {
     for (int i = 0; i < q->nbJoins; ++i) {
-        if (i == x) { // this condition is evaluated by IndexScan
+        if (i == x) {  // this condition is evaluated by IndexScan
             continue;
         }
-        if (right_child_->hasCol(q->joinFields1[i]) && left_child_->hasCol(q->joinFields2[i])) {
-            join_conds_.push_back(boost::make_tuple(left_child_->getOutputColID(q->joinFields2[i]),
-                                                  right_child_->getOutputColID(q->joinFields1[i]),
-                                                  right_child_->getColType(q->joinFields1[i])));
-        } else if (right_child_->hasCol(q->joinFields2[i]) && left_child_->hasCol(q->joinFields1[i])) {
-            join_conds_.push_back(boost::make_tuple(left_child_->getOutputColID(q->joinFields1[i]),
-                                                  right_child_->getOutputColID(q->joinFields2[i]),
-                                                  right_child_->getColType(q->joinFields2[i])));
+        if (right_child_->hasCol(q->joinFields1[i])
+            && left_child_->hasCol(q->joinFields2[i])) {
+            join_conds_.push_back(
+                boost::make_tuple(left_child_->getOutputColID(q->joinFields2[i]),
+                                  right_child_->getOutputColID(q->joinFields1[i]),
+                                  right_child_->getColType(q->joinFields1[i])));
+        } else if (right_child_->hasCol(q->joinFields2[i])
+                   && left_child_->hasCol(q->joinFields1[i])) {
+            join_conds_.push_back(
+                boost::make_tuple(left_child_->getOutputColID(q->joinFields1[i]),
+                                  right_child_->getOutputColID(q->joinFields2[i]),
+                                  right_child_->getColType(q->joinFields2[i])));
         }
     }
 }
@@ -59,7 +66,7 @@ bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
                             right_tuple[join_conds_[i].get<1>()].second)) {
                 return false;
             }
-        } else { // STRING
+        } else {  // STRING
             if ((left_tuple[join_conds_[i].get<0>()].second
                  != right_tuple[join_conds_[i].get<1>()].second)
                 || std::memcmp(left_tuple[join_conds_[i].get<0>()].first,
@@ -79,9 +86,11 @@ void Join::execProject(const Tuple &left_tuple, const Tuple &right_tuple, Tuple 
 
     for (size_t i = 0; i < numOutputCols(); ++i) {
         if (selected_input_col_ids_[i] < static_cast<ColID>(left_child_->numOutputCols())) {
-            output_tuple.push_back(left_tuple[selected_input_col_ids_[i]]);
+            output_tuple.push_back(
+                left_tuple[selected_input_col_ids_[i]]);
         } else {
-            output_tuple.push_back(right_tuple[selected_input_col_ids_[i] - left_child_->numOutputCols()]);
+            output_tuple.push_back(
+                right_tuple[selected_input_col_ids_[i] - left_child_->numOutputCols()]);
         }
     }
 }
@@ -111,7 +120,8 @@ ValueType Join::getColType(const char *col) const
 
 double Join::estCardinality() const
 {
-    double card = left_child_->estCardinality() * right_child_->estCardinality();
+    double card = left_child_->estCardinality()
+                  * right_child_->estCardinality();
 
     for (size_t i = 0; i < join_conds_.size(); ++i) {
         if (join_conds_[i].get<1>() == 0) {
@@ -139,8 +149,9 @@ double Join::estColLength(const ColID cid) const
     if (selected_input_col_ids_[cid] < static_cast<ColID>(left_child_->numOutputCols())) {
         return left_child_->estColLength(selected_input_col_ids_[cid]);
     } else {
-        return right_child_->estColLength(selected_input_col_ids_[cid] - left_child_->numOutputCols());
+        return right_child_->estColLength(
+                   selected_input_col_ids_[cid] - left_child_->numOutputCols());
     }
 }
 
-}  // namespace ca
+}  // namespace cardinality
