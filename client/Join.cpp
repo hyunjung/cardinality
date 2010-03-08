@@ -58,7 +58,7 @@ void Join::initFilter(const Query *q, const int x)
 
 bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
 {
-    for (size_t i = 0; i < join_conds_.size(); ++i) {
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
         if (join_conds_[i].get<2>() == INT) {
             if (parseInt(left_tuple[join_conds_[i].get<0>()].first,
                          left_tuple[join_conds_[i].get<0>()].second)
@@ -84,7 +84,7 @@ void Join::execProject(const Tuple &left_tuple, const Tuple &right_tuple, Tuple 
 {
     output_tuple.clear();
 
-    for (size_t i = 0; i < numOutputCols(); ++i) {
+    for (std::size_t i = 0; i < numOutputCols(); ++i) {
         if (selected_input_col_ids_[i] < static_cast<ColID>(left_child_->numOutputCols())) {
             output_tuple.push_back(
                 left_tuple[selected_input_col_ids_[i]]);
@@ -123,7 +123,7 @@ double Join::estCardinality() const
     double card = left_child_->estCardinality()
                   * right_child_->estCardinality();
 
-    for (size_t i = 0; i < join_conds_.size(); ++i) {
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
         if (join_conds_[i].get<1>() == 0) {
             card /= right_child_->estCardinality();
         } else {
@@ -137,7 +137,7 @@ double Join::estCardinality() const
 double Join::estTupleLength() const
 {
     double length = 0;
-    for (size_t i = 0; i < numOutputCols(); ++i) {
+    for (std::size_t i = 0; i < numOutputCols(); ++i) {
         length += estColLength(i);
     }
 

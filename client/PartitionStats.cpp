@@ -25,7 +25,7 @@ PartitionStats::~PartitionStats()
 }
 
 static inline void extractPrimaryKey(const char *pos,
-                                     const size_t size,
+                                     const std::size_t size,
                                      const int num_input_cols,
                                      const ValueType pkey_type,
                                      Value &v)
@@ -51,11 +51,11 @@ void PartitionStats::init(const std::string filename,
                           const int num_input_cols,
                           const ValueType pkey_type)
 {
-    size_t file_size = boost::filesystem::file_size(filename);
+    std::size_t file_size = boost::filesystem::file_size(filename);
     num_pages_ = (file_size + PAGE_SIZE - 1) / PAGE_SIZE;
 
     // 1024 bytes per column
-    size_t sample_size = ((num_input_cols + 3) / 4) * PAGE_SIZE;
+    std::size_t sample_size = ((num_input_cols + 3) / 4) * PAGE_SIZE;
     boost::iostreams::mapped_file_source file(filename,
                                               std::min(sample_size, file_size));
     const char *pos = file.begin();
@@ -64,7 +64,7 @@ void PartitionStats::init(const std::string filename,
     extractPrimaryKey(pos, file.size(), num_input_cols, pkey_type, min_val_);
 
     // accumulate lengths of columns
-    size_t num_tuples = 0;
+    std::size_t num_tuples = 0;
     int i = 0;
     for (; pos < file.end(); ++num_tuples, i = 0) {
         for (; i < num_input_cols; ++i) {
@@ -83,7 +83,7 @@ void PartitionStats::init(const std::string filename,
     // map the last part of file
     if (sample_size < file_size) {
         file.close();
-        size_t offset = (file_size - sample_size)
+        std::size_t offset = (file_size - sample_size)
                         & ~(boost::iostreams::mapped_file_source::alignment() - 1);
         file.open(filename, file_size - offset, offset);
     }

@@ -7,7 +7,7 @@ Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
     : Operator(n),
       children_(c), it_(), done_()
 {
-    for (size_t i = 0; i < children_[0]->numOutputCols(); ++i) {
+    for (std::size_t i = 0; i < children_[0]->numOutputCols(); ++i) {
         selected_input_col_ids_.push_back(i);
     }
 }
@@ -41,7 +41,7 @@ Operator::Ptr Union::clone() const
 void Union::Open(const char *left_ptr, const uint32_t left_len)
 {
     done_.resize(children_.size());
-    for (size_t i = 0; i < children_.size(); ++i) {
+    for (std::size_t i = 0; i < children_.size(); ++i) {
         children_[i]->Open(left_ptr, left_len);
         done_[i] = false;
     }
@@ -50,7 +50,7 @@ void Union::Open(const char *left_ptr, const uint32_t left_len)
 
 void Union::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
-    for (size_t i = 0; i < children_.size(); ++i) {
+    for (std::size_t i = 0; i < children_.size(); ++i) {
         children_[i]->ReOpen(left_ptr, left_len);
         done_[i] = false;
     }
@@ -86,7 +86,7 @@ bool Union::GetNext(Tuple &tuple)
 
 void Union::Close()
 {
-    for (size_t i = 0; i < children_.size(); ++i) {
+    for (std::size_t i = 0; i < children_.size(); ++i) {
         children_[i]->Close();
     }
 }
@@ -98,7 +98,7 @@ void Union::print(std::ostream &os, const int tab) const
     os << " cost=" << estCost();
     os << std::endl;
 
-    for (size_t i = 0; i < children_.size(); ++i) {
+    for (std::size_t i = 0; i < children_.size(); ++i) {
         children_[i]->print(os, tab + 1);
     }
 }
@@ -121,7 +121,7 @@ ValueType Union::getColType(const char *col) const
 double Union::estCost() const
 {
     double cost = 0;
-    for (size_t i = 0; i < children_.size(); ++i) {
+    for (std::size_t i = 0; i < children_.size(); ++i) {
         cost += children_[i]->estCost();
     }
 
@@ -131,7 +131,7 @@ double Union::estCost() const
 double Union::estCardinality() const
 {
     double card = 0;
-    for (size_t i = 0; i < children_.size(); ++i) {
+    for (std::size_t i = 0; i < children_.size(); ++i) {
         card += children_[i]->estCost();
     }
 

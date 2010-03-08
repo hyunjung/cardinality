@@ -92,11 +92,11 @@ const char * Scan::splitLine(const char *pos, const char *eof, Tuple &temp) cons
 
 bool Scan::execFilter(const Tuple &tuple) const
 {
-    if (tuple.size() != static_cast<size_t>(num_input_cols_)) {
+    if (tuple.size() != static_cast<std::size_t>(num_input_cols_)) {
         return false;
     }
 
-    for (size_t i = 0; i < gteq_conds_.size(); ++i) {
+    for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<1>()->type == INT) {
             int cmp = gteq_conds_[i].get<1>()->intVal
                       - parseInt(tuple[gteq_conds_[i].get<0>()].first,
@@ -129,7 +129,7 @@ bool Scan::execFilter(const Tuple &tuple) const
         }
     }
 
-    for (size_t i = 0; i < join_conds_.size(); ++i) {
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
         if (join_conds_[i].get<2>() == INT) {
             if (parseInt(tuple[join_conds_[i].get<0>()].first,
                          tuple[join_conds_[i].get<0>()].second)
@@ -155,7 +155,7 @@ void Scan::execProject(const Tuple &input_tuple, Tuple &output_tuple) const
 {
     output_tuple.clear();
 
-    for (size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
         output_tuple.push_back(input_tuple[selected_input_col_ids_[i]]);
     }
 }
@@ -189,7 +189,7 @@ ValueType Scan::getColType(const char *col) const
 double Scan::estTupleLength() const
 {
     double length = 0;
-    for (size_t i = 0; i < numOutputCols(); ++i) {
+    for (std::size_t i = 0; i < numOutputCols(); ++i) {
         length += estColLength(i);
     }
 

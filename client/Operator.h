@@ -49,7 +49,7 @@ public:
     virtual double estColLength(ColID) const = 0;
 
     NodeID node_id() const;
-    size_t numOutputCols() const;
+    std::size_t numOutputCols() const;
     ColID getOutputColID(const char *) const;
 
     static uint32_t parseInt(const char *, const uint32_t);

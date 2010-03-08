@@ -50,7 +50,7 @@ static void buildJoins(const Query *q,
     ca::Operator::Ptr root;
     ca::Scan::Ptr right;
 
-    for (size_t k = 0; k < subPlans.size(); ++k) {
+    for (std::size_t k = 0; k < subPlans.size(); ++k) {
         for (int i = 0; i < q->nbTable; ++i) {
             if (subPlans[k]->hasCol(q->aliasNames[i])) {
                 continue;
@@ -136,7 +136,7 @@ ca::Operator::Ptr buildQueryPlanIgnoringPartitions(const Query *q)
     double minCost = 0;
 
     // add Remote operator if needed
-    for (size_t k = 0; k < plans.size(); ++k) {
+    for (std::size_t k = 0; k < plans.size(); ++k) {
         ca::Operator::Ptr root = plans[k];
         if (root->node_id() != 0) {
             root = ca::Operator::Ptr(
@@ -289,7 +289,7 @@ ca::Operator::Ptr buildSimpleQueryPlanForSingleTable(const Query *q)
 
 static ca::Operator::Ptr buildUnion(const ca::NodeID n, std::vector<ca::Operator::Ptr> children)
 {
-    for (size_t k = 0; k < children.size(); ++k) {
+    for (std::size_t k = 0; k < children.size(); ++k) {
         if (children[k]->node_id() != n) {
             children[k] = ca::Operator::Ptr(
                           new ca::Remote(n, children[k],

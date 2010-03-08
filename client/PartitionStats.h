@@ -13,7 +13,7 @@ public:
     PartitionStats();
     ~PartitionStats();
 
-    size_t num_pages_;
+    std::size_t num_pages_;
     double cardinality_;
     std::vector<double> col_lengths_;
     Value min_val_;

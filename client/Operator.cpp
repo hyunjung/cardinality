@@ -33,7 +33,7 @@ NodeID Operator::node_id() const
     return node_id_;
 }
 
-size_t Operator::numOutputCols() const
+std::size_t Operator::numOutputCols() const
 {
     return selected_input_col_ids_.size();
 }

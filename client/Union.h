@@ -35,7 +35,7 @@ protected:
 
     std::vector<Operator::Ptr> children_;
 
-    size_t it_;
+    std::size_t it_;
     std::vector<bool> done_;
 
 private:

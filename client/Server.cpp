@@ -59,7 +59,7 @@ static void handle_query(tcpstream_ptr &conn)
 
     root->Open();
     while (!root->GetNext(tuple)) {
-        for (size_t i = 0; i < tuple.size(); i++) {
+        for (std::size_t i = 0; i < tuple.size(); i++) {
             conn->write(tuple[i].first, tuple[i].second);
             if (i < tuple.size() - 1) {
                 conn->put('|');
@@ -99,7 +99,7 @@ static void handle_param_query(tcpstream_ptr &conn)
         }
 
         while (!root->GetNext(tuple)) {
-            for (size_t i = 0; i < tuple.size(); i++) {
+            for (std::size_t i = 0; i < tuple.size(); i++) {
                 conn->write(tuple[i].first, tuple[i].second);
                 if (i < tuple.size() - 1) {
                     conn->put('|');

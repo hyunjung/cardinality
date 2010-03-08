@@ -25,7 +25,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         index_col_type_ = getColType(col);
         unique_ = std::strcmp(t->fieldsName[0], dot + 1) == 0;
     } else {
-        for (size_t i = 0; i < gteq_conds_.size(); ++i) {
+        for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
             const char *col = table_->fieldsName[gteq_conds_[i].get<0>()];
             if (col[0] == '_') {
                 index_col_ = table_->tableName;
@@ -310,7 +310,7 @@ double IndexScan::estCardinality() const
         card *= SELECTIVITY_GT;
     }
 
-    for (size_t i = 0; i < gteq_conds_.size(); ++i) {
+    for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<2>() == EQ) {
             if (gteq_conds_[i].get<0>() == 0) {
                 card /= stats_->cardinality_;

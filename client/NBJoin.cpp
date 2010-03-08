@@ -63,7 +63,7 @@ bool NBJoin::GetNext(Tuple &tuple)
             for (char *pos = main_buffer_.get();
                  pos - main_buffer_.get() < NBJOIN_BUFSIZE - 512
                  && !(left_done_ = left_child_->GetNext(left_tuple)); ) {
-                for (size_t i = 0; i < left_tuple.size(); ++i) {
+                for (std::size_t i = 0; i < left_tuple.size(); ++i) {
                     uint32_t len = left_tuple[i].second;
                     if (pos + len < main_buffer_.get() + NBJOIN_BUFSIZE) {
                         std::memcpy(pos, left_tuple[i].first, len);
@@ -72,7 +72,7 @@ bool NBJoin::GetNext(Tuple &tuple)
                         pos += len + 1;
                     } else {  // main_buffer_ doesn't have enough space
                         int overflow_len = len + 1;
-                        for (size_t j = i + 1; j < left_tuple.size(); ++j) {
+                        for (std::size_t j = i + 1; j < left_tuple.size(); ++j) {
                             overflow_len += left_tuple[j].second + 1;
                         }
                         overflow_buffer_.reset(new char[overflow_len]);
