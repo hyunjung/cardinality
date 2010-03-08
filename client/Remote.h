@@ -3,7 +3,6 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
-#include <boost/scoped_array.hpp>
 #include "client/Operator.h"
 
 
@@ -40,7 +39,6 @@ protected:
     const std::string ip_address_;
 
     boost::asio::ip::tcp::socket socket_;
-    boost::scoped_array<char> line_buffer_;
     boost::asio::streambuf response_;
 
 private:

@@ -1,5 +1,4 @@
 #include "client/Remote.h"
-#include <boost/asio/io_service.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -20,7 +19,6 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
       child_(c),
       ip_address_(i),
       socket_(g_server->io_service()),
-      line_buffer_(),
       response_()
 {
     for (std::size_t i = 0; i < child_->numOutputCols(); ++i) {
@@ -33,7 +31,6 @@ Remote::Remote()
       child_(),
       ip_address_(),
       socket_(g_server->io_service()),
-      line_buffer_(),
       response_()
 {
 }
@@ -43,7 +40,6 @@ Remote::Remote(const Remote &x)
       child_(x.child_->clone()),
       ip_address_(x.ip_address_),
       socket_(g_server->io_service()),
-      line_buffer_(),
       response_()
 {
 }
@@ -59,9 +55,6 @@ Operator::Ptr Remote::clone() const
 
 void Remote::Open(const char *left_ptr, const uint32_t left_len)
 {
-    line_buffer_.reset(new char[std::max(static_cast<std::size_t>(1),
-                                         (MAX_VARCHAR_LEN + 1) * child_->numOutputCols())]);
-
     boost::asio::ip::tcp::endpoint endpoint
         = boost::asio::ip::tcp::endpoint(
               boost::asio::ip::address::from_string(ip_address_), 17000 + child_->node_id());
@@ -72,9 +65,10 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         throw boost::system::system_error(error);
     }
 
+    boost::asio::streambuf request;
+    std::ostream request_stream(&request);
+
     if (left_ptr) {
-        boost::asio::streambuf request;
-        std::ostream request_stream(&request);
         request_stream << "P";
         boost::archive::binary_oarchive oa(request_stream);
         oa.register_type(static_cast<IndexScan *>(NULL));
@@ -82,11 +76,8 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         oa << child_;
         request_stream << left_len << '\n';
         request_stream.write(left_ptr, left_len);
-        boost::asio::write(socket_, request);
 
     } else {
-        boost::asio::streambuf request;
-        std::ostream request_stream(&request);
         request_stream << "Q";
         boost::archive::binary_oarchive oa(request_stream);
         oa.register_type(static_cast<NLJoin *>(NULL));
@@ -97,8 +88,9 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         oa.register_type(static_cast<Union *>(NULL));
 
         oa << child_;
-        boost::asio::write(socket_, request);
     }
+
+    boost::asio::write(socket_, request);
 }
 
 void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
@@ -117,37 +109,42 @@ void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 
 bool Remote::GetNext(Tuple &tuple)
 {
-    tuple.clear();
-    try {
-        boost::asio::read_until(socket_, response_, '\n');
-    } catch (boost::system::system_error &e) {
-        return true;
+    boost::system::error_code error;
+    std::size_t len = boost::asio::read_until(socket_, response_, '\n', error);
+    if (error) {
+        if (error == boost::asio::error::eof) {
+            return true;
+        }
+        throw boost::system::system_error(error);
     }
-    std::istream is(&response_);
-    is.getline(line_buffer_.get(),
-               std::max(static_cast<std::size_t>(1),
-                        (MAX_VARCHAR_LEN + 1) * child_->numOutputCols()));
-    if (*line_buffer_.get() == '\0') {
+
+    tuple.clear();
+
+    if (len == 0) {
         return false;
     }
-    if (*line_buffer_.get() == '|') {
+
+    boost::asio::streambuf::const_buffers_type line_buffer = response_.data();
+    response_.consume(len);
+    const char *pos = boost::asio::buffer_cast<const char *>(line_buffer);
+
+    if (*pos == '|') {
         return true;
     }
 
-    const char *pos = line_buffer_.get();
 #ifndef _GNU_SOURCE
-    const char *eof = line_buffer_.get() + std::strlen(line_buffer_.get()) + 1;
+    const char *eof = pos + len;
 #endif
 
     for (std::size_t i = 0; i < child_->numOutputCols(); ++i) {
 #ifdef _GNU_SOURCE
         const char *delim
             = static_cast<const char *>(
-                  rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|'));
+                  rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\n' : '|'));
 #else
         const char *delim
             = static_cast<const char *>(
-                  std::memchr(pos, (i == child_->numOutputCols() - 1) ? '\0' : '|', eof - pos));
+                  std::memchr(pos, (i == child_->numOutputCols() - 1) ? '\n' : '|', eof - pos));
 #endif
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
@@ -159,7 +156,6 @@ bool Remote::GetNext(Tuple &tuple)
 void Remote::Close()
 {
     socket_.close();
-    line_buffer_.reset();
 }
 
 void Remote::print(std::ostream &os, const int tab) const
