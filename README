@@ -71,7 +71,7 @@ For all tests of stage 1, you may assume that a partition always cover the entir
 
 Stage 2:
 
-Tables are now stored on multiple nodes. Part of a table, or the whole table may be replicated on multiple nodes. Queries will be sent in parallel up to 50 simultaneous connections.
+Tables are now stored on multiple nodes. Part of a table, or the whole table may be replicated on multiple nodes (but there is no partial overlap across nodes: two partitions of the same table are either identical or disjoint). Queries will be sent in parallel up to 50 simultaneous connections.
 
   - Benchmarks:
     - Selects with an equal condition on the primary key, the values being uniformly distributed

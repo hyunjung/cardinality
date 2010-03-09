@@ -204,6 +204,11 @@ public:
     al = new Allocator( MAX_LENGTH_ALLOC ) ;
 
     nbActions = 0 ;
+    getFound=false;
+    getDone=false;
+    lastElement=0;
+    lastPos=0;
+    locked=0;
 
     //probe = new char[1<<20];
     //memset( probe, 0 , 1 << 20 );

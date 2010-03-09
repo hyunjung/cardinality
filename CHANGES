@@ -1,4 +1,11 @@
 --------------------------------------------------------------------
+Release 1.10 (March 9, 2009)
+---------------------------------------------------------------------
+- Specify in the documentation that no partial overlap can occur (README)
+- Fix a bug in the index that crashes when getNext is called before
+  any other call to get/getNext (lib/index/index.h)
+
+--------------------------------------------------------------------
 Release 1.9 (March 2, 2009)
 ---------------------------------------------------------------------
 - Fix queries of dataBench/Test4 (< is not a supported operator)
