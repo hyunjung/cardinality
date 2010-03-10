@@ -8,7 +8,7 @@
 
 namespace cardinality {
 
-typedef boost::shared_ptr<boost::asio::ip::tcp::iostream> tcpstream_ptr;
+typedef boost::shared_ptr<boost::asio::ip::tcp::socket> socket_ptr;
 
 class Server {
 public:
@@ -24,7 +24,7 @@ protected:
 
     boost::asio::io_service io_service_;
     boost::asio::ip::tcp::acceptor acceptor_;
-    tcpstream_ptr new_tcpstream_;
+    socket_ptr new_socket_;
 
 private:
     Server(const Server &);

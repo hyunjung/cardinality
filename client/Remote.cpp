@@ -1,4 +1,5 @@
 #include "client/Remote.h"
+#include <iomanip>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -65,42 +66,50 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         throw boost::system::system_error(error);
     }
 
-    boost::asio::streambuf request;
-    std::ostream request_stream(&request);
+    std::ostringstream header_stream;
+    boost::asio::streambuf body;
+    std::ostream body_stream(&body);
 
     if (left_ptr) {
-        request_stream << "P";
-        boost::archive::binary_oarchive oa(request_stream);
+        boost::archive::binary_oarchive oa(body_stream);
         oa.register_type(static_cast<IndexScan *>(NULL));
-
         oa << child_;
-        request_stream << left_len << '\n';
-        request_stream.write(left_ptr, left_len);
+
+        header_stream << 'P';
+        header_stream << std::setw(4) << std::hex << body.size();
+
+        body_stream << left_len << '\n';
+        body_stream.write(left_ptr, left_len);
 
     } else {
-        request_stream << "Q";
-        boost::archive::binary_oarchive oa(request_stream);
+        boost::archive::binary_oarchive oa(body_stream);
         oa.register_type(static_cast<NLJoin *>(NULL));
         oa.register_type(static_cast<NBJoin *>(NULL));
         oa.register_type(static_cast<SeqScan *>(NULL));
         oa.register_type(static_cast<IndexScan *>(NULL));
         oa.register_type(static_cast<Remote *>(NULL));
         oa.register_type(static_cast<Union *>(NULL));
-
         oa << child_;
+
+        header_stream << 'Q';
+        header_stream << std::setw(4) << std::hex << body.size();
     }
 
-    boost::asio::write(socket_, request);
+    std::vector<boost::asio::const_buffer> buffers;
+    std::string header = header_stream.str();
+    buffers.push_back(boost::asio::buffer(header));
+    buffers.push_back(body.data());
+    boost::asio::write(socket_, buffers);
 }
 
 void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (left_ptr) {
-        boost::asio::streambuf request;
-        std::ostream request_stream(&request);
-        request_stream << left_len << '\n';
-        request_stream.write(left_ptr, left_len);
-        boost::asio::write(socket_, request);
+        boost::asio::streambuf body;
+        std::ostream body_stream(&body);
+        body_stream << left_len << '\n';
+        body_stream.write(left_ptr, left_len);
+        boost::asio::write(socket_, body);
     } else {
         socket_.close();
         Open();

@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/lexical_cast.hpp>
@@ -50,8 +51,8 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
                 continue;
             }
 
-            tcpstream << data->tables[i].nbFields << std::endl;
-            tcpstream << data->tables[i].fieldsType[0] << std::endl;
+            tcpstream << std::setw(3) << std::hex << data->tables[i].nbFields;
+            tcpstream << std::setw(1) << std::hex << data->tables[i].fieldsType[0];
             tcpstream << data->tables[i].partitions[j].fileName << std::endl;
 
             boost::archive::binary_iarchive ia(tcpstream);
