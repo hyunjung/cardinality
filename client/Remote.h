@@ -3,10 +3,13 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
+#include <boost/shared_ptr.hpp>
 #include "client/Operator.h"
 
 
 namespace cardinality {
+
+typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 
 class Remote: public Operator {
 public:
@@ -38,7 +41,8 @@ protected:
     Operator::Ptr child_;
     const std::string ip_address_;
 
-    boost::asio::ip::tcp::socket socket_;
+    tcpsocket_ptr socket_;
+    bool socket_reusable_;
     boost::asio::streambuf response_;
 
 private:

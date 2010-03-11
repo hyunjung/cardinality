@@ -15,6 +15,7 @@ MYOBJS = objs/Operator.o \
 		 objs/Union.o \
 		 objs/PartitionStats.o \
 		 objs/Server.o \
+		 objs/Connection.o \
 		 objs/optimizer.o \
 		 objs/client.o
 MYLIBS = lib/thirdparty/libboost_serialization.a \

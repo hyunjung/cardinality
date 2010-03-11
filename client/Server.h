@@ -1,34 +1,39 @@
 #ifndef CLIENT_SERVER_H_
 #define CLIENT_SERVER_H_
 
+#include <tr1/unordered_map>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include "client/Connection.h"
 
 
 namespace cardinality {
 
-typedef boost::shared_ptr<boost::asio::ip::tcp::socket> socket_ptr;
+typedef int NodeID;
+typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 
 class Server {
 public:
-    explicit Server(const int port);
+    explicit Server(const int);
     ~Server();
 
     void run();
-    void stop();
-    boost::asio::io_service & io_service();
 
-protected:
-    void handle_accept(const boost::system::error_code &e);
-
-    boost::asio::io_service io_service_;
-    boost::asio::ip::tcp::acceptor acceptor_;
-    socket_ptr new_socket_;
+    tcpsocket_ptr connectSocket(const NodeID, const std::string &);
+    void closeSocket(const NodeID, tcpsocket_ptr);
 
 private:
     Server(const Server &);
     Server& operator=(const Server &);
+
+    void handle_accept(const boost::system::error_code &);
+
+    boost::asio::io_service io_service_;
+    boost::asio::ip::tcp::acceptor acceptor_;
+    Connection::Ptr new_connection_;
+    std::tr1::unordered_multimap<NodeID, tcpsocket_ptr> connection_pool_;
+    boost::mutex mutex_;
 };
 
 }  // namespace cardinality
