@@ -147,7 +147,7 @@ bool IndexScan::GetNext(Tuple &tuple)
                 if (unique_) {
                     state_ = INDEX_DONE;
                 }
-                splitLine(file_.begin() + record_.address, file_.end(), temp);
+                splitLine(file_.begin() + record_.address, temp);
 
                 if (execFilter(temp)) {
                     execProject(temp, tuple);
@@ -200,7 +200,7 @@ bool IndexScan::GetNext(Tuple &tuple)
                 }
             }
 
-            splitLine(file_.begin() + record_.address, file_.end(), temp);
+            splitLine(file_.begin() + record_.address, temp);
 
             if (execFilter(temp)) {
                 execProject(temp, tuple);

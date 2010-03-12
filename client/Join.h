@@ -1,8 +1,8 @@
 #ifndef CLIENT_JOIN_H_
 #define CLIENT_JOIN_H_
 
+#include <boost/tuple/tuple.hpp>
 #include "client/Operator.h"
-#include "client/Scan.h"
 
 
 namespace cardinality {

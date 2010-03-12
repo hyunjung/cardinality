@@ -1,4 +1,5 @@
 #include "client/NBJoin.h"
+#include <cstring>
 
 #ifndef NBJOIN_BUFSIZE
 #define NBJOIN_BUFSIZE 65536

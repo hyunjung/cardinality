@@ -67,25 +67,17 @@ void Scan::initFilter(const Query *q)
     }
 }
 
-const char * Scan::splitLine(const char *pos, const char *eof, Tuple &temp) const
+const char * Scan::splitLine(const char *pos, Tuple &temp) const
 {
     temp.clear();
 
     for (int i = 0; i < num_input_cols_ - 1; ++i) {
-#ifdef _GNU_SOURCE
         const char *delim = static_cast<const char *>(rawmemchr(pos, '|'));
-#else
-        const char *delim = static_cast<const char *>(std::memchr(pos, '|', eof - pos));
-#endif
         temp.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }
 
-#ifdef _GNU_SOURCE
     const char *delim = static_cast<const char *>(rawmemchr(pos, '\n'));
-#else
-    const char *delim = static_cast<const char *>(std::memchr(pos, '\n', eof - pos));
-#endif
     temp.push_back(std::make_pair(pos, delim - pos));
     return delim + 1;
 }

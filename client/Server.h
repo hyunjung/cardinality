@@ -2,8 +2,6 @@
 #define CLIENT_SERVER_H_
 
 #include <tr1/unordered_map>
-#include <boost/asio/io_service.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/thread/mutex.hpp>
 #include "client/Connection.h"
 

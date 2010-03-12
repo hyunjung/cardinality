@@ -1,4 +1,5 @@
 #include "client/Join.h"
+#include <cstring>
 
 
 namespace cardinality {

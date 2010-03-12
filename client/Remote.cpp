@@ -140,20 +140,10 @@ bool Remote::GetNext(Tuple &tuple)
         return true;
     }
 
-#ifndef _GNU_SOURCE
-    const char *eof = pos + len;
-#endif
-
     for (std::size_t i = 0; i < child_->numOutputCols(); ++i) {
-#ifdef _GNU_SOURCE
         const char *delim
             = static_cast<const char *>(
                   rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\n' : '|'));
-#else
-        const char *delim
-            = static_cast<const char *>(
-                  std::memchr(pos, (i == child_->numOutputCols() - 1) ? '\n' : '|', eof - pos));
-#endif
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }

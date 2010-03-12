@@ -3,7 +3,6 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
-#include <boost/shared_ptr.hpp>
 #include "client/Operator.h"
 
 

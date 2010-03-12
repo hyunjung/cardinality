@@ -25,18 +25,12 @@ PartitionStats::~PartitionStats()
 }
 
 static inline void extractPrimaryKey(const char *pos,
-                                     const std::size_t size,
                                      const int num_input_cols,
                                      const ValueType pkey_type,
                                      Value &v)
 {
-#ifdef _GNU_SOURCE
     const char *delim = static_cast<const char *>(
                             rawmemchr(pos, (num_input_cols == 0) ? '\n' : '|'));
-#else
-    const char *delim = static_cast<const char *>(
-                            std::memchr(pos, (num_input_cols == 0) ? '\n' : '|', size));
-#endif
     v.type = pkey_type;
     if (v.type == INT) {
         v.intVal = cardinality::Operator::parseInt(pos, delim - pos);
@@ -61,7 +55,7 @@ void PartitionStats::init(const std::string filename,
     const char *pos = file.begin();
 
     // extract the minimum primary key
-    extractPrimaryKey(pos, file.size(), num_input_cols, pkey_type, min_val_);
+    extractPrimaryKey(pos, num_input_cols, pkey_type, min_val_);
 
     // accumulate lengths of columns
     std::size_t num_tuples = 0;
@@ -89,13 +83,8 @@ void PartitionStats::init(const std::string filename,
     }
 
     // extract the maximum primary key
-#ifdef _GNU_SOURCE
     pos = static_cast<const char *>(memrchr(file.begin(), '\n', file.size() - 1)) + 1;
-#else
-    for (pos = file.end() - 2; *pos != '\n'; --pos);
-    ++pos;
-#endif
-    extractPrimaryKey(pos, file.end() - pos, num_input_cols, pkey_type, max_val_);
+    extractPrimaryKey(pos, num_input_cols, pkey_type, max_val_);
 
     file.close();
 

@@ -2,13 +2,7 @@
 #define CLIENT_SCAN_H_
 
 #include <boost/tuple/tuple.hpp>
-#ifndef USE_STD_IFSTREAM_FOR_SCAN
 #include <boost/iostreams/device/mapped_file.hpp>
-#else
-#include <fstream>
-#include <cstring>
-#include <boost/scoped_array.hpp>
-#endif
 #include "client/Operator.h"
 #include "client/PartitionStats.h"
 #include "client/Value.h"
@@ -43,7 +37,7 @@ protected:
     void initFilter(const Query *q);
     bool execFilter(const Tuple &) const;
     void execProject(const Tuple &, Tuple &) const;
-    const char *splitLine(const char *, const char *, Tuple &) const;
+    const char *splitLine(const char *, Tuple &) const;
 
     const std::string filename_;
     std::vector<boost::tuple<ColID, Value *, CompOp> > gteq_conds_;
@@ -53,12 +47,7 @@ protected:
     const std::string alias_;
     const Table *table_;
     const PartitionStats *stats_;
-#ifndef USE_STD_IFSTREAM_FOR_SCAN
     boost::iostreams::mapped_file_source file_;
-#else
-    std::ifstream file_;
-    boost::scoped_array<char> line_buffer_;
-#endif
 
 private:
     Scan& operator=(const Scan &);
