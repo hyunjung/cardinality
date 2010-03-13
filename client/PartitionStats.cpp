@@ -7,16 +7,27 @@
 
 namespace cardinality {
 
-PartitionStats::PartitionStats(const std::string filename,
+PartitionStats::PartitionStats(const int part_no,
+                               const std::string filename,
                                const int num_input_cols,
                                const ValueType pkey_type)
-    : num_pages_(), cardinality_(), col_lengths_(num_input_cols), min_val_(), max_val_()
+    : part_no_(part_no),
+      num_pages_(),
+      cardinality_(),
+      col_lengths_(num_input_cols),
+      min_val_(),
+      max_val_()
 {
     init(filename, num_input_cols, pkey_type);
 }
 
 PartitionStats::PartitionStats()
-    : num_pages_(), cardinality_(), col_lengths_(), min_val_(), max_val_()
+    : part_no_(),
+      num_pages_(),
+      cardinality_(),
+      col_lengths_(),
+      min_val_(),
+      max_val_()
 {
 }
 

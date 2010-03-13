@@ -5,6 +5,7 @@
 #include "client/NBJoin.h"
 #include "client/Remote.h"
 #include "client/Union.h"
+#include "client/Dummy.h"
 
 
 namespace ca = cardinality;
@@ -12,7 +13,13 @@ namespace ca = cardinality;
 extern const Nodes *g_nodes;
 extern std::map<std::string, Table * > g_tables;
 extern std::map<std::pair<std::string, int>, ca::PartitionStats * > g_stats;
+extern std::map<std::string, std::vector<ca::PartitionStats *> > g_stats2;
 
+extern bool comparePartitionStats(const ca::PartitionStats *a,
+                                  const ca::PartitionStats *b);
+
+
+static const ca::NodeID MASTER_NODE_ID = 0;
 
 static inline bool HASIDXCOL(const char *col, const char *alias)
 {
@@ -61,7 +68,7 @@ static void buildJoins(const Query *q,
             ca::PartitionStats *stats = g_stats[std::make_pair(std::string(q->tableNames[i]), 0)];
             root = subPlans[k];
 
-            // add Remote operator if needed
+            // add a Remote operator if needed
             if (root->node_id() != part->iNode) {
                 root = ca::Operator::Ptr(
                        new ca::Remote(part->iNode, root,
@@ -133,14 +140,15 @@ ca::Operator::Ptr buildQueryPlanIgnoringPartitions(const Query *q)
     }
 
     ca::Operator::Ptr bestPlan;
-    double minCost = 0;
+    double minCost = 0.0;
 
-    // add Remote operator if needed
+    // add a Remote operator if needed
     for (std::size_t k = 0; k < plans.size(); ++k) {
         ca::Operator::Ptr root = plans[k];
-        if (root->node_id() != 0) {
+        if (root->node_id() != MASTER_NODE_ID) {
             root = ca::Operator::Ptr(
-                   new ca::Remote(0, root, g_nodes->nodes[root->node_id()].ip));
+                   new ca::Remote(MASTER_NODE_ID, root,
+                                  g_nodes->nodes[root->node_id()].ip));
             plans[k] = root;
         }
 
@@ -179,7 +187,7 @@ ca::Operator::Ptr buildSimpleQueryPlanIgnoringPartitions(const Query *q)
             root = right;
 
         } else {
-            // add Remote operator if needed
+            // add a Remote operator if needed
             if (root->node_id() != part->iNode) {
                 root = ca::Operator::Ptr(
                        new ca::Remote(part->iNode, root,
@@ -233,9 +241,10 @@ ca::Operator::Ptr buildSimpleQueryPlanIgnoringPartitions(const Query *q)
         }
     }
 
-    if (root->node_id() != 0) {
+    if (root->node_id() != MASTER_NODE_ID) {
         root = ca::Operator::Ptr(
-               new ca::Remote(0, root, g_nodes->nodes[root->node_id()].ip));
+               new ca::Remote(MASTER_NODE_ID, root,
+                              g_nodes->nodes[root->node_id()].ip));
     }
 
     return root;
@@ -243,42 +252,50 @@ ca::Operator::Ptr buildSimpleQueryPlanIgnoringPartitions(const Query *q)
 
 ca::Operator::Ptr buildSimpleQueryPlanForSingleTable(const Query *q)
 {
+    std::string table_name(q->tableNames[0]);
+    Table *table = g_tables[table_name];
     ca::Operator::Ptr root;
-    Table *table = g_tables[std::string(q->tableNames[0])];
 
     for (int j = 0; j < q->nbRestrictionsEqual; ++j) {
+        // find an equality condition on the primary key
         if (!std::strcmp(q->restrictionEqualFields[j]
                          + std::strlen(q->aliasNames[0]) + 1,
-                         table->fieldsName[0])) {  // primary key
-            Value *v = &q->restrictionEqualValues[j];
-            for (int k = 0; k < table->nbPartitions; ++k) {
-                ca::PartitionStats *stats
-                    = g_stats[std::make_pair(std::string(q->tableNames[0]), k)];
-                if ((v->type == INT
-                     && stats->min_val_.intVal <= v->intVal
-                     && stats->max_val_.intVal >= v->intVal)
-                    || (v->type == STRING
-                        && std::strcmp(stats->min_val_.charVal, v->charVal) <= 0
-                        && std::strcmp(stats->max_val_.charVal, v->charVal) >= 0)) {
-                    Partition *part = &table->partitions[k];
-                    root = ca::Scan::Ptr(
-                           new ca::IndexScan(part->iNode,
-                                             part->fileName, q->aliasNames[0],
-                                             table, NULL, q));
-                    break;
-                }
+                         table->fieldsName[0])) {
+            // construct a PartitionStats object
+            // in order to use comparePartitionStats()
+            ca::PartitionStats key;
+            key.min_val_.type = q->restrictionEqualValues[j].type;
+            key.min_val_.intVal = q->restrictionEqualValues[j].intVal;
+            if (key.min_val_.type == STRING) {
+                std::memcpy(key.min_val_.charVal,
+                            q->restrictionEqualValues[j].charVal,
+                            key.min_val_.intVal);
             }
 
-            if (root.get() == NULL) {
-                Partition *part = &table->partitions[0];
-                root = ca::Scan::Ptr(
+            // determine a partition to scan
+            std::vector<ca::PartitionStats *>::iterator it
+                = std::upper_bound(g_stats2[table_name].begin(),
+                                   g_stats2[table_name].end(),
+                                   &key,
+                                   comparePartitionStats);
+
+            if (it == g_stats2[table_name].begin()) {
+                // no partition contains this key
+                root = ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+            } else {
+                // IndexScan on primary key
+                Partition *part = &table->partitions[(*--it)->part_no_];
+                root = ca::Operator::Ptr(
                        new ca::IndexScan(part->iNode,
                                          part->fileName, q->aliasNames[0],
                                          table, NULL, q));
-            }
-            if (root->node_id() != 0) {
-                root = ca::Operator::Ptr(
-                       new ca::Remote(0, root, g_nodes->nodes[root->node_id()].ip));
+
+                // add a Remote operator if needed
+                if (root->node_id() != MASTER_NODE_ID) {
+                    root = ca::Operator::Ptr(
+                           new ca::Remote(MASTER_NODE_ID, root,
+                                          g_nodes->nodes[root->node_id()].ip));
+                }
             }
             break;
         }

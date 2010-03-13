@@ -20,8 +20,9 @@ struct Connection {
 
 // on master
 const Nodes *g_nodes;
-std::map<std::string, Table * > g_tables;
-std::map<std::pair<std::string, int>, ca::PartitionStats * > g_stats;
+std::map<std::string, Table *> g_tables;
+std::map<std::pair<std::string, int>, ca::PartitionStats *> g_stats;
+std::map<std::string, std::vector<ca::PartitionStats *> > g_stats2;
 static boost::mutex g_stats_mutex;
 
 // on both master and slave
@@ -53,6 +54,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
             tcpstream << std::setw(3) << std::hex << data->tables[i].nbFields;
             tcpstream << std::setw(1) << std::hex << data->tables[i].fieldsType[0];
+            tcpstream << std::setw(1) << std::hex << j;
             tcpstream << data->tables[i].partitions[j].fileName << std::endl;
 
             boost::archive::binary_iarchive ia(tcpstream);
@@ -63,10 +65,28 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
+            g_stats2[std::string(data->tables[i].tableName)].push_back(stats);
         }
     }
 
     tcpstream.close();
+}
+
+static bool compareValue(const Value &a, const Value &b)
+{
+    if (a.type == INT) {
+        return a.intVal < b.intVal;
+    } else {  // STRING
+        int cmp = memcmp(a.charVal, b.charVal,
+                         std::min(a.intVal, b.intVal));
+        return cmp < 0 || (cmp == 0 && a.intVal < b.intVal);
+    }
+}
+
+bool comparePartitionStats(const ca::PartitionStats *a,
+                           const ca::PartitionStats *b)
+{
+    return compareValue(a->min_val_, b->min_val_);
 }
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
@@ -91,12 +111,14 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                 continue;
             }
             ca::PartitionStats *stats
-                = new ca::PartitionStats(data->tables[i].partitions[j].fileName,
+                = new ca::PartitionStats(j,
+                                         data->tables[i].partitions[j].fileName,
                                          data->tables[i].nbFields,
                                          data->tables[i].fieldsType[0]);
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
+            g_stats2[std::string(data->tables[i].tableName)].push_back(stats);
         }
     }
 
@@ -104,6 +126,13 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
     boost::thread t(boost::bind(&ca::Server::run, g_server));
 
     threads.join_all();
+
+    std::map<std::string, std::vector<ca::PartitionStats *> >::iterator it;
+    for (it = g_stats2.begin(); it != g_stats2.end(); ++it) {
+        if (it->second.size() > 1) {
+            sort(it->second.begin(), it->second.end(), comparePartitionStats);
+        }
+    }
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)
