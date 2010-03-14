@@ -17,8 +17,10 @@ public:
     std::size_t num_pages_;
     double cardinality_;
     std::vector<double> col_lengths_;
-    Value min_val_;
-    Value max_val_;
+    Value min_pkey_;
+#ifdef PARTITIONSTATS_MAX_PKEY
+    Value max_pkey_;
+#endif
 
 private:
     PartitionStats(const PartitionStats &);
@@ -32,8 +34,10 @@ private:
         ar & num_pages_;
         ar & cardinality_;
         ar & col_lengths_;
-        ar & min_val_;
-        ar & max_val_;
+        ar & min_pkey_;
+#ifdef PARTITIONSTATS_MAX_PKEY
+        ar & max_pkey_;
+#endif
     }
 };
 

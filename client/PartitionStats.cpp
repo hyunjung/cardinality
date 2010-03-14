@@ -15,8 +15,10 @@ PartitionStats::PartitionStats(const int part_no,
       num_pages_(),
       cardinality_(),
       col_lengths_(num_input_cols),
-      min_val_(),
-      max_val_()
+      min_pkey_()
+#ifdef PARTITIONSTATS_MAX_PKEY
+      , max_pkey_()
+#endif
 {
     init(filename, num_input_cols, pkey_type);
 }
@@ -26,8 +28,10 @@ PartitionStats::PartitionStats()
       num_pages_(),
       cardinality_(),
       col_lengths_(),
-      min_val_(),
-      max_val_()
+      min_pkey_()
+#ifdef PARTITIONSTATS_MAX_PKEY
+      , max_pkey_()
+#endif
 {
 }
 
@@ -66,7 +70,7 @@ void PartitionStats::init(const std::string filename,
     const char *pos = file.begin();
 
     // extract the minimum primary key
-    extractPrimaryKey(pos, num_input_cols, pkey_type, min_val_);
+    extractPrimaryKey(pos, num_input_cols, pkey_type, min_pkey_);
 
     // accumulate lengths of columns
     std::size_t num_tuples = 0;
@@ -85,6 +89,7 @@ void PartitionStats::init(const std::string filename,
         }
     }
 
+#ifdef PARTITIONSTATS_MAX_PKEY
     // map the last part of file
     if (sample_size < file_size) {
         file.close();
@@ -95,7 +100,8 @@ void PartitionStats::init(const std::string filename,
 
     // extract the maximum primary key
     pos = static_cast<const char *>(memrchr(file.begin(), '\n', file.size() - 1)) + 1;
-    extractPrimaryKey(pos, num_input_cols, pkey_type, max_val_);
+    extractPrimaryKey(pos, num_input_cols, pkey_type, max_pkey_);
+#endif
 
     file.close();
 

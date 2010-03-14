@@ -86,7 +86,7 @@ static bool compareValue(const Value &a, const Value &b)
 bool comparePartitionStats(const ca::PartitionStats *a,
                            const ca::PartitionStats *b)
 {
-    return compareValue(a->min_val_, b->min_val_);
+    return compareValue(a->min_pkey_, b->min_pkey_);
 }
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,

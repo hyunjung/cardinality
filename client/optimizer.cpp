@@ -264,12 +264,12 @@ ca::Operator::Ptr buildSimpleQueryPlanForSingleTable(const Query *q)
             // construct a PartitionStats object
             // in order to use comparePartitionStats()
             ca::PartitionStats key;
-            key.min_val_.type = q->restrictionEqualValues[j].type;
-            key.min_val_.intVal = q->restrictionEqualValues[j].intVal;
-            if (key.min_val_.type == STRING) {
-                std::memcpy(key.min_val_.charVal,
+            key.min_pkey_.type = q->restrictionEqualValues[j].type;
+            key.min_pkey_.intVal = q->restrictionEqualValues[j].intVal;
+            if (key.min_pkey_.type == STRING) {
+                std::memcpy(key.min_pkey_.charVal,
                             q->restrictionEqualValues[j].charVal,
-                            key.min_val_.intVal);
+                            key.min_pkey_.intVal);
             }
 
             // determine a partition to scan
@@ -339,12 +339,12 @@ ca::Operator::Ptr buildSimpleQueryPlan(const Query *q)
                     = g_stats[std::make_pair(std::string(q->tableNames[i]), k)];
                 ca::PartitionStats *s
                     = g_stats[std::make_pair(std::string(q->tableNames[i]), m[j])];
-                if (stats->min_val_.type == s->min_val_.type
-                    && stats->min_val_.intVal == s->min_val_.intVal
-                    && (stats->min_val_.type == INT
-                        || !memcmp(stats->min_val_.charVal,
-                                   s->min_val_.charVal,
-                                   s->min_val_.intVal))) {
+                if (stats->min_pkey_.type == s->min_pkey_.type
+                    && stats->min_pkey_.intVal == s->min_pkey_.intVal
+                    && (stats->min_pkey_.type == INT
+                        || !memcmp(stats->min_pkey_.charVal,
+                                   s->min_pkey_.charVal,
+                                   s->min_pkey_.intVal))) {
                     break;
                 }
             }
