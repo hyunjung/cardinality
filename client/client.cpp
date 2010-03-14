@@ -44,21 +44,24 @@ static inline bool HASIDXCOL(const char *col, const char *alias)
            && !std::memcmp(col, alias, aliasLen);
 }
 
-static bool compareValue(const Value &a, const Value &b)
+static int compareValue(const Value &a, const Value &b)
 {
     if (a.type == INT) {
-        return a.intVal < b.intVal;
+        return a.intVal - b.intVal;
     } else {  // STRING
-        int cmp = memcmp(a.charVal, b.charVal,
-                         std::min(a.intVal, b.intVal));
-        return cmp < 0 || (cmp == 0 && a.intVal < b.intVal);
+        int cmp = std::memcmp(a.charVal, b.charVal,
+                              std::min(a.intVal, b.intVal));
+        if (cmp == 0) {
+            cmp = a.intVal - b.intVal;
+        }
+        return cmp;
     }
 }
 
 static bool comparePartitionStats(const ca::PartitionStats *a,
                                   const ca::PartitionStats *b)
 {
-    return compareValue(a->min_pkey_, b->min_pkey_);
+    return compareValue(a->min_pkey_, b->min_pkey_) < 0;
 }
 
 static void buildScans(const Query *q,
@@ -543,10 +546,6 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 {
     g_nodes = nodes;
 
-    for (int i = 0; i < data->nbTables; ++i) {
-        g_tables[std::string(data->tables[i].tableName)] = &data->tables[i];
-    }
-
     usleep(50000);  // 0.05s
 
     boost::thread_group threads;
@@ -555,19 +554,23 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
     }
 
     for (int i = 0; i < data->nbTables; ++i) {
-        for (int j = 0; j < data->tables[i].nbPartitions; ++j) {
-            if (data->tables[i].partitions[j].iNode) {
+        std::string table_name(data->tables[i].tableName);
+        Table *table = &data->tables[i];
+        g_tables[table_name] = table;
+
+        for (int j = 0; j < table->nbPartitions; ++j) {
+            if (table->partitions[j].iNode != MASTER_NODE_ID) {
                 continue;
             }
             ca::PartitionStats *stats
                 = new ca::PartitionStats(j,
-                                         data->tables[i].partitions[j].fileName,
-                                         data->tables[i].nbFields,
-                                         data->tables[i].fieldsType[0]);
+                                         table->partitions[j].fileName,
+                                         table->nbFields,
+                                         table->fieldsType[0]);
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
-            g_stats[std::make_pair(std::string(data->tables[i].tableName), j)] = stats;
-            g_stats2[std::string(data->tables[i].tableName)].push_back(stats);
+            g_stats[std::make_pair(table_name, j)] = stats;
+            g_stats2[table_name].push_back(stats);
         }
     }
 
@@ -576,11 +579,34 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
     threads.join_all();
 
-    std::map<std::string, std::vector<ca::PartitionStats *> >::iterator it;
-    for (it = g_stats2.begin(); it != g_stats2.end(); ++it) {
-        if (it->second.size() > 1) {
-            sort(it->second.begin(), it->second.end(), comparePartitionStats);
+    // for each table with 2 or more partitions
+    std::map<std::string, std::vector<ca::PartitionStats *> >::iterator table_it;
+    for (table_it = g_stats2.begin(); table_it != g_stats2.end(); ++table_it) {
+        if (table_it->second.size() == 1) {
+            continue;
         }
+
+        // sort all partitions based on the minimum primary keys
+        std::sort(table_it->second.begin(), table_it->second.end(),
+                  comparePartitionStats);
+
+        // chain replicas
+        std::vector<ca::PartitionStats *>::iterator part_it
+            = table_it->second.begin();
+        std::vector<ca::PartitionStats *>::iterator unique_part_it
+            = table_it->second.begin();
+
+        while (++part_it != table_it->second.end()) {
+            if (!compareValue((*unique_part_it)->min_pkey_,
+                              (*part_it)->min_pkey_)) {
+                (*part_it)->next_ = (*unique_part_it)->next_;
+                (*unique_part_it)->next_ = *part_it;
+            } else {
+                *(++unique_part_it) = *part_it;
+            }
+        }
+
+        table_it->second.resize(++unique_part_it - table_it->second.begin());
     }
 }
 

@@ -15,10 +15,11 @@ PartitionStats::PartitionStats(const int part_no,
       num_pages_(),
       cardinality_(),
       col_lengths_(num_input_cols),
-      min_pkey_()
+      min_pkey_(),
 #ifdef PARTITIONSTATS_MAX_PKEY
-      , max_pkey_()
+      max_pkey_(),
 #endif
+      next_(NULL)
 {
     init(filename, num_input_cols, pkey_type);
 }
@@ -28,10 +29,11 @@ PartitionStats::PartitionStats()
       num_pages_(),
       cardinality_(),
       col_lengths_(),
-      min_pkey_()
+      min_pkey_(),
 #ifdef PARTITIONSTATS_MAX_PKEY
-      , max_pkey_()
+      max_pkey_()
 #endif
+      next_(NULL)
 {
 }
 

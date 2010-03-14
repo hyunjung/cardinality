@@ -21,6 +21,7 @@ public:
 #ifdef PARTITIONSTATS_MAX_PKEY
     Value max_pkey_;
 #endif
+    const PartitionStats *next_;
 
 private:
     PartitionStats(const PartitionStats &);
