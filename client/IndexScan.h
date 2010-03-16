@@ -13,7 +13,7 @@ public:
 
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartitionStats *, const Query *,
-              const char * = NULL, const double = 0);
+              const char * = NULL);
     ~IndexScan();
     Operator::Ptr clone() const;
 
@@ -24,7 +24,7 @@ public:
 
     void print(std::ostream &, const int) const;
 
-    double estCost() const;
+    double estCost(const double = 0.0) const;
     double estCardinality() const;
 
 protected:
@@ -44,7 +44,6 @@ protected:
     bool check_index_cond_;
     uint32_t key_intval_;
     const char *key_charval_;
-    const double outer_cardinality_;
 
 private:
     IndexScan& operator=(const IndexScan &);

@@ -119,7 +119,7 @@ static void buildJoins(const Query *q,
                             new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, stats, q,
-                                              q->joinFields1[j], root->estCardinality()));
+                                              q->joinFields1[j]));
                     plans.push_back(ca::Operator::Ptr(
                                     new ca::NLJoin(right->node_id(), root, right,
                                                    q, j, q->joinFields2[j])));
@@ -131,7 +131,7 @@ static void buildJoins(const Query *q,
                             new ca::IndexScan(part->iNode,
                                               part->fileName, q->aliasNames[i],
                                               table, stats, q,
-                                              q->joinFields2[j], root->estCardinality()));
+                                              q->joinFields2[j]));
                     plans.push_back(ca::Operator::Ptr(
                                     new ca::NLJoin(right->node_id(), root, right,
                                                    q, j, q->joinFields1[j])));
@@ -432,8 +432,7 @@ static ca::Operator::Ptr buildSimpleQueryPlan(const Query *q)
                         right = ca::Scan::Ptr(
                                 new ca::IndexScan(part->iNode,
                                                   part->fileName, q->aliasNames[i],
-                                                  table, stats, q, q->joinFields1[j],
-                                                  root->estCardinality()));
+                                                  table, stats, q, q->joinFields1[j]));
                         roots.push_back(ca::Operator::Ptr(
                                         new ca::NLJoin(right->node_id(), root, right,
                                                        q, j, q->joinFields2[j])));
@@ -451,8 +450,7 @@ static ca::Operator::Ptr buildSimpleQueryPlan(const Query *q)
                         right = ca::Scan::Ptr(
                                 new ca::IndexScan(part->iNode,
                                                   part->fileName, q->aliasNames[i],
-                                                  table, stats, q, q->joinFields2[j],
-                                                  root->estCardinality()));
+                                                  table, stats, q, q->joinFields2[j]));
                         roots.push_back(ca::Operator::Ptr(
                                         new ca::NLJoin(right->node_id(), root, right,
                                                        q, j, q->joinFields1[j])));

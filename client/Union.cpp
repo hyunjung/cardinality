@@ -118,11 +118,11 @@ ValueType Union::getColType(const char *col) const
     return children_[0]->getColType(col);
 }
 
-double Union::estCost() const
+double Union::estCost(const double left_cardinality) const
 {
     double cost = 0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
-        cost += children_[i]->estCost();
+        cost += children_[i]->estCost(left_cardinality);
     }
 
     return cost;

@@ -74,7 +74,7 @@ void SeqScan::print(std::ostream &os, const int tab) const
     os << std::endl;
 }
 
-double SeqScan::estCost() const
+double SeqScan::estCost(const double) const
 {
     return stats_->num_pages_ * COST_DISK_READ_PAGE;
 }

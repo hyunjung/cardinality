@@ -107,9 +107,11 @@ void NLJoin::print(std::ostream &os, const int tab) const
     right_child_->print(os, tab + 1);
 }
 
-double NLJoin::estCost() const
+double NLJoin::estCost(const double) const
 {
-    return left_child_->estCost() + left_child_->estCardinality() * right_child_->estCost();
+    double left_cardinality = left_child_->estCardinality();
+    return left_child_->estCost()
+           + left_cardinality * right_child_->estCost(left_cardinality);
 }
 
 }  // namespace cardinality

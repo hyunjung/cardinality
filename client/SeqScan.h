@@ -22,7 +22,7 @@ public:
 
     void print(std::ostream &, const int) const;
 
-    double estCost() const;
+    double estCost(const double = 0.0) const;
     double estCardinality() const;
 
 protected:

@@ -24,7 +24,7 @@ public:
     ColID getInputColID(const char *) const;
     ValueType getColType(const char *) const;
 
-    double estCost() const;
+    double estCost(const double = 0.0) const;
     double estCardinality() const;
     double estTupleLength() const;
     double estColLength(const ColID) const;

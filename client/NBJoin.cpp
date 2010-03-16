@@ -155,7 +155,7 @@ void NBJoin::print(std::ostream &os, const int tab) const
     right_child_->print(os, tab + 1);
 }
 
-double NBJoin::estCost() const
+double NBJoin::estCost(const double) const
 {
     return left_child_->estCost()
            + std::ceil(left_child_->estCardinality()

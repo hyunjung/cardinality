@@ -5,14 +5,13 @@ namespace cardinality {
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartitionStats *p, const Query *q,
-                     const char *col, const double o)
+                     const char *col)
     : Scan(n, f, a, t, p, q),
       index_col_(), index_col_type_(),
       comp_op_(EQ), value_(NULL), unique_(),
       index_(), txn_(), record_(),
       state_(), check_index_cond_(),
-      key_intval_(), key_charval_(),
-      outer_cardinality_(o)
+      key_intval_(), key_charval_()
 {
     if (col) {  // NLIJ
         const char *dot = std::strchr(col, '.');
@@ -52,8 +51,7 @@ IndexScan::IndexScan()
       comp_op_(), value_(), unique_(),
       index_(), txn_(), record_(),
       state_(), check_index_cond_(),
-      key_intval_(), key_charval_(),
-      outer_cardinality_()
+      key_intval_(), key_charval_()
 {
 }
 
@@ -63,8 +61,7 @@ IndexScan::IndexScan(const IndexScan &x)
       comp_op_(x.comp_op_), value_(x.value_), unique_(x.unique_),
       index_(), txn_(), record_(),
       state_(), check_index_cond_(),
-      key_intval_(), key_charval_(),
-      outer_cardinality_(x.outer_cardinality_)
+      key_intval_(), key_charval_()
 {
 }
 
@@ -266,15 +263,15 @@ static double MACKERT_LOHMAN(double T, double D, double x = 1)
     return Y;
 }
 
-double IndexScan::estCost() const
+double IndexScan::estCost(const double left_cardinality) const
 {
     double seq_pages = 0;
     double random_pages = 0;
 
     if (!value_) {  // NLIJ
         random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                      (unique_) ? 1 : 3, outer_cardinality_)
-                       / outer_cardinality_;
+                                      (unique_) ? 1 : 3, left_cardinality)
+                       / left_cardinality;
     } else {
         if (comp_op_ == EQ) {
             if (unique_) {

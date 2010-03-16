@@ -66,7 +66,7 @@ ValueType Dummy::getColType(const char *col) const
     return INT;
 }
 
-double Dummy::estCost() const
+double Dummy::estCost(const double) const
 {
     return 0.0;
 }

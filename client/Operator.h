@@ -43,7 +43,7 @@ public:
     virtual ColID getInputColID(const char *) const = 0;
     virtual ValueType getColType(const char *) const = 0;
 
-    virtual double estCost() const = 0;
+    virtual double estCost(const double = 0.0) const = 0;
     virtual double estCardinality() const = 0;
     virtual double estTupleLength() const = 0;
     virtual double estColLength(ColID) const = 0;
