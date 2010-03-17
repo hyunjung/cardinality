@@ -22,6 +22,7 @@ public:
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
+    ColID getBaseColID(const ColID) const;
     ValueType getColType(const char *) const;
 
     double estCost(const double = 0.0) const;

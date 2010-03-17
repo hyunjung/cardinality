@@ -173,6 +173,11 @@ ColID Scan::getInputColID(const char *col) const
     throw std::runtime_error("column name not found");
 }
 
+ColID Scan::getBaseColID(const ColID cid) const
+{
+    return selected_input_col_ids_[cid];
+}
+
 ValueType Scan::getColType(const char *col) const
 {
     return table_->fieldsType[getInputColID(col)];

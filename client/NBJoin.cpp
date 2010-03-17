@@ -158,8 +158,8 @@ void NBJoin::print(std::ostream &os, const int tab) const
 double NBJoin::estCost(const double) const
 {
     return left_child_->estCost()
-           + std::ceil(left_child_->estCardinality()
-                       * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
+           + std::max(1.0, left_child_->estCardinality()
+                           * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
              * right_child_->estCost();
 }
 

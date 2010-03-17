@@ -113,6 +113,11 @@ ColID Union::getInputColID(const char *col) const
     return children_[0]->getOutputColID(col);
 }
 
+ColID Union::getBaseColID(const ColID cid) const
+{
+    return children_[0]->getBaseColID(cid);
+}
+
 ValueType Union::getColType(const char *col) const
 {
     return children_[0]->getColType(col);
@@ -120,7 +125,7 @@ ValueType Union::getColType(const char *col) const
 
 double Union::estCost(const double left_cardinality) const
 {
-    double cost = 0;
+    double cost = 0.0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
         cost += children_[i]->estCost(left_cardinality);
     }
@@ -130,9 +135,9 @@ double Union::estCost(const double left_cardinality) const
 
 double Union::estCardinality() const
 {
-    double card = 0;
+    double card = 0.0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
-        card += children_[i]->estCost();
+        card += children_[i]->estCardinality();
     }
 
     return card;

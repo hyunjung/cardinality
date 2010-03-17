@@ -110,6 +110,16 @@ ColID Join::getInputColID(const char *col) const
     }
 }
 
+ColID Join::getBaseColID(const ColID cid) const
+{
+    if (selected_input_col_ids_[cid] > left_child_->numOutputCols()) {
+        return right_child_->getBaseColID(
+                   selected_input_col_ids_[cid] - left_child_->numOutputCols());
+    } else {
+        return left_child_->getBaseColID(selected_input_col_ids_[cid]);
+    }
+}
+
 ValueType Join::getColType(const char *col) const
 {
     if (right_child_->hasCol(col)) {
@@ -121,23 +131,35 @@ ValueType Join::getColType(const char *col) const
 
 double Join::estCardinality() const
 {
-    double card = left_child_->estCardinality()
-                  * right_child_->estCardinality();
+    bool left_pkey = false;
+    bool right_pkey = false;
 
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        if (join_conds_[i].get<1>() == 0) {
-            card /= right_child_->estCardinality();
-        } else {
-            card *= SELECTIVITY_EQ;
+        if (right_child_->getBaseColID(join_conds_[i].get<1>()) == 0) {
+            right_pkey = true;
+        } else if (left_child_->getBaseColID(join_conds_[i].get<0>()) == 0) {
+            left_pkey = true;
         }
     }
 
-    return card;
+    if (left_pkey && right_pkey) {
+        return std::min(left_child_->estCardinality(),
+                        right_child_->estCardinality());
+    }
+    if (left_pkey) {
+        return right_child_->estCardinality();
+    }
+    if (right_pkey) {
+        return left_child_->estCardinality();
+    }
+
+    return SELECTIVITY_EQ * left_child_->estCardinality()
+                          * right_child_->estCardinality();
 }
 
 double Join::estTupleLength() const
 {
-    double length = 0;
+    double length = 0.0;
     for (std::size_t i = 0; i < numOutputCols(); ++i) {
         length += estColLength(i);
     }

@@ -22,6 +22,8 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         index_col_ += '.';
         index_col_ += dot + 1;
         index_col_type_ = getColType(col);
+
+        // equivalent to unique_ = getInputColID(t->fieldsName[0]) == 0
         unique_ = std::strcmp(t->fieldsName[0], dot + 1) == 0;
     } else {
         for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
@@ -243,10 +245,10 @@ void IndexScan::print(std::ostream &os, const int tab) const
 // Index Scans Using a Finite LRU Buffer: A Validated I/O Model,
 // ACM Transactions on Database Systems, Vol. 14, No. 3, September 1989, p.411
 //
-static double MACKERT_LOHMAN(double T, double D, double x = 1)
+static double MACKERT_LOHMAN(double T, double D, double x = 1.0)
 {
     double Y;
-    double b = 32 * 1024;
+    double b = 65536.0;  // 256 MB
     double Dx = D * x;
 
     if (T <= b) {
@@ -265,19 +267,19 @@ static double MACKERT_LOHMAN(double T, double D, double x = 1)
 
 double IndexScan::estCost(const double left_cardinality) const
 {
-    double seq_pages = 0;
-    double random_pages = 0;
+    double seq_pages = 0.0;
+    double random_pages = 0.0;
 
     if (!value_) {  // NLIJ
         random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                      (unique_) ? 1 : 3, left_cardinality)
+                                      (unique_) ? 1.0 : 3.0, left_cardinality)
                        / left_cardinality;
     } else {
         if (comp_op_ == EQ) {
             if (unique_) {
-                seq_pages = MACKERT_LOHMAN(stats_->num_pages_, 1);
+                seq_pages = MACKERT_LOHMAN(stats_->num_pages_, 1.0);
             } else {
-                random_pages = MACKERT_LOHMAN(stats_->num_pages_, 3);
+                random_pages = MACKERT_LOHMAN(stats_->num_pages_, 3.0);
             }
         } else {  // GT
             if (unique_) {
@@ -295,16 +297,16 @@ double IndexScan::estCost(const double left_cardinality) const
 
 double IndexScan::estCardinality() const
 {
-    double card = stats_->cardinality_;
+    double card;
 
     if (comp_op_ == EQ) {
         if (unique_) {
-            card /= stats_->cardinality_;
+            card = 1.0;
         } else {
-            card *= SELECTIVITY_EQ;
+            card = SELECTIVITY_EQ * stats_->cardinality_;
         }
     } else {  // GT
-        card *= SELECTIVITY_GT;
+        card = SELECTIVITY_GT * stats_->cardinality_;
     }
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {

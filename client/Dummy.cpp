@@ -61,6 +61,11 @@ ColID Dummy::getInputColID(const char *col) const
     return 0;
 }
 
+ColID Dummy::getBaseColID(const ColID) const
+{
+    return 0;
+}
+
 ValueType Dummy::getColType(const char *col) const
 {
     return INT;

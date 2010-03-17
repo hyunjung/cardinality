@@ -181,6 +181,11 @@ ColID Remote::getInputColID(const char *col) const
     return child_->getOutputColID(col);
 }
 
+ColID Remote::getBaseColID(const ColID cid) const
+{
+    return child_->getBaseColID(cid);
+}
+
 ValueType Remote::getColType(const char *col) const
 {
     return child_->getColType(col);
@@ -189,6 +194,7 @@ ValueType Remote::getColType(const char *col) const
 double Remote::estCost(const double left_cardinality) const
 {
     return child_->estCost(left_cardinality)
+           + 2 * COST_NET_XFER_PKT * left_cardinality
            + COST_NET_XFER_BYTE * estTupleLength() * estCardinality();
 }
 
