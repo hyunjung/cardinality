@@ -34,7 +34,7 @@ protected:
 
     Operator::Ptr left_child_;
     Operator::Ptr right_child_;
-    std::vector<boost::tuple<ColID, ColID, ValueType> > join_conds_;
+    std::vector<boost::tuple<ColID, ColID, bool> > join_conds_;
 
 private:
     Join& operator=(const Join &);

@@ -85,7 +85,7 @@ double SeqScan::estCardinality() const
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<2>() == EQ) {
-            if (gteq_conds_[i].get<0>() == 0) {
+            if (gteq_conds_[i].get<1>() == 0) {
                 card /= stats_->cardinality_;
             } else {
                 card *= SELECTIVITY_EQ;

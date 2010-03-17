@@ -27,15 +27,15 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         unique_ = std::strcmp(t->fieldsName[0], dot + 1) == 0;
     } else {
         for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
-            const char *col = table_->fieldsName[gteq_conds_[i].get<0>()];
+            const char *col = table_->fieldsName[gteq_conds_[i].get<1>()];
             if (col[0] == '_') {
                 index_col_ = table_->tableName;
                 index_col_ += '.';
                 index_col_ += col;
                 comp_op_ = gteq_conds_[i].get<2>();
-                value_ = gteq_conds_[i].get<1>();
+                value_ = gteq_conds_[i].get<0>();
                 index_col_type_ = value_->type;
-                unique_ = gteq_conds_[i].get<0>() == 0;
+                unique_ = gteq_conds_[i].get<1>() == 0;
                 gteq_conds_.erase(gteq_conds_.begin() + i);
                 break;
             }
@@ -311,7 +311,7 @@ double IndexScan::estCardinality() const
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<2>() == EQ) {
-            if (gteq_conds_[i].get<0>() == 0) {
+            if (gteq_conds_[i].get<1>() == 0) {
                 card /= stats_->cardinality_;
             } else {
                 card *= SELECTIVITY_EQ;

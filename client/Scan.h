@@ -41,8 +41,8 @@ protected:
     const char *splitLine(const char *, Tuple &) const;
 
     const std::string filename_;
-    std::vector<boost::tuple<ColID, Value *, CompOp> > gteq_conds_;
-    std::vector<boost::tuple<ColID, ColID, ValueType> > join_conds_;
+    std::vector<boost::tuple<Value *, ColID, CompOp> > gteq_conds_;
+    std::vector<boost::tuple<ColID, ColID, bool> > join_conds_;
     const int num_input_cols_;
 
     const std::string alias_;

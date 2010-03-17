@@ -60,7 +60,7 @@ void Join::initFilter(const Query *q, const int x)
 bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
 {
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        if (join_conds_[i].get<2>() == INT) {
+        if (!join_conds_[i].get<2>()) {  // INT
             if (parseInt(left_tuple[join_conds_[i].get<0>()].first,
                          left_tuple[join_conds_[i].get<0>()].second)
                 != parseInt(right_tuple[join_conds_[i].get<1>()].first,
@@ -85,8 +85,8 @@ void Join::execProject(const Tuple &left_tuple, const Tuple &right_tuple, Tuple 
 {
     output_tuple.clear();
 
-    for (std::size_t i = 0; i < numOutputCols(); ++i) {
-        if (selected_input_col_ids_[i] < static_cast<ColID>(left_child_->numOutputCols())) {
+    for (ColID i = 0; i < numOutputCols(); ++i) {
+        if (selected_input_col_ids_[i] < left_child_->numOutputCols()) {
             output_tuple.push_back(
                 left_tuple[selected_input_col_ids_[i]]);
         } else {
@@ -160,7 +160,7 @@ double Join::estCardinality() const
 double Join::estTupleLength() const
 {
     double length = 0.0;
-    for (std::size_t i = 0; i < numOutputCols(); ++i) {
+    for (ColID i = 0; i < numOutputCols(); ++i) {
         length += estColLength(i);
     }
 
@@ -169,7 +169,7 @@ double Join::estTupleLength() const
 
 double Join::estColLength(const ColID cid) const
 {
-    if (selected_input_col_ids_[cid] < static_cast<ColID>(left_child_->numOutputCols())) {
+    if (selected_input_col_ids_[cid] < left_child_->numOutputCols()) {
         return left_child_->estColLength(selected_input_col_ids_[cid]);
     } else {
         return right_child_->estColLength(

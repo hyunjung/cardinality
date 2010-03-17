@@ -22,6 +22,8 @@ struct Connection {
     const Query *q;
     ca::Operator::Ptr root;
     ca::Tuple tuple;
+    std::vector<ca::ColID> output_col_ids;
+    std::vector<bool> value_types;
 };
 
 // on master
@@ -616,7 +618,11 @@ void startSlave(const Node *masterNode, const Node *currentNode)
 
 Connection *createConnection()
 {
-    return new Connection();
+    Connection *conn = new Connection();
+    conn->tuple.reserve(10);
+    conn->output_col_ids.reserve(10);
+    conn->value_types.reserve(10);
+    return conn;
 }
 
 void closeConnection(Connection *conn)
@@ -661,6 +667,16 @@ void performQuery(Connection *conn, const Query *q)
         }
     }
 
+    conn->output_col_ids.clear();
+    conn->value_types.clear();
+
+    for (int i = 0; i < q->nbOutputFields; ++i) {
+        conn->output_col_ids.push_back(
+            conn->root->getOutputColID(q->outputFields[i]));
+        conn->value_types.push_back(
+            conn->root->getColType(q->outputFields[i]));
+    }
+
     conn->root->Open();
 }
 
@@ -672,16 +688,19 @@ ErrCode fetchRow(Connection *conn, Value *values)
     }
 
     for (int i = 0; i < conn->q->nbOutputFields; ++i) {
-        ca::ColID cid = conn->root->getOutputColID(conn->q->outputFields[i]);
-        values[i].type = conn->root->getColType(conn->q->outputFields[i]);
-        if (values[i].type == INT) {
+        ca::ColID cid = conn->output_col_ids[i];
+        if (!conn->value_types[i]) {  // INT
+            values[i].type = INT;
             values[i].intVal = ca::Operator::parseInt(conn->tuple[cid].first,
                                                       conn->tuple[cid].second);
 #ifdef PRINT_TUPLES
             std::cout << values[i].intVal << "|";
 #endif
-        } else {
-            std::memcpy(values[i].charVal, conn->tuple[cid].first, conn->tuple[cid].second);
+        } else {  // STRING
+            values[i].type = STRING;
+            std::memcpy(values[i].charVal,
+                        conn->tuple[cid].first,
+                        conn->tuple[cid].second);
             values[i].charVal[conn->tuple[cid].second] = '\0';
 #ifdef PRINT_TUPLES
             std::cout << values[i].charVal << "|";

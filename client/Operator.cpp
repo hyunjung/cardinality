@@ -33,9 +33,9 @@ NodeID Operator::node_id() const
     return node_id_;
 }
 
-std::size_t Operator::numOutputCols() const
+ColID Operator::numOutputCols() const
 {
-    return selected_input_col_ids_.size();
+    return static_cast<ColID>(selected_input_col_ids_.size());
 }
 
 ColID Operator::getOutputColID(const char *col) const

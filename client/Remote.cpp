@@ -23,7 +23,7 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
       socket_reusable_(),
       response_()
 {
-    for (std::size_t i = 0; i < child_->numOutputCols(); ++i) {
+    for (ColID i = 0; i < child_->numOutputCols(); ++i) {
         selected_input_col_ids_.push_back(i);
     }
 }
@@ -140,7 +140,7 @@ bool Remote::GetNext(Tuple &tuple)
         return true;
     }
 
-    for (std::size_t i = 0; i < child_->numOutputCols(); ++i) {
+    for (ColID i = 0; i < child_->numOutputCols(); ++i) {
         const char *delim
             = static_cast<const char *>(
                   rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\n' : '|'));

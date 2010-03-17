@@ -7,7 +7,7 @@ Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
     : Operator(n),
       children_(c), it_(), done_()
 {
-    for (std::size_t i = 0; i < children_[0]->numOutputCols(); ++i) {
+    for (ColID i = 0; i < children_[0]->numOutputCols(); ++i) {
         selected_input_col_ids_.push_back(i);
     }
 }

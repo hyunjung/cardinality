@@ -42,8 +42,8 @@ void Scan::initFilter(const Query *q)
     for (int i = 0; i < q->nbRestrictionsEqual; ++i) {
         if (hasCol(q->restrictionEqualFields[i])) {
             gteq_conds_.push_back(
-                boost::make_tuple(getInputColID(q->restrictionEqualFields[i]),
-                                  &q->restrictionEqualValues[i],
+                boost::make_tuple(&q->restrictionEqualValues[i],
+                                  getInputColID(q->restrictionEqualFields[i]),
                                   EQ));
         }
     }
@@ -51,8 +51,8 @@ void Scan::initFilter(const Query *q)
     for (int i = 0; i < q->nbRestrictionsGreaterThan; ++i) {
         if (hasCol(q->restrictionGreaterThanFields[i])) {
             gteq_conds_.push_back(
-                boost::make_tuple(getInputColID(q->restrictionGreaterThanFields[i]),
-                                  &q->restrictionGreaterThanValues[i],
+                boost::make_tuple(&q->restrictionGreaterThanValues[i],
+                                  getInputColID(q->restrictionGreaterThanFields[i]),
                                   GT));
         }
     }
@@ -89,32 +89,32 @@ bool Scan::execFilter(const Tuple &tuple) const
     }
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
-        if (gteq_conds_[i].get<1>()->type == INT) {
-            int cmp = gteq_conds_[i].get<1>()->intVal
-                      - parseInt(tuple[gteq_conds_[i].get<0>()].first,
-                                 tuple[gteq_conds_[i].get<0>()].second);
+        if (gteq_conds_[i].get<0>()->type == INT) {
+            int cmp = gteq_conds_[i].get<0>()->intVal
+                      - parseInt(tuple[gteq_conds_[i].get<1>()].first,
+                                 tuple[gteq_conds_[i].get<1>()].second);
             if ((gteq_conds_[i].get<2>() == EQ && cmp != 0)
                 || (gteq_conds_[i].get<2>() == GT && cmp >= 0)) {
                 return false;
             }
         } else {  // STRING
             if (gteq_conds_[i].get<2>() == EQ) {
-                if ((gteq_conds_[i].get<1>()->intVal
-                     != tuple[gteq_conds_[i].get<0>()].second)
-                    || (std::memcmp(gteq_conds_[i].get<1>()->charVal,
-                                    tuple[gteq_conds_[i].get<0>()].first,
-                                    tuple[gteq_conds_[i].get<0>()].second))) {
+                if ((gteq_conds_[i].get<0>()->intVal
+                     != tuple[gteq_conds_[i].get<1>()].second)
+                    || (std::memcmp(gteq_conds_[i].get<0>()->charVal,
+                                    tuple[gteq_conds_[i].get<1>()].first,
+                                    tuple[gteq_conds_[i].get<1>()].second))) {
                     return false;
                 }
             } else {  // GT
-                int cmp = std::memcmp(gteq_conds_[i].get<1>()->charVal,
-                                      tuple[gteq_conds_[i].get<0>()].first,
-                                      std::min(gteq_conds_[i].get<1>()->intVal,
-                                               tuple[gteq_conds_[i].get<0>()].second));
+                int cmp = std::memcmp(gteq_conds_[i].get<0>()->charVal,
+                                      tuple[gteq_conds_[i].get<1>()].first,
+                                      std::min(gteq_conds_[i].get<0>()->intVal,
+                                               tuple[gteq_conds_[i].get<1>()].second));
                 if (cmp > 0
                     || (cmp == 0
-                        && gteq_conds_[i].get<1>()->intVal
-                           >= tuple[gteq_conds_[i].get<0>()].second)) {
+                        && gteq_conds_[i].get<0>()->intVal
+                           >= tuple[gteq_conds_[i].get<1>()].second)) {
                     return false;
                 }
             }
@@ -122,7 +122,7 @@ bool Scan::execFilter(const Tuple &tuple) const
     }
 
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        if (join_conds_[i].get<2>() == INT) {
+        if (!join_conds_[i].get<2>()) {  // INT
             if (parseInt(tuple[join_conds_[i].get<0>()].first,
                          tuple[join_conds_[i].get<0>()].second)
                 != parseInt(tuple[join_conds_[i].get<1>()].first,
@@ -186,7 +186,7 @@ ValueType Scan::getColType(const char *col) const
 double Scan::estTupleLength() const
 {
     double length = 0;
-    for (std::size_t i = 0; i < numOutputCols(); ++i) {
+    for (ColID i = 0; i < numOutputCols(); ++i) {
         length += estColLength(i);
     }
 

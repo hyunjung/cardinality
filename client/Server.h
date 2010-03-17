@@ -8,7 +8,7 @@
 
 namespace cardinality {
 
-typedef int NodeID;
+typedef uint16_t NodeID;
 typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 
 class Server {

@@ -19,8 +19,8 @@
 
 namespace cardinality {
 
-typedef int ColID;
-typedef int NodeID;
+typedef uint16_t ColID;
+typedef uint16_t NodeID;
 
 // pointer and length for each value
 typedef std::vector<std::pair<const char *, uint32_t> > Tuple;
@@ -48,10 +48,10 @@ public:
     virtual double estCost(const double = 0.0) const = 0;
     virtual double estCardinality() const = 0;
     virtual double estTupleLength() const = 0;
-    virtual double estColLength(ColID) const = 0;
+    virtual double estColLength(const ColID) const = 0;
 
     NodeID node_id() const;
-    std::size_t numOutputCols() const;
+    ColID numOutputCols() const;
     ColID getOutputColID(const char *) const;
 
     static uint32_t parseInt(const char *, const uint32_t);
