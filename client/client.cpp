@@ -4,6 +4,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/checked_delete.hpp>
 #include "include/client.h"
 #include "client/Server.h"
 #include "client/PartitionStats.h"
@@ -587,4 +588,13 @@ ErrCode fetchRow(Connection *conn, Value *values)
 
 void closeProcess()
 {
+    // free PartitionStats objects
+    std::map<std::string, std::vector<ca::PartitionStats *> >::iterator table_it;
+    for (table_it = g_stats.begin(); table_it != g_stats.end(); ++table_it) {
+        std::for_each(table_it->second.begin(), table_it->second.end(),
+                      boost::checked_delete<ca::PartitionStats>);
+    }
+
+    g_stats.clear();
+    g_tables.clear();
 }
