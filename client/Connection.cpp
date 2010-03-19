@@ -240,11 +240,10 @@ void Connection::handle_stats()
         int nbFields;
         is >> std::hex >> nbFields;
         enum ValueType fieldType = (data[3] == '0') ? INT : STRING;
-        int part_no = data[4] - '0';
         data[bytes_read - 1] = '\0';  // remove the trailing '\n'
 
         PartitionStats *stats
-            = new PartitionStats(part_no, data + 5, nbFields, fieldType);
+            = new PartitionStats(data + 4, nbFields, fieldType);
 
         std::ostream body_stream(&buf);
         boost::archive::binary_oarchive oa(body_stream);

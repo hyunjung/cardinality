@@ -397,7 +397,6 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
             tcpstream << std::setw(3) << std::hex << data->tables[i].nbFields;
             tcpstream << std::setw(1) << std::hex << data->tables[i].fieldsType[0];
-            tcpstream << std::setw(1) << std::hex << j;
             tcpstream << data->tables[i].partitions[j].fileName << std::endl;
 
             boost::archive::binary_iarchive ia(tcpstream);
@@ -405,6 +404,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
             ca::PartitionStats *stats;
             ia >> stats;
+            stats->part_no_ = j;
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[std::string(data->tables[i].tableName)].push_back(stats);
@@ -436,10 +436,10 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                 continue;
             }
             ca::PartitionStats *stats
-                = new ca::PartitionStats(j,
-                                         table->partitions[j].fileName,
+                = new ca::PartitionStats(table->partitions[j].fileName,
                                          table->nbFields,
-                                         table->fieldsType[0]);
+                                         table->fieldsType[0],
+                                         j);
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[table_name].push_back(stats);
