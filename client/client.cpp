@@ -46,6 +46,14 @@ static inline bool HASIDXCOL(const char *col, const char *alias)
            && !std::memcmp(col, alias, aliasLen);
 }
 
+static inline bool ISPKEY(const char *col, const char *alias, const char *pkey)
+{
+    int aliasLen = std::strlen(alias);
+    return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
+           && !std::memcmp(col, alias, aliasLen)
+           && !std::strcmp(col + aliasLen + 1, pkey);
+}
+
 static int compareValue(const Value &a, const Value &b)
 {
     if (a.type == INT) {
@@ -366,9 +374,268 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
     return root;
 }
 
-static ca::Operator::Ptr buildQueryPlan(const Query *q)
+typedef std::vector<ca::Operator::Ptr> PartPlan;
+typedef std::vector<PartPlan> Plan;
+
+static void buildScans(const Query *q,
+                       const std::string &table_name,
+                       const char *alias_name,
+                       Plan &right)
 {
-    return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+    Table *table = g_tables[table_name];
+    std::vector<ca::PartitionStats *> &parts = g_stats[table_name];
+
+    right.clear();
+
+    // for each distinct partition
+    for (std::size_t j = 0; j < parts.size(); ++j) {
+        PartPlan pp;
+
+        // for each replica
+        for (const ca::PartitionStats *stats = parts[j];
+             stats != NULL; stats = stats->next_) {
+            Partition *part = &table->partitions[stats->part_no_];
+            ca::Operator::Ptr root;
+#ifndef DISABLE_INDEXSCAN
+            try {
+                root.reset(
+                    new ca::IndexScan(part->iNode,
+                                      part->fileName,
+                                      alias_name,
+                                      table, stats, q));
+            } catch (std::runtime_error &e) {
+#endif
+                root.reset(
+                    new ca::SeqScan(part->iNode,
+                                    part->fileName,
+                                    alias_name,
+                                    table, stats, q));
+#ifndef DISABLE_INDEXSCAN
+            }
+#endif
+            pp.push_back(root);
+        }
+        right.push_back(pp);
+    }
+}
+
+static void buildIndexScans(const Query *q,
+                            const std::string &table_name,
+                            const char *alias_name,
+                            const char *right_join_col,
+                            Plan &right)
+{
+    Table *table = g_tables[table_name];
+    std::vector<ca::PartitionStats *> &parts = g_stats[table_name];
+
+    right.clear();
+
+    // for each distinct partition
+    for (std::size_t j = 0; j < parts.size(); ++j) {
+        PartPlan pp;
+
+        // for each replica
+        for (const ca::PartitionStats *stats = parts[j];
+             stats != NULL; stats = stats->next_) {
+            Partition *part = &table->partitions[stats->part_no_];
+            ca::Operator::Ptr root;
+
+            root.reset(
+                new ca::IndexScan(part->iNode,
+                                  part->fileName,
+                                  alias_name,
+                                  table, stats, q,
+                                  right_join_col));
+
+            pp.push_back(root);
+        }
+        right.push_back(pp);
+    }
+}
+
+static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan)
+{
+    std::vector<ca::Operator::Ptr> best_pps;
+
+    // for each distinct partition
+    for (std::size_t j = 0; j < plan.size(); ++j) {
+        ca::Operator::Ptr best_pp;
+        double min_pp_cost = 0.0;
+
+        // for each equivalent plan (for this partition)
+        for (std::size_t jj = 0; jj < plan[j].size(); ++jj) {
+            ca::Operator::Ptr root = plan[j][jj];
+            if (root->node_id() != n) {
+                root.reset(
+                    new ca::Remote(n, root,
+                                   g_nodes->nodes[root->node_id()].ip));
+            }
+
+            // estimate execution cost
+            double cost = root->estCost();
+            if (jj == 0 || cost < min_pp_cost) {
+                min_pp_cost = cost;
+                best_pp = root;
+            }
+        }
+        best_pps.push_back(best_pp);
+    }
+
+    if (best_pps.size() > 1) {
+        return ca::Operator::Ptr(new ca::Union(n, best_pps));
+    } else {
+        return best_pps[0];
+    }
+}
+
+static ca::Operator::Ptr buildQueryPlan(const Query *q,
+                                        const std::vector<int> &table_order)
+{
+    std::vector<Plan> plans;
+    std::vector<Plan> subplans;
+
+    // the first table
+    const char *alias_name = q->aliasNames[table_order[0]];
+    std::string table_name(q->tableNames[table_order[0]]);
+    Plan scan;
+    buildScans(q, table_name, alias_name, scan);
+    plans.push_back(scan);
+
+    // all other tables
+    for (int i = 1; i < q->nbTable; ++i) {
+        subplans.clear();
+        plans.swap(subplans);
+
+        alias_name = q->aliasNames[table_order[i]];
+        table_name = q->tableNames[table_order[i]];
+//      Table *table = g_tables[table_name];
+
+        const char *left_join_col = NULL;
+        const char *right_join_col = NULL;
+        int join_cond = 0;
+#ifndef DISABLE_INDEXJOIN
+        // look for an index join condition
+        for (join_cond = 0; join_cond < q->nbJoins; ++join_cond) {
+//          if (ISPKEY(q->joinFields1[join_cond], alias_name, table->fieldsName[0])
+            if (HASIDXCOL(q->joinFields1[join_cond], alias_name)
+                && subplans[0][0][0]->hasCol(q->joinFields2[join_cond])) {
+                left_join_col = q->joinFields2[join_cond];
+                right_join_col = q->joinFields1[join_cond];
+                break;
+//          } else if (ISPKEY(q->joinFields2[j], alias_name, table->fieldsName[0])
+            } else if (HASIDXCOL(q->joinFields2[join_cond], alias_name)
+                       && subplans[0][0][0]->hasCol(q->joinFields1[join_cond])) {
+                left_join_col = q->joinFields1[join_cond];
+                right_join_col = q->joinFields2[join_cond];
+                break;
+            }
+        }
+#endif
+
+        // Nested Loop Index Join
+        Plan right;
+        if (left_join_col) {
+            buildIndexScans(q, table_name, alias_name, right_join_col, right);
+        } else {
+            buildScans(q, table_name, alias_name, right);
+        }
+
+        // no Union
+        for (std::size_t l = 0; l < subplans.size(); ++l) {
+            Plan &subplan = subplans[l];
+            Plan plan;
+
+            for (std::size_t k = 0; k < right.size(); ++k) {
+                for (std::size_t j = 0; j < subplan.size(); ++j) {
+                    PartPlan pp;
+
+                    for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
+                        for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
+                            ca::Operator::Ptr root = subplan[j][jj];
+                            if (root->node_id() != right[k][kk]->node_id()) {
+                                root.reset(
+                                    new ca::Remote(right[k][kk]->node_id(), root,
+                                                   g_nodes->nodes[root->node_id()].ip));
+                            }
+
+                            if (!left_join_col) {
+                                pp.push_back(ca::Operator::Ptr(
+                                    new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
+                            } else {
+                                pp.push_back(ca::Operator::Ptr(
+                                    new ca::NLJoin(root->node_id(), root, right[k][kk],
+                                                   q, join_cond, left_join_col)));
+                            }
+                        }
+                    }
+                    plan.push_back(pp);
+                }
+            }
+            plans.push_back(plan);
+        }
+
+        // left Union
+        for (std::size_t l = 0; l < subplans.size(); ++l) {
+            Plan &subplan = subplans[l];
+            Plan plan;
+
+            for (std::size_t k = 0; k < right.size(); ++k) {
+                PartPlan pp;
+                for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
+                    ca::Operator::Ptr root = buildUnion(right[k][kk]->node_id(),
+                                                        subplan);
+                    if (!left_join_col) {
+                        pp.push_back(ca::Operator::Ptr(
+                            new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
+                    } else {
+                        pp.push_back(ca::Operator::Ptr(
+                            new ca::NLJoin(root->node_id(), root, right[k][kk],
+                                           q, join_cond, left_join_col)));
+                    }
+                }
+                plan.push_back(pp);
+            }
+            plans.push_back(plan);
+        }
+
+        // right Union
+        for (std::size_t l = 0; l < subplans.size(); ++l) {
+            Plan &subplan = subplans[l];
+            Plan plan;
+
+            for (std::size_t j = 0; j < subplan.size(); ++j) {
+                PartPlan pp;
+                for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
+                    ca::Operator::Ptr root = buildUnion(subplan[j][jj]->node_id(),
+                                                        right);
+                    if (!left_join_col) {
+                        pp.push_back(ca::Operator::Ptr(
+                            new ca::NBJoin(subplan[j][jj]->node_id(), subplan[j][jj], root, q)));
+                    } else {
+                        pp.push_back(ca::Operator::Ptr(
+                            new ca::NLJoin(subplan[j][jj]->node_id(), subplan[j][jj], root,
+                                           q, join_cond, left_join_col)));
+                    }
+                }
+                plan.push_back(pp);
+            }
+            plans.push_back(plan);
+        }
+    }
+
+    ca::Operator::Ptr best_plan;
+    double min_cost = 0.0;
+
+    for (std::size_t l = 0; l < plans.size(); ++l) {
+        ca::Operator::Ptr root = buildUnion(MASTER_NODE_ID, plans[l]);
+        double cost = root->estCost();
+        if (l == 0 || cost < min_cost) {
+            min_cost = cost;
+            best_plan = root;
+        }
+    }
+
+    return best_plan->clone();
 }
 
 static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
@@ -535,7 +802,17 @@ void performQuery(Connection *conn, const Query *q)
             conn->root = buildQueryPlanSingleTable(q);
         }
         if (!conn->root.get()) {
-            conn->root = buildQueryPlan(q);
+            std::vector<int> join_order;
+            for (int i = 0; i < q->nbTable; ++i) {
+                join_order.push_back(i);
+            }
+            do {
+                ca::Operator::Ptr root = buildQueryPlan(q, join_order);
+
+                if (!conn->root.get() || conn->root->estCost() > root->estCost()) {
+                    conn->root = root;
+                }
+            } while (std::next_permutation(join_order.begin(), join_order.end()));
         }
     }
 
