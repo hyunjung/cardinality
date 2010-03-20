@@ -101,7 +101,9 @@ void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
         record_.val.charVal[key_intval_] = '\0';
     }
 
-    beginTransaction(&txn_);
+    if (!(unique_ && comp_op_ == EQ)) {
+        beginTransaction(&txn_);
+    }
     state_ = INDEX_GET;
     check_index_cond_ = true;
 }
@@ -136,6 +138,21 @@ bool IndexScan::GetNext(Tuple &tuple)
         return true;
 
     case INDEX_GET:
+        if (unique_ && comp_op_ == EQ) {
+            ec = get(index_, NULL, &record_);
+            if (ec == SUCCESS) {
+                state_ = INDEX_DONE;
+
+                splitLine(file_.begin() + record_.address, temp);
+
+                if (execFilter(temp)) {
+                    execProject(temp, tuple);
+                    return false;
+                }
+            }
+            return true;
+        }
+
         ec = get(index_, txn_, &record_);
         state_ = INDEX_GETNEXT;
 
@@ -143,9 +160,6 @@ bool IndexScan::GetNext(Tuple &tuple)
         switch (ec) {
         case SUCCESS:
             if (comp_op_ == EQ) {
-                if (unique_) {
-                    state_ = INDEX_DONE;
-                }
                 splitLine(file_.begin() + record_.address, temp);
 
                 if (execFilter(temp)) {
@@ -214,7 +228,9 @@ bool IndexScan::GetNext(Tuple &tuple)
 
 void IndexScan::Close()
 {
-    commitTransaction(txn_);
+    if (!(unique_ && comp_op_ == EQ)) {
+        commitTransaction(txn_);
+    }
     closeIndex(index_);
     file_.close();
 }
