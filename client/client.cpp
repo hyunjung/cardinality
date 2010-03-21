@@ -316,17 +316,27 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
 }
 #endif
 
-static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
+static void
+findPartitionStats(const Query *q,
+                   const std::string &table_name,
+                   const char *alias_name,
+                   std::vector<ca::PartitionStats *>::const_iterator &begin,
+                   std::vector<ca::PartitionStats *>::const_iterator &end)
 {
-    std::string table_name(q->tableNames[0]);
     Table *table = g_tables[table_name];
-    ca::Operator::Ptr root;
+    int alias_len = std::strlen(alias_name);
+
+    // scan all distinct partitions by default
+    begin = g_stats[table_name].begin();
+    end = g_stats[table_name].end();
 
     for (int j = 0; j < q->nbRestrictionsEqual; ++j) {
         // find an equality condition on the primary key
-        if (!!std::strcmp(q->restrictionEqualFields[j]
-                          + std::strlen(q->aliasNames[0]) + 1,
-                          table->fieldsName[0])) {
+        if (q->restrictionEqualFields[j][alias_len] != '.'
+            || std::strcmp(q->restrictionEqualFields[j] + alias_len + 1,
+                           table->fieldsName[0])
+            || std::memcmp(q->restrictionEqualFields[j],
+                           alias_name, alias_len)) {
             continue;
         }
 
@@ -342,33 +352,82 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
         }
 
         // determine a partition to scan
-        std::vector<ca::PartitionStats *>::iterator it
-            = std::upper_bound(g_stats[table_name].begin(),
-                               g_stats[table_name].end(),
-                               &key,
+        std::vector<ca::PartitionStats *>::const_iterator it
+            = std::upper_bound(begin, end, &key,
                                comparePartitionStats);
 
-        if (it == g_stats[table_name].begin()) {
+        if (it == begin) {
             // no partition contains this key
-            root.reset(
-                new ca::Dummy(MASTER_NODE_ID));
+            end = it;
         } else {
-            // IndexScan on primary key
-            Partition *part = &table->partitions[(*--it)->part_no_];
-            root.reset(
-                new ca::IndexScan(part->iNode,
-                                  part->fileName, q->aliasNames[0],
-                                  table, NULL, q));
+            begin = it - 1;
+            end = it;
+        }
+        return;
+    }
 
-            // add a Remote operator if needed
-            if (root->node_id() != MASTER_NODE_ID) {
-                root.reset(
-                    new ca::Remote(MASTER_NODE_ID, root,
-                                   g_nodes->nodes[root->node_id()].ip));
-            }
+    for (int j = 0; j < q->nbRestrictionsGreaterThan; ++j) {
+        // find an equality condition on the primary key
+        if (q->restrictionGreaterThanFields[j][alias_len] != '.'
+            || std::strcmp(q->restrictionGreaterThanFields[j] + alias_len + 1,
+                           table->fieldsName[0])
+            || std::memcmp(q->restrictionGreaterThanFields[j],
+                           alias_name, alias_len)) {
+            continue;
         }
 
-        break;
+        // construct a PartitionStats object
+        // in order to use comparePartitionStats()
+        ca::PartitionStats key;
+        key.min_pkey_.type = q->restrictionGreaterThanValues[j].type;
+        key.min_pkey_.intVal = q->restrictionGreaterThanValues[j].intVal;
+        if (key.min_pkey_.type == STRING) {
+            std::memcpy(key.min_pkey_.charVal,
+                        q->restrictionGreaterThanValues[j].charVal,
+                        key.min_pkey_.intVal);
+        }
+
+        // determine a partition to scan
+        std::vector<ca::PartitionStats *>::const_iterator it
+            = std::upper_bound(begin, end, &key,
+                               comparePartitionStats);
+
+        if (it != begin) {
+            begin = it - 1;
+        }
+        return;
+    }
+}
+
+static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
+{
+    std::string table_name(q->tableNames[0]);
+    Table *table = g_tables[table_name];
+
+    std::vector<ca::PartitionStats *>::const_iterator it;
+    std::vector<ca::PartitionStats *>::const_iterator end;
+    findPartitionStats(q, table_name, q->aliasNames[0], it, end);
+
+    ca::Operator::Ptr root;
+
+    if (it == end) {
+        // no partition contains this key
+        root.reset(
+            new ca::Dummy(MASTER_NODE_ID));
+    } else if (end == it + 1) {
+        // IndexScan on primary key
+        Partition *part = &table->partitions[(*it)->part_no_];
+        root.reset(
+            new ca::IndexScan(part->iNode,
+                              part->fileName, q->aliasNames[0],
+                              table, NULL, q));
+
+        // add a Remote operator if needed
+        if (root->node_id() != MASTER_NODE_ID) {
+            root.reset(
+                new ca::Remote(MASTER_NODE_ID, root,
+                               g_nodes->nodes[root->node_id()].ip));
+        }
     }
 
     return root;
@@ -383,16 +442,19 @@ static void buildScans(const Query *q,
                        Plan &right)
 {
     Table *table = g_tables[table_name];
-    std::vector<ca::PartitionStats *> &parts = g_stats[table_name];
+
+    std::vector<ca::PartitionStats *>::const_iterator it;
+    std::vector<ca::PartitionStats *>::const_iterator end;
+    findPartitionStats(q, table_name, alias_name, it, end);
 
     right.clear();
 
     // for each distinct partition
-    for (std::size_t j = 0; j < parts.size(); ++j) {
+    for (; it != end; ++it) {
         PartPlan pp;
 
         // for each replica
-        for (const ca::PartitionStats *stats = parts[j];
+        for (const ca::PartitionStats *stats = *it;
              stats != NULL; stats = stats->next_) {
             Partition *part = &table->partitions[stats->part_no_];
             ca::Operator::Ptr root;
@@ -426,16 +488,19 @@ static void buildIndexScans(const Query *q,
                             Plan &right)
 {
     Table *table = g_tables[table_name];
-    std::vector<ca::PartitionStats *> &parts = g_stats[table_name];
+
+    std::vector<ca::PartitionStats *>::const_iterator it;
+    std::vector<ca::PartitionStats *>::const_iterator end;
+    findPartitionStats(q, table_name, alias_name, it, end);
 
     right.clear();
 
     // for each distinct partition
-    for (std::size_t j = 0; j < parts.size(); ++j) {
+    for (; it != end; ++it) {
         PartPlan pp;
 
         // for each replica
-        for (const ca::PartitionStats *stats = parts[j];
+        for (const ca::PartitionStats *stats = *it;
              stats != NULL; stats = stats->next_) {
             Partition *part = &table->partitions[stats->part_no_];
             ca::Operator::Ptr root;
@@ -499,6 +564,9 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
     std::string table_name(q->tableNames[table_order[0]]);
     Plan scan;
     buildScans(q, table_name, alias_name, scan);
+    if (scan.empty()) {
+        return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+    }
     plans.push_back(scan);
 
     // all other tables
@@ -532,12 +600,17 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
         }
 #endif
 
-        // Nested Loop Index Join
         Plan right;
         if (left_join_col) {
+            // Nested Loop Index Join
             buildIndexScans(q, table_name, alias_name, right_join_col, right);
         } else {
+            // Nested Block Join
             buildScans(q, table_name, alias_name, right);
+        }
+
+        if (right.empty()) {
+            return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
         }
 
         // no Union
