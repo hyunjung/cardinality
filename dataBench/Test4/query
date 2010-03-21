@@ -1,7 +1,7 @@
 ROWS
-165
+132
 HASH
-887554
+857316
 PRESET
 6
 SELECT s._lastname,s.firstname FROM students AS s WHERE s.birth_year > 1990
@@ -19,4 +19,4 @@ SELECT s._lastname,s.firstname,c.mark FROM students AS s, courses AS c WHERE c.s
 SELECT s._lastname,s.firstname,c.mark FROM students AS s, courses AS c WHERE c.student = s._id AND c.mark > 8 
 SELECT s._lastname,s.firstname,c.mark FROM students AS s, courses AS c WHERE c.student = s._id AND c.mark > 8 
 SELECT s._lastname,s.firstname,c.mark FROM students AS s, courses AS c WHERE c.student = s._id AND c._code > 'INF300' 
-SELECT s._lastname,s.firstname,c.mark FROM students AS s, courses AS c WHERE c.student = s._id AND c.mark=20 
+SELECT s._lastname,s.firstname,c.mark FROM students AS s, courses AS c WHERE c.student = s._id AND c.mark = 20 

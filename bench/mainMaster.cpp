@@ -227,6 +227,9 @@ int main(int argc, char ** argv)
   cout << "Time response : " << nbMillis << " ms" << endl ;
   #endif
 
+  // Close the connection
+  closeConnection(connection);
+
   // Close the application
   closeProcess();
 

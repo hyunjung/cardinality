@@ -1,4 +1,14 @@
 --------------------------------------------------------------------
+Release 1.11 (March 21, 2009)
+---------------------------------------------------------------------
+- Add a primary key to the courses table in Test4
+  (dataBench/Test4/structure, dataBench/Test4/data/courses/part0)
+- Fix one of the query in Test4, which could not be parsed correctly
+  (dataBench/Test4/query)
+- Add a call to closeConnection in the example bench program
+  (bench/mainMaster.cpp)
+
+--------------------------------------------------------------------
 Release 1.10 (March 9, 2009)
 ---------------------------------------------------------------------
 - Specify in the documentation that no partial overlap can occur (README)

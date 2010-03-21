@@ -22,7 +22,8 @@ PARTITIONS 1
 1
 
 TABLE
-courses 3
+courses 4
+_id int
 _code string
 student int
 mark int
