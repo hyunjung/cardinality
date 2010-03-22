@@ -276,16 +276,18 @@ double IndexScan::estCost(const double left_cardinality) const
 
 double IndexScan::estCardinality() const
 {
-    double card;
+    double card = stats_->cardinality_;
 
-    if (comp_op_ == EQ) {
-        if (unique_) {
-            card = 1.0;
-        } else {
-            card = SELECTIVITY_EQ * stats_->cardinality_;
+    if (value_) {
+        if (comp_op_ == EQ) {
+            if (unique_) {
+                card = 1.0;
+            } else {
+                card *= SELECTIVITY_EQ;
+            }
+        } else {  // GT
+            card *= SELECTIVITY_GT;
         }
-    } else {  // GT
-        card = SELECTIVITY_GT * stats_->cardinality_;
     }
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {

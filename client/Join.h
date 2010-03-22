@@ -34,7 +34,7 @@ protected:
 
     Operator::Ptr left_child_;
     Operator::Ptr right_child_;
-    std::vector<boost::tuple<ColID, ColID, bool> > join_conds_;
+    std::vector<boost::tuple<ColID, ColID, bool, bool> > join_conds_;
 
 private:
     Join& operator=(const Join &);
@@ -52,5 +52,18 @@ private:
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Join)
 BOOST_SERIALIZATION_SHARED_PTR(cardinality::Join)
+
+namespace boost {
+namespace serialization {
+
+template<class Archive, class T1, class T2, class T3, class T4>
+void serialize(Archive &ar, boost::tuple<T1, T2, T3, T4> &t, const unsigned int ver) {
+    ar & t.get<0>();
+    ar & t.get<1>();
+    ar & t.get<2>();
+    ar & t.get<3>();
+}
+
+}}
 
 #endif  // CLIENT_JOIN_H_

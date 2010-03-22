@@ -38,21 +38,20 @@ Join::~Join()
 void Join::initFilter(const Query *q, const int x)
 {
     for (int i = 0; i < q->nbJoins; ++i) {
-        if (i == x) {  // this condition is evaluated by IndexScan
-            continue;
-        }
         if (right_child_->hasCol(q->joinFields1[i])
             && left_child_->hasCol(q->joinFields2[i])) {
             join_conds_.push_back(
                 boost::make_tuple(left_child_->getOutputColID(q->joinFields2[i]),
                                   right_child_->getOutputColID(q->joinFields1[i]),
-                                  right_child_->getColType(q->joinFields1[i])));
+                                  right_child_->getColType(q->joinFields1[i]),
+                                  i == x));
         } else if (right_child_->hasCol(q->joinFields2[i])
                    && left_child_->hasCol(q->joinFields1[i])) {
             join_conds_.push_back(
                 boost::make_tuple(left_child_->getOutputColID(q->joinFields1[i]),
                                   right_child_->getOutputColID(q->joinFields2[i]),
-                                  right_child_->getColType(q->joinFields2[i])));
+                                  right_child_->getColType(q->joinFields2[i]),
+                                  i == x));
         }
     }
 }
@@ -60,6 +59,10 @@ void Join::initFilter(const Query *q, const int x)
 bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
 {
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        if (join_conds_[i].get<3>()) {  // already applied by IndexScan
+            continue;
+        }
+
         if (!join_conds_[i].get<2>()) {  // INT
             if (parseInt(left_tuple[join_conds_[i].get<0>()].first,
                          left_tuple[join_conds_[i].get<0>()].second)
@@ -135,10 +138,13 @@ double Join::estCardinality() const
     bool right_pkey = false;
 
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        if (right_child_->getBaseColID(join_conds_[i].get<1>()) == 0) {
-            right_pkey = true;
-        } else if (left_child_->getBaseColID(join_conds_[i].get<0>()) == 0) {
+        if (!left_pkey
+            && left_child_->getBaseColID(join_conds_[i].get<0>()) == 0) {
             left_pkey = true;
+        }
+        if (!right_pkey
+            && right_child_->getBaseColID(join_conds_[i].get<1>()) == 0) {
+            right_pkey = true;
         }
     }
 
@@ -153,8 +159,9 @@ double Join::estCardinality() const
         return left_child_->estCardinality();
     }
 
-    return SELECTIVITY_EQ * left_child_->estCardinality()
-                          * right_child_->estCardinality();
+    return ((join_conds_.empty()) ? 1.0 : SELECTIVITY_EQ)
+           * left_child_->estCardinality()
+           * right_child_->estCardinality();
 }
 
 double Join::estTupleLength() const
