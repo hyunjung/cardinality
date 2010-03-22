@@ -46,14 +46,6 @@ static inline bool HASIDXCOL(const char *col, const char *alias)
            && !std::memcmp(col, alias, aliasLen);
 }
 
-static inline bool ISPKEY(const char *col, const char *alias, const char *pkey)
-{
-    int aliasLen = std::strlen(alias);
-    return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
-           && !std::memcmp(col, alias, aliasLen)
-           && !std::strcmp(col + aliasLen + 1, pkey);
-}
-
 static int compareValue(const Value &a, const Value &b)
 {
     if (a.type == INT) {
@@ -584,13 +576,11 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 #ifndef DISABLE_INDEXJOIN
         // look for an index join condition
         for (join_cond = 0; join_cond < q->nbJoins; ++join_cond) {
-//          if (ISPKEY(q->joinFields1[join_cond], alias_name, table->fieldsName[0])
             if (HASIDXCOL(q->joinFields1[join_cond], alias_name)
                 && subplans[0][0][0]->hasCol(q->joinFields2[join_cond])) {
                 left_join_col = q->joinFields2[join_cond];
                 right_join_col = q->joinFields1[join_cond];
                 break;
-//          } else if (ISPKEY(q->joinFields2[j], alias_name, table->fieldsName[0])
             } else if (HASIDXCOL(q->joinFields2[join_cond], alias_name)
                        && subplans[0][0][0]->hasCol(q->joinFields1[join_cond])) {
                 left_join_col = q->joinFields1[join_cond];

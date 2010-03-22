@@ -38,12 +38,8 @@ protected:
     bool unique_;
 
     Index *index_;
-    TxnState *txn_;
-    Record record_;
-    enum { INDEX_GET, INDEX_DONE, INDEX_GETNEXT } state_;
-    bool check_index_cond_;
-    uint32_t key_intval_;
-    const char *key_charval_;
+    std::vector<uint64_t> addrs_;
+    std::size_t i_;
 
 private:
     IndexScan& operator=(const IndexScan &);

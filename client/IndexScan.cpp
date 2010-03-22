@@ -9,9 +9,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
     : Scan(n, f, a, t, p, q),
       index_col_(), index_col_type_(),
       comp_op_(EQ), value_(NULL), unique_(),
-      index_(), txn_(), record_(),
-      state_(), check_index_cond_(),
-      key_intval_(), key_charval_()
+      index_(), addrs_(), i_()
 {
     if (col) {  // NLIJ
         const char *dot = std::strchr(col, '.');
@@ -51,9 +49,7 @@ IndexScan::IndexScan()
     : Scan(),
       index_col_(), index_col_type_(),
       comp_op_(), value_(), unique_(),
-      index_(), txn_(), record_(),
-      state_(), check_index_cond_(),
-      key_intval_(), key_charval_()
+      index_(), addrs_(), i_()
 {
 }
 
@@ -61,9 +57,7 @@ IndexScan::IndexScan(const IndexScan &x)
     : Scan(x),
       index_col_(x.index_col_), index_col_type_(x.index_col_type_),
       comp_op_(x.comp_op_), value_(x.value_), unique_(x.unique_),
-      index_(), txn_(), record_(),
-      state_(), check_index_cond_(),
-      key_intval_(), key_charval_()
+      index_(), addrs_(), i_()
 {
 }
 
@@ -81,146 +75,118 @@ void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
     file_.open(filename_);
     openIndex(index_col_.c_str(), &index_);
 
-    record_.val.type = index_col_type_;
-    if (index_col_type_ == INT) {
-        if (left_ptr) {
-            key_intval_ = parseInt(left_ptr, left_len);
-        } else {
-            key_intval_ = value_->intVal;
-        }
-        record_.val.intVal = key_intval_;
-    } else {  // STRING
-        if (left_ptr) {
-            key_charval_ = left_ptr;
-            key_intval_ = left_len;
-        } else {
-            key_charval_ = value_->charVal;
-            key_intval_ = value_->intVal;
-        }
-        std::memcpy(record_.val.charVal, key_charval_, key_intval_);
-        record_.val.charVal[key_intval_] = '\0';
-    }
-
-    if (!(unique_ && comp_op_ == EQ)) {
-        beginTransaction(&txn_);
-    }
-    state_ = INDEX_GET;
-    check_index_cond_ = true;
+    ReOpen(left_ptr, left_len);
 }
 
 void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
+    TxnState *txn;
+    Record record;
+    bool check_index_cond = true;
+    uint32_t key_intval;
+    const char *key_charval = NULL;
+
+    record.val.type = index_col_type_;
     if (index_col_type_ == INT) {
         if (left_ptr) {
-            key_intval_ = parseInt(left_ptr, left_len);
+            key_intval = parseInt(left_ptr, left_len);
+        } else {
+            key_intval = value_->intVal;
         }
-        record_.val.intVal = key_intval_;
+        record.val.intVal = key_intval;
     } else {  // STRING
         if (left_ptr) {
-            key_charval_ = left_ptr;
-            key_intval_ = left_len;
+            key_charval = left_ptr;
+            key_intval = left_len;
+        } else {
+            key_charval = value_->charVal;
+            key_intval = value_->intVal;
         }
-        std::memcpy(record_.val.charVal, key_charval_, key_intval_);
-        record_.val.charVal[key_intval_] = '\0';
+        std::memcpy(record.val.charVal, key_charval, key_intval);
+        record.val.charVal[key_intval] = '\0';
     }
 
-    state_ = INDEX_GET;
-    check_index_cond_ = true;
+    addrs_.clear();
+    i_ = 0;
+
+    beginTransaction(&txn);
+    ErrCode ec = get(index_, txn, &record);
+
+    // GT: the first tuple will be returned in the while loop
+    switch (ec) {
+    case SUCCESS:
+        if (comp_op_ == EQ) {
+            addrs_.push_back(record.address);
+
+            if (unique_) {
+                goto commit;
+            }
+        }
+        break;
+
+    case KEY_NOTFOUND:
+        if (comp_op_ == EQ) {
+            goto commit;
+        } else {  // GT
+            check_index_cond = false;
+        }
+        break;
+
+    default:
+        throw std::runtime_error("get() failed");
+    }
+
+    while ((ec = getNext(index_, txn, &record)) == SUCCESS) {
+        if (check_index_cond) {
+            if (index_col_type_ == INT) {
+                if (comp_op_ == EQ) {
+                    if (key_intval != record.val.intVal) {
+                        break;
+                    }
+                } else {  // GT
+                    if (key_intval >= record.val.intVal) {
+                        continue;
+                    }
+                    check_index_cond = false;
+                }
+            } else {  // STRING
+                if (comp_op_ == EQ) {
+                    if (record.val.charVal[key_intval] != '\0'
+                        || std::memcmp(key_charval, record.val.charVal, key_intval)) {
+                        break;
+                    }
+                } else {  // GT
+                    uint32_t charval_len = std::strlen(record.val.charVal);
+                    int cmp = std::memcmp(key_charval, record.val.charVal,
+                                          std::min(key_intval, charval_len));
+                    if (cmp > 0 || (cmp == 0 && key_intval >= charval_len)) {
+                        continue;
+                    }
+                    check_index_cond = false;
+                }
+            }
+        }
+
+        addrs_.push_back(record.address);
+    }
+
+    std::sort(addrs_.begin(), addrs_.end());
+
+commit:
+    commitTransaction(txn);
 }
 
 bool IndexScan::GetNext(Tuple &tuple)
 {
-    ErrCode ec;
     Tuple temp;
 
-    switch (state_) {
-    case INDEX_DONE:
-        return true;
+    while (i_ < addrs_.size()) {
+        splitLine(file_.begin() + addrs_[i_++], temp);
 
-    case INDEX_GET:
-        if (unique_ && comp_op_ == EQ) {
-            ec = get(index_, NULL, &record_);
-            if (ec == SUCCESS) {
-                state_ = INDEX_DONE;
-
-                splitLine(file_.begin() + record_.address, temp);
-
-                if (execFilter(temp)) {
-                    execProject(temp, tuple);
-                    return false;
-                }
-            }
-            return true;
+        if (execFilter(temp)) {
+            execProject(temp, tuple);
+            return false;
         }
-
-        ec = get(index_, txn_, &record_);
-        state_ = INDEX_GETNEXT;
-
-        // GT: the first tuple will be returned in the while loop
-        switch (ec) {
-        case SUCCESS:
-            if (comp_op_ == EQ) {
-                splitLine(file_.begin() + record_.address, temp);
-
-                if (execFilter(temp)) {
-                    execProject(temp, tuple);
-                    return false;
-                }
-            }
-            break;
-
-        case KEY_NOTFOUND:
-            if (comp_op_ == EQ) {
-                return true;
-            } else {  // GT
-                check_index_cond_ = false;
-            }
-            break;
-
-        default:
-            break;
-        }
-
-    case INDEX_GETNEXT:
-        while ((ec = getNext(index_, txn_, &record_)) == SUCCESS) {
-            if (check_index_cond_) {
-                if (index_col_type_ == INT) {
-                    if (comp_op_ == EQ) {
-                        if (key_intval_ != record_.val.intVal) {
-                            return true;
-                        }
-                    } else {  // GT
-                        if (key_intval_ >= record_.val.intVal) {
-                            continue;
-                        }
-                        check_index_cond_ = false;
-                    }
-                } else {  // STRING
-                    if (comp_op_ == EQ) {
-                        if (record_.val.charVal[key_intval_] != '\0'
-                            || std::memcmp(key_charval_, record_.val.charVal, key_intval_)) {
-                            return true;
-                        }
-                    } else {  // GT
-                        uint32_t charval_len = std::strlen(record_.val.charVal);
-                        int cmp = std::memcmp(key_charval_, record_.val.charVal,
-                                              std::min(key_intval_, charval_len));
-                        if (cmp > 0 || (cmp == 0 && key_intval_ >= charval_len)) {
-                            continue;
-                        }
-                        check_index_cond_ = false;
-                    }
-                }
-            }
-
-            splitLine(file_.begin() + record_.address, temp);
-
-            if (execFilter(temp)) {
-                execProject(temp, tuple);
-                return false;
-            }
-        }
-        break;
     }
 
     return true;
@@ -228,9 +194,6 @@ bool IndexScan::GetNext(Tuple &tuple)
 
 void IndexScan::Close()
 {
-    if (!(unique_ && comp_op_ == EQ)) {
-        commitTransaction(txn_);
-    }
     closeIndex(index_);
     file_.close();
 }
