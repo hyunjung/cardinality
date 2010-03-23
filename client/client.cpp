@@ -76,14 +76,14 @@ static void enumerateScans(const Query *q,
         Partition *part = &table->partitions[0];
         ca::PartitionStats *stats = g_stats[table_name][0];
 
-        ca::Scan::Ptr seqscan(
+        ca::Operator::Ptr seqscan(
             new ca::SeqScan(part->iNode,
                             part->fileName,
                             q->aliasNames[i],
                             table, stats, q));
 
         try {
-            ca::Scan::Ptr indexscan(
+            ca::Operator::Ptr indexscan(
                 new ca::IndexScan(part->iNode,
                                   part->fileName,
                                   q->aliasNames[i],
@@ -214,7 +214,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
 static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
 {
     ca::Operator::Ptr root;
-    ca::Scan::Ptr right;
+    ca::Operator::Ptr right;
 
     std::string table_name(q->tableNames[0]);
     Table *table = g_tables[table_name];

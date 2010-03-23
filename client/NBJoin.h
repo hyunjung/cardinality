@@ -9,8 +9,6 @@ namespace cardinality {
 
 class NBJoin: public Join {
 public:
-    typedef boost::shared_ptr<NBJoin> Ptr;
-
     NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
     ~NBJoin();

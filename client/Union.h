@@ -8,8 +8,6 @@ namespace cardinality {
 
 class Union: public Operator {
 public:
-    typedef boost::shared_ptr<Union> Ptr;
-
     Union(const NodeID, std::vector<Operator::Ptr>);
     ~Union();
     Operator::Ptr clone() const;

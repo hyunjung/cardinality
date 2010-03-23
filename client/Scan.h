@@ -17,8 +17,6 @@ enum CompOp {
 
 class Scan: public Operator {
 public:
-    typedef boost::shared_ptr<Scan> Ptr;
-
     Scan(const NodeID, const char *, const char *,
          const Table *, const PartitionStats *, const Query *);
     virtual ~Scan();

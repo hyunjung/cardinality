@@ -8,8 +8,6 @@ namespace cardinality {
 
 class Dummy: public Operator {
 public:
-    typedef boost::shared_ptr<Dummy> Ptr;
-
     explicit Dummy(const NodeID);
     ~Dummy();
     Operator::Ptr clone() const;

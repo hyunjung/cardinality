@@ -9,8 +9,6 @@ namespace cardinality {
 
 class Join: public Operator {
 public:
-    typedef boost::shared_ptr<Join> Ptr;
-
     Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
     virtual ~Join();

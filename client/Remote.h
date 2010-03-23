@@ -12,8 +12,6 @@ typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 
 class Remote: public Operator {
 public:
-    typedef boost::shared_ptr<Remote> Ptr;
-
     Remote(const NodeID, Operator::Ptr, const char *);
     ~Remote();
     Operator::Ptr clone() const;
