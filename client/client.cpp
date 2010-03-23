@@ -598,12 +598,14 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 #endif
 
         Plan right;
+        Plan right_i;
+
+        // Nested Block Join
+        buildScans(q, table_name, alias_name, right);
+
+        // Nested Loop Index Join
         if (left_join_col) {
-            // Nested Loop Index Join
-            buildIndexScans(q, table_name, alias_name, right_join_col, right);
-        } else {
-            // Nested Block Join
-            buildScans(q, table_name, alias_name, right);
+            buildIndexScans(q, table_name, alias_name, right_join_col, right_i);
         }
 
         if (right.empty()) {
@@ -642,12 +644,19 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                                                    g_nodes->nodes[root->node_id()].ip));
                             }
 
-                            if (!left_join_col) {
+                            pp.push_back(ca::Operator::Ptr(
+                                new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
+
+                            if (left_join_col) {
+                                ca::Operator::Ptr root = subplan[j][jj];
+                                if (root->node_id() != right_i[k][kk]->node_id()) {
+                                    root.reset(
+                                        new ca::Remote(right[k][kk]->node_id(), root,
+                                                       g_nodes->nodes[root->node_id()].ip));
+                                }
+
                                 pp.push_back(ca::Operator::Ptr(
-                                    new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
-                            } else {
-                                pp.push_back(ca::Operator::Ptr(
-                                    new ca::NLJoin(root->node_id(), root, right[k][kk],
+                                    new ca::NLJoin(root->node_id(), root, right_i[k][kk],
                                                    q, join_cond, left_join_col)));
                             }
                         }
@@ -695,12 +704,14 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                 for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
                     ca::Operator::Ptr root = buildUnion(right[k][kk]->node_id(),
                                                         left);
-                    if (!left_join_col) {
+                    pp.push_back(ca::Operator::Ptr(
+                        new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
+
+                    if (left_join_col) {
+                        ca::Operator::Ptr root = buildUnion(right_i[k][kk]->node_id(),
+                                                            left);
                         pp.push_back(ca::Operator::Ptr(
-                            new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
-                    } else {
-                        pp.push_back(ca::Operator::Ptr(
-                            new ca::NLJoin(root->node_id(), root, right[k][kk],
+                            new ca::NLJoin(root->node_id(), root, right_i[k][kk],
                                            q, join_cond, left_join_col)));
                     }
                 }
@@ -720,6 +731,7 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 
             for (std::size_t j = 0; j < subplan.size(); ++j) {
                 Plan right1;
+                Plan right1_i;
 
                 for (std::size_t k = 0; k < right.size(); ++k) {
                     // if both operands of the join condition are primary
@@ -736,6 +748,9 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                         continue;
                     }
                     right1.push_back(right[k]);
+                    if (left_join_col) {
+                        right1_i.push_back(right_i[k]);
+                    }
                 }
 
                 if (right1.empty()) {
@@ -746,10 +761,12 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                 for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
                     ca::Operator::Ptr root = buildUnion(subplan[j][jj]->node_id(),
                                                         right1);
-                    if (!left_join_col) {
-                        pp.push_back(ca::Operator::Ptr(
-                            new ca::NBJoin(subplan[j][jj]->node_id(), subplan[j][jj], root, q)));
-                    } else {
+                    pp.push_back(ca::Operator::Ptr(
+                        new ca::NBJoin(subplan[j][jj]->node_id(), subplan[j][jj], root, q)));
+
+                    if (left_join_col) {
+                        ca::Operator::Ptr root = buildUnion(subplan[j][jj]->node_id(),
+                                                            right1_i);
                         pp.push_back(ca::Operator::Ptr(
                             new ca::NLJoin(subplan[j][jj]->node_id(), subplan[j][jj], root,
                                            q, join_cond, left_join_col)));
