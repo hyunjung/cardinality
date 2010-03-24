@@ -7,9 +7,6 @@ Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
     : Operator(n),
       children_(c), it_(), done_()
 {
-    for (ColID i = 0; i < children_[0]->numOutputCols(); ++i) {
-        selected_input_col_ids_.push_back(i);
-    }
 }
 
 Union::Union()
@@ -22,7 +19,7 @@ Union::Union(const Union &x)
     : Operator(x),
       children_(), it_(), done_()
 {
-    children_.reserve((x.children_.size() + 1) / 2);
+    children_.reserve(x.children_.size());
     for (std::vector<Operator::Ptr>::const_iterator it = x.children_.begin();
          it < x.children_.end(); ++it) {
         children_.push_back((*it)->clone());
@@ -121,6 +118,16 @@ ColID Union::getBaseColID(const ColID cid) const
 ValueType Union::getColType(const char *col) const
 {
     return children_[0]->getColType(col);
+}
+
+ColID Union::numOutputCols() const
+{
+    return children_[0]->numOutputCols();
+}
+
+ColID Union::getOutputColID(const char *col) const
+{
+    return children_[0]->getOutputColID(col);
 }
 
 double Union::estCost(const double left_cardinality) const

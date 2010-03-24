@@ -58,17 +58,27 @@ bool Dummy::hasCol(const char *col) const
 
 ColID Dummy::getInputColID(const char *col) const
 {
-    return 0;
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
 ColID Dummy::getBaseColID(const ColID) const
 {
-    return 0;
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
 ValueType Dummy::getColType(const char *col) const
 {
-    return INT;
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
+}
+
+ColID Dummy::numOutputCols() const
+{
+    return 0;
+}
+
+ColID Dummy::getOutputColID(const char *col) const
+{
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
 double Dummy::estCost(const double) const

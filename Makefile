@@ -5,6 +5,7 @@ OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs
 
 MYFLAGS = -Wall -I. -I/u/hyunjung/boost_1_42_0
 MYOBJS = objs/Operator.o \
+		 objs/Project.o \
 		 objs/Scan.o \
 		 objs/Join.o \
 		 objs/SeqScan.o \

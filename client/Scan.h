@@ -3,7 +3,7 @@
 
 #include <boost/tuple/tuple.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
-#include "client/Operator.h"
+#include "client/Project.h"
 #include "client/PartitionStats.h"
 #include "client/Value.h"
 
@@ -15,7 +15,7 @@ enum CompOp {
     GT
 };
 
-class Scan: public Operator {
+class Scan: public Project {
 public:
     Scan(const NodeID, const char *, const char *,
          const Table *, const PartitionStats *, const Query *);
@@ -53,7 +53,7 @@ private:
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
-        ar & boost::serialization::base_object<Operator>(*this);
+        ar & boost::serialization::base_object<Project>(*this);
         ar & const_cast<std::string &>(filename_);
         ar & gteq_conds_;
         ar & join_conds_;

@@ -23,9 +23,6 @@ Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
       socket_reusable_(),
       response_()
 {
-    for (ColID i = 0; i < child_->numOutputCols(); ++i) {
-        selected_input_col_ids_.push_back(i);
-    }
 }
 
 Remote::Remote()
@@ -189,6 +186,16 @@ ColID Remote::getBaseColID(const ColID cid) const
 ValueType Remote::getColType(const char *col) const
 {
     return child_->getColType(col);
+}
+
+ColID Remote::numOutputCols() const
+{
+    return child_->numOutputCols();
+}
+
+ColID Remote::getOutputColID(const char *col) const
+{
+    return child_->getOutputColID(col);
 }
 
 double Remote::estCost(const double left_cardinality) const

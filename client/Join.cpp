@@ -6,7 +6,7 @@ namespace cardinality {
 
 Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
            const Query *q, const int x)
-    : Operator(n),
+    : Project(n),
       left_child_(l),
       right_child_(r),
       join_conds_()
@@ -16,7 +16,7 @@ Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 }
 
 Join::Join()
-    : Operator(),
+    : Project(),
       left_child_(),
       right_child_(),
       join_conds_()
@@ -24,7 +24,7 @@ Join::Join()
 }
 
 Join::Join(const Join &x)
-    : Operator(x),
+    : Project(x),
       left_child_(x.left_child_->clone()),
       right_child_(x.right_child_->clone()),
       join_conds_(x.join_conds_)

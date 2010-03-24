@@ -26,6 +26,8 @@ public:
     ColID getInputColID(const char *) const;
     ColID getBaseColID(const ColID) const;
     ValueType getColType(const char *) const;
+    ColID numOutputCols() const;
+    ColID getOutputColID(const char *) const;
 
     double estCost(const double = 0.0) const;
     double estCardinality() const;

@@ -44,6 +44,8 @@ public:
     virtual ColID getInputColID(const char *) const = 0;
     virtual ColID getBaseColID(const ColID) const = 0;
     virtual ValueType getColType(const char *) const = 0;
+    virtual ColID numOutputCols() const = 0;
+    virtual ColID getOutputColID(const char *) const = 0;
 
     virtual double estCost(const double = 0.0) const = 0;
     virtual double estCardinality() const = 0;
@@ -51,8 +53,6 @@ public:
     virtual double estColLength(const ColID) const = 0;
 
     NodeID node_id() const;
-    ColID numOutputCols() const;
-    ColID getOutputColID(const char *) const;
 
     static uint32_t parseInt(const char *, const uint32_t);
 
@@ -60,10 +60,7 @@ protected:
     Operator();
     Operator(const Operator &);
 
-    void initProject(const Query *q);
-
     const NodeID node_id_;
-    std::vector<ColID> selected_input_col_ids_;
 
 private:
     Operator& operator=(const Operator &);
@@ -71,7 +68,6 @@ private:
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
         ar & const_cast<NodeID &>(node_id_);
-        ar & selected_input_col_ids_;
     }
 };
 

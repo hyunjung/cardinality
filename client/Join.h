@@ -2,12 +2,12 @@
 #define CLIENT_JOIN_H_
 
 #include <boost/tuple/tuple.hpp>
-#include "client/Operator.h"
+#include "client/Project.h"
 
 
 namespace cardinality {
 
-class Join: public Operator {
+class Join: public Project {
 public:
     Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
@@ -39,7 +39,7 @@ private:
 
     friend class boost::serialization::access;
     template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
-        ar & boost::serialization::base_object<Operator>(*this);
+        ar & boost::serialization::base_object<Project>(*this);
         ar & left_child_;
         ar & right_child_;
         ar & join_conds_;

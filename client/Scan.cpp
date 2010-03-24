@@ -5,7 +5,7 @@ namespace cardinality {
 
 Scan::Scan(const NodeID n, const char *f, const char *a,
            const Table *t, const PartitionStats *p, const Query *q)
-    : Operator(n),
+    : Project(n),
       filename_(f),
       gteq_conds_(), join_conds_(),
       num_input_cols_(t->nbFields),
@@ -16,7 +16,7 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
 }
 
 Scan::Scan()
-    : Operator(),
+    : Project(),
       filename_(),
       gteq_conds_(), join_conds_(),
       num_input_cols_(),
@@ -25,7 +25,7 @@ Scan::Scan()
 }
 
 Scan::Scan(const Scan &x)
-    : Operator(x),
+    : Project(x),
       filename_(x.filename_),
       gteq_conds_(x.gteq_conds_), join_conds_(x.join_conds_),
       num_input_cols_(x.num_input_cols_),
