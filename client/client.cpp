@@ -60,6 +60,13 @@ static int compareValue(const Value &a, const Value &b)
     }
 }
 
+static bool NO_PKEY_OVERLAP(const ca::PartitionStats *a,
+                            const ca::PartitionStats *b)
+{
+    return a && b && (compareValue(a->min_pkey_, b->max_pkey_) > 0
+                      || compareValue(a->max_pkey_, b->min_pkey_) < 0);
+}
+
 static bool comparePartitionStats(const ca::PartitionStats *a,
                                   const ca::PartitionStats *b)
 {
@@ -612,6 +619,20 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                 for (std::size_t j = 0; j < subplan.size(); ++j) {
                     PartPlan pp;
 
+                    // if both operands of the join condition are primary
+                    // keys and two partition ranges do not overlap, skip
+                    // this combination.
+                    if (left_join_col
+                        && right[k][0]->getBaseColID(
+                               right[k][0]->getOutputColID(right_join_col)) == 0
+                        && subplan[j][0]->getBaseColID(
+                               subplan[j][0]->getOutputColID(left_join_col)) == 0
+                        && NO_PKEY_OVERLAP(
+                               subplan[j][0]->getPartitionStats(left_join_col),
+                               right[k][0]->getPartitionStats(right_join_col))) {
+                        continue;
+                    }
+
                     for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
                         for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
                             ca::Operator::Ptr root = subplan[j][jj];
@@ -634,6 +655,10 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                     plan.push_back(pp);
                 }
             }
+
+            if (plan.empty()) {
+                return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+            }
             plans.push_back(plan);
         }
 
@@ -643,10 +668,33 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
             Plan plan;
 
             for (std::size_t k = 0; k < right.size(); ++k) {
+                Plan left;
+
+                for (std::size_t j = 0; j < subplan.size(); ++j) {
+                    // if both operands of the join condition are primary
+                    // keys and two partition ranges do not overlap, skip
+                    // this combination.
+                    if (left_join_col
+                        && right[k][0]->getBaseColID(
+                               right[k][0]->getOutputColID(right_join_col)) == 0
+                        && subplan[j][0]->getBaseColID(
+                               subplan[j][0]->getOutputColID(left_join_col)) == 0
+                        && NO_PKEY_OVERLAP(
+                               subplan[j][0]->getPartitionStats(left_join_col),
+                               right[k][0]->getPartitionStats(right_join_col))) {
+                        continue;
+                    }
+                    left.push_back(subplan[j]);
+                }
+
+                if (left.empty()) {
+                    continue;
+                }
+
                 PartPlan pp;
                 for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
                     ca::Operator::Ptr root = buildUnion(right[k][kk]->node_id(),
-                                                        subplan);
+                                                        left);
                     if (!left_join_col) {
                         pp.push_back(ca::Operator::Ptr(
                             new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
@@ -658,6 +706,10 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                 }
                 plan.push_back(pp);
             }
+
+            if (plan.empty()) {
+                return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+            }
             plans.push_back(plan);
         }
 
@@ -667,10 +719,33 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
             Plan plan;
 
             for (std::size_t j = 0; j < subplan.size(); ++j) {
+                Plan right1;
+
+                for (std::size_t k = 0; k < right.size(); ++k) {
+                    // if both operands of the join condition are primary
+                    // keys and two partition ranges do not overlap, skip
+                    // this combination.
+                    if (left_join_col
+                        && right[k][0]->getBaseColID(
+                               right[k][0]->getOutputColID(right_join_col)) == 0
+                        && subplan[j][0]->getBaseColID(
+                               subplan[j][0]->getOutputColID(left_join_col)) == 0
+                        && NO_PKEY_OVERLAP(
+                               subplan[j][0]->getPartitionStats(left_join_col),
+                               right[k][0]->getPartitionStats(right_join_col))) {
+                        continue;
+                    }
+                    right1.push_back(right[k]);
+                }
+
+                if (right1.empty()) {
+                    continue;
+                }
+
                 PartPlan pp;
                 for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
                     ca::Operator::Ptr root = buildUnion(subplan[j][jj]->node_id(),
-                                                        right);
+                                                        right1);
                     if (!left_join_col) {
                         pp.push_back(ca::Operator::Ptr(
                             new ca::NBJoin(subplan[j][jj]->node_id(), subplan[j][jj], root, q)));
