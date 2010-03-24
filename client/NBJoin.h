@@ -1,7 +1,9 @@
 #ifndef CLIENT_NBJOIN_H_
 #define CLIENT_NBJOIN_H_
 
-#include <boost/scoped_array.hpp>
+#include <tr1/unordered_map>
+#include <boost/smart_ptr/scoped_ptr.hpp>
+#include <boost/smart_ptr/scoped_array.hpp>
 #include "client/Join.h"
 
 
@@ -27,10 +29,14 @@ protected:
     NBJoin();
     NBJoin(const NBJoin &);
 
+    static uint64_t hashString(const char *, const uint32_t);
+
     enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state_;
     bool left_done_;
-    std::vector<Tuple> left_tuples_;
-    std::vector<Tuple>::const_iterator left_tuples_it_;
+    typedef std::tr1::unordered_multimap<uint64_t, Tuple> multimap;
+    boost::scoped_ptr<multimap> left_tuples_;
+    multimap::const_iterator left_tuples_it_;
+    multimap::const_iterator left_tuples_end_;
     Tuple right_tuple_;
     boost::scoped_array<char> main_buffer_;
     boost::scoped_array<char> overflow_buffer_;

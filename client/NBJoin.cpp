@@ -12,7 +12,10 @@ NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
       state_(), left_done_(),
-      left_tuples_(), left_tuples_it_(), right_tuple_(),
+      left_tuples_(),
+      left_tuples_it_(),
+      left_tuples_end_(),
+      right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
@@ -20,7 +23,10 @@ NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 NBJoin::NBJoin()
     : Join(),
       state_(), left_done_(),
-      left_tuples_(), left_tuples_it_(), right_tuple_(),
+      left_tuples_(),
+      left_tuples_it_(),
+      left_tuples_end_(),
+      right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
@@ -28,7 +34,10 @@ NBJoin::NBJoin()
 NBJoin::NBJoin(const NBJoin &x)
     : Join(x),
       state_(), left_done_(),
-      left_tuples_(), left_tuples_it_(), right_tuple_(),
+      left_tuples_(),
+      left_tuples_it_(),
+      left_tuples_end_(),
+      right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
@@ -45,6 +54,7 @@ Operator::Ptr NBJoin::clone() const
 void NBJoin::Open(const char *, const uint32_t)
 {
     main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
+    left_tuples_.reset(new multimap());
     state_ = RIGHT_OPEN;
     left_child_->Open();
 }
@@ -88,10 +98,26 @@ bool NBJoin::GetNext(Tuple &tuple)
                         pos = main_buffer_.get() + NBJOIN_BUFSIZE;
                     }
                 }
-                left_tuples_.push_back(left_tuple);
+
+                if (join_conds_.empty()) {  // cross product
+                    left_tuples_->insert(std::pair<uint64_t, Tuple>(
+                        0, left_tuple));
+                } else if (join_conds_[0].get<2>()) {  // STRING
+                    ColID cid = join_conds_[0].get<0>();
+                    left_tuples_->insert(std::pair<uint64_t, Tuple>(
+                        hashString(left_tuple[cid].first,
+                                   left_tuple[cid].second),
+                        left_tuple));
+                } else {  // INT
+                    ColID cid = join_conds_[0].get<0>();
+                    left_tuples_->insert(std::pair<uint64_t, Tuple>(
+                        parseInt(left_tuple[cid].first,
+                                 left_tuple[cid].second),
+                        left_tuple));
+                }
             }
 
-            if (left_tuples_.empty()) {
+            if (left_tuples_->empty()) {
                 if (state_ == RIGHT_REOPEN) {
                     right_child_->Close();
                 }
@@ -108,7 +134,7 @@ bool NBJoin::GetNext(Tuple &tuple)
 
         case RIGHT_GETNEXT:
             if (right_child_->GetNext(right_tuple_)) {
-                left_tuples_.clear();
+                left_tuples_->clear();
                 if (left_done_) {
                     right_child_->Close();
                     return true;
@@ -116,13 +142,36 @@ bool NBJoin::GetNext(Tuple &tuple)
                 state_ = RIGHT_REOPEN;
                 break;
             }
-            left_tuples_it_ = left_tuples_.begin();
+
+            if (join_conds_.empty()) {  // cross product
+                left_tuples_it_ = left_tuples_->begin();
+                left_tuples_end_ = left_tuples_->end();
+            } else if (join_conds_[0].get<2>()) {  // STRING
+                ColID cid = join_conds_[0].get<1>();
+                std::pair<multimap::const_iterator,
+                          multimap::const_iterator> range
+                    = left_tuples_->equal_range(
+                          hashString(right_tuple_[cid].first,
+                                     right_tuple_[cid].second));
+                left_tuples_it_ = range.first;
+                left_tuples_end_ = range.second;
+            } else {  // INT
+                ColID cid = join_conds_[0].get<1>();
+                std::pair<multimap::const_iterator,
+                          multimap::const_iterator> range
+                    = left_tuples_->equal_range(
+                          parseInt(right_tuple_[cid].first,
+                                   right_tuple_[cid].second));
+                left_tuples_it_ = range.first;
+                left_tuples_end_ = range.second;
+            }
             state_ = RIGHT_SWEEPBUFFER;
 
         case RIGHT_SWEEPBUFFER:
-            for (; left_tuples_it_ < left_tuples_.end(); ++left_tuples_it_) {
-                if (execFilter(*left_tuples_it_, right_tuple_)) {
-                    execProject(*left_tuples_it_++, right_tuple_, tuple);
+            for (; left_tuples_it_ != left_tuples_end_; ++left_tuples_it_) {
+                if (execFilter(left_tuples_it_->second, right_tuple_)) {
+                    execProject((left_tuples_it_++)->second,
+                                right_tuple_, tuple);
                     return false;
                 }
             }
@@ -136,6 +185,7 @@ bool NBJoin::GetNext(Tuple &tuple)
 
 void NBJoin::Close()
 {
+    left_tuples_.reset();
     main_buffer_.reset();
     overflow_buffer_.reset();
     left_child_->Close();
@@ -161,6 +211,13 @@ double NBJoin::estCost(const double) const
            + std::max(1.0, left_child_->estCardinality()
                            * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
              * right_child_->estCost();
+}
+
+uint64_t NBJoin::hashString(const char *str, const uint32_t len)
+{
+    uint64_t hash = 0;
+    memcpy(&hash, str, std::min(len, 8u));
+    return hash;
 }
 
 }  // namespace cardinality
