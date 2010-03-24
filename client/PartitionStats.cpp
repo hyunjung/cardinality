@@ -1,6 +1,7 @@
 #include "client/PartitionStats.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/spirit/include/qi.hpp>
 
 #define PAGE_SIZE 4096
 
@@ -16,9 +17,7 @@ PartitionStats::PartitionStats(const std::string filename,
       cardinality_(),
       col_lengths_(num_input_cols),
       min_pkey_(),
-#ifdef PARTITIONSTATS_MAX_PKEY
       max_pkey_(),
-#endif
       next_(NULL)
 {
     init(filename, num_input_cols, pkey_type);
@@ -30,9 +29,7 @@ PartitionStats::PartitionStats()
       cardinality_(),
       col_lengths_(),
       min_pkey_(),
-#ifdef PARTITIONSTATS_MAX_PKEY
-      max_pkey_()
-#endif
+      max_pkey_(),
       next_(NULL)
 {
 }
@@ -50,7 +47,7 @@ static inline void extractPrimaryKey(const char *pos,
                             rawmemchr(pos, (num_input_cols == 0) ? '\n' : '|'));
     v.type = pkey_type;
     if (v.type == INT) {
-        v.intVal = cardinality::Operator::parseInt(pos, delim - pos);
+        boost::spirit::qi::parse(pos, delim, boost::spirit::uint_, v.intVal);
     } else {  // STRING
         v.intVal = delim - pos;
         std::memcpy(v.charVal, pos, v.intVal);
@@ -91,7 +88,6 @@ void PartitionStats::init(const std::string filename,
         }
     }
 
-#ifdef PARTITIONSTATS_MAX_PKEY
     // map the last part of file
     if (sample_size < file_size) {
         file.close();
@@ -103,7 +99,6 @@ void PartitionStats::init(const std::string filename,
     // extract the maximum primary key
     pos = static_cast<const char *>(memrchr(file.begin(), '\n', file.size() - 1)) + 1;
     extractPrimaryKey(pos, num_input_cols, pkey_type, max_pkey_);
-#endif
 
     file.close();
 

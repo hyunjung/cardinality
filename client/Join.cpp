@@ -123,6 +123,15 @@ ColID Join::getBaseColID(const ColID cid) const
     }
 }
 
+const PartitionStats *Join::getPartitionStats(const char *col) const
+{
+    if (right_child_->hasCol(col)) {
+        return right_child_->getPartitionStats(col);
+    } else {
+        return left_child_->getPartitionStats(col);
+    }
+}
+
 ValueType Join::getColType(const char *col) const
 {
     if (right_child_->hasCol(col)) {

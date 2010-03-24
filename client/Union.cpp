@@ -115,6 +115,11 @@ ColID Union::getBaseColID(const ColID cid) const
     return children_[0]->getBaseColID(cid);
 }
 
+const PartitionStats *Union::getPartitionStats(const char *) const
+{
+    return NULL;
+}
+
 ValueType Union::getColType(const char *col) const
 {
     return children_[0]->getColType(col);

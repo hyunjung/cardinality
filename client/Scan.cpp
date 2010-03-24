@@ -178,6 +178,11 @@ ColID Scan::getBaseColID(const ColID cid) const
     return selected_input_col_ids_[cid];
 }
 
+const PartitionStats *Scan::getPartitionStats(const char *) const
+{
+    return stats_;
+}
+
 ValueType Scan::getColType(const char *col) const
 {
     return table_->fieldsType[getInputColID(col)];

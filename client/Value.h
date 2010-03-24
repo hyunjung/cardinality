@@ -1,8 +1,9 @@
 #ifndef CLIENT_VALUE_H_
 #define CLIENT_VALUE_H_
 
+#include <string>
 #include <boost/serialization/split_free.hpp>
-#include "client/Operator.h"
+#include "include/client.h"
 
 
 namespace boost {

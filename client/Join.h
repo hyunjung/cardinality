@@ -16,6 +16,7 @@ public:
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
     ColID getBaseColID(const ColID) const;
+    const PartitionStats *getPartitionStats(const char *) const;
     ValueType getColType(const char *) const;
 
     double estCardinality() const;

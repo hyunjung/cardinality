@@ -1,7 +1,7 @@
 #ifndef CLIENT_CONNECTION_H_
 #define CLIENT_CONNECTION_H_
 
-#include <boost/enable_shared_from_this.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>
 #include <boost/asio/io_service.hpp>
 #include <boost/asio/ip/tcp.hpp>
 

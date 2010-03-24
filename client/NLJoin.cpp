@@ -42,7 +42,7 @@ void NLJoin::Open(const char *, const uint32_t)
 
 void NLJoin::ReOpen(const char *, const uint32_t)
 {
-    throw std::runtime_error("NLJoin::ReOpen() called");
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
 bool NLJoin::GetNext(Tuple &tuple)

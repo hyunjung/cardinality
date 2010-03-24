@@ -61,7 +61,7 @@ void NBJoin::Open(const char *, const uint32_t)
 
 void NBJoin::ReOpen(const char *, const uint32_t)
 {
-    throw std::runtime_error("NBJoin::ReOpen() called");
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
 bool NBJoin::GetNext(Tuple &tuple)

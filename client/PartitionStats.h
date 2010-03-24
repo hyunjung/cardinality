@@ -1,7 +1,8 @@
 #ifndef CLIENT_PARTITIONSTATS_H_
 #define CLIENT_PARTITIONSTATS_H_
 
-#include "client/Operator.h"
+#include <boost/serialization/access.hpp>
+#include <boost/serialization/vector.hpp>
 #include "client/Value.h"
 
 
@@ -19,9 +20,7 @@ public:
     double cardinality_;
     std::vector<double> col_lengths_;
     Value min_pkey_;
-#ifdef PARTITIONSTATS_MAX_PKEY
     Value max_pkey_;
-#endif
     const PartitionStats *next_;
 
 private:
@@ -36,9 +35,7 @@ private:
         ar & cardinality_;
         ar & col_lengths_;
         ar & min_pkey_;
-#ifdef PARTITIONSTATS_MAX_PKEY
         ar & max_pkey_;
-#endif
     }
 };
 
