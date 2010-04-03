@@ -11,8 +11,8 @@ Server::Server(const int port)
                 boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),
                                                port)),
       new_connection_(new Connection(io_service_)),
-      connection_pool_(),
-      mutex_()
+      connection_pool_(), connpool_mutex_(),
+      files_(), files_mutex_()
 {
     acceptor_.async_accept(new_connection_->socket(),
                            boost::bind(&Server::handle_accept, this,
@@ -46,12 +46,12 @@ tcpsocket_ptr Server::connectSocket(const NodeID node_id,
 {
     tcpsocket_ptr socket;
 
-    mutex_.lock();
+    connpool_mutex_.lock();
     std::tr1::unordered_multimap<NodeID, tcpsocket_ptr>::iterator it
         = connection_pool_.find(node_id);
 
     if (it == connection_pool_.end()) {
-        mutex_.unlock();
+        connpool_mutex_.unlock();
         boost::asio::ip::tcp::endpoint endpoint
             = boost::asio::ip::tcp::endpoint(
                   boost::asio::ip::address::from_string(ip_address),
@@ -68,7 +68,7 @@ tcpsocket_ptr Server::connectSocket(const NodeID node_id,
     } else {  // reuse a pooled connection
         socket = it->second;
         connection_pool_.erase(it);
-        mutex_.unlock();
+        connpool_mutex_.unlock();
     }
 
     return socket;
@@ -76,9 +76,27 @@ tcpsocket_ptr Server::connectSocket(const NodeID node_id,
 
 void Server::closeSocket(const NodeID node_id, tcpsocket_ptr sock)
 {
-    mutex_.lock();
+    connpool_mutex_.lock();
     connection_pool_.insert(std::pair<NodeID, tcpsocket_ptr>(node_id, sock));
-    mutex_.unlock();
+    connpool_mutex_.unlock();
+}
+
+std::pair<const char *, const char *> Server::openFile(const std::string &filename)
+{
+    mapped_file_ptr file;
+
+    files_mutex_.lock();
+    std::tr1::unordered_map<std::string, mapped_file_ptr>::iterator it
+        = files_.find(filename);
+    if (it == files_.end()) {
+        file.reset(new boost::iostreams::mapped_file_source(filename));
+        files_[filename] = file;
+    } else {
+        file = it->second;
+    }
+    files_mutex_.unlock();
+
+    return std::make_pair(file->begin(), file->end());
 }
 
 }  // namespace cardinality

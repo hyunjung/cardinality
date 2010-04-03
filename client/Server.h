@@ -3,13 +3,15 @@
 
 #include <tr1/unordered_map>
 #include <boost/thread/mutex.hpp>
+#include <boost/iostreams/device/mapped_file.hpp>
 #include "client/Connection.h"
 
 
 namespace cardinality {
 
-typedef uint16_t NodeID;
+typedef uint16_t NodeID;  // Operator.h
 typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
+typedef boost::shared_ptr<boost::iostreams::mapped_file_source> mapped_file_ptr;
 
 class Server {
 public:
@@ -21,6 +23,8 @@ public:
     tcpsocket_ptr connectSocket(const NodeID, const std::string &);
     void closeSocket(const NodeID, tcpsocket_ptr);
 
+    std::pair<const char *, const char *> openFile(const std::string &);
+
 private:
     Server(const Server &);
     Server& operator=(const Server &);
@@ -30,8 +34,11 @@ private:
     boost::asio::io_service io_service_;
     boost::asio::ip::tcp::acceptor acceptor_;
     Connection::Ptr new_connection_;
+
     std::tr1::unordered_multimap<NodeID, tcpsocket_ptr> connection_pool_;
-    boost::mutex mutex_;
+    boost::mutex connpool_mutex_;
+    std::tr1::unordered_map<std::string, mapped_file_ptr> files_;
+    boost::mutex files_mutex_;
 };
 
 }  // namespace cardinality

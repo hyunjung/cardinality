@@ -1,5 +1,9 @@
 #include "client/IndexScan.h"
+#include <cstring>
+#include "client/Server.h"
 
+
+extern cardinality::Server *g_server;  // client.cpp
 
 namespace cardinality {
 
@@ -72,7 +76,7 @@ Operator::Ptr IndexScan::clone() const
 
 void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
 {
-    file_.open(filename_);
+    file_ = g_server->openFile(filename_);
     input_tuple_.reserve(num_input_cols_);
     openIndex(index_col_.c_str(), &index_);
 
@@ -180,7 +184,7 @@ commit:
 bool IndexScan::GetNext(Tuple &tuple)
 {
     while (i_ < addrs_.size()) {
-        parseLine(file_.begin() + addrs_[i_++]);
+        parseLine(file_.first + addrs_[i_++]);
 
         if (execFilter(input_tuple_)) {
             execProject(input_tuple_, tuple);
@@ -194,7 +198,7 @@ bool IndexScan::GetNext(Tuple &tuple)
 void IndexScan::Close()
 {
     closeIndex(index_);
-    file_.close();
+//  file_.close();
 }
 
 void IndexScan::print(std::ostream &os, const int tab) const

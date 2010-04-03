@@ -1,5 +1,8 @@
 #include "client/SeqScan.h"
+#include "client/Server.h"
 
+
+extern cardinality::Server *g_server;  // client.cpp
 
 namespace cardinality {
 
@@ -33,19 +36,19 @@ Operator::Ptr SeqScan::clone() const
 
 void SeqScan::Open(const char *, const uint32_t)
 {
-    file_.open(filename_);
+    file_ = g_server->openFile(filename_);
     input_tuple_.reserve(num_input_cols_);
-    pos_ = file_.begin();
+    pos_ = file_.first;
 }
 
 void SeqScan::ReOpen(const char *, const uint32_t)
 {
-    pos_ = file_.begin();
+    pos_ = file_.first;
 }
 
 bool SeqScan::GetNext(Tuple &tuple)
 {
-    while (pos_ < file_.end()) {
+    while (pos_ < file_.second) {
         pos_ = parseLine(pos_);
 
         if (execFilter(input_tuple_)) {
@@ -59,7 +62,7 @@ bool SeqScan::GetNext(Tuple &tuple)
 
 void SeqScan::Close()
 {
-    file_.close();
+//  file_.close();
 }
 
 void SeqScan::print(std::ostream &os, const int tab) const

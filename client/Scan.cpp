@@ -1,4 +1,5 @@
 #include "client/Scan.h"
+#include <cstring>
 
 
 namespace cardinality {

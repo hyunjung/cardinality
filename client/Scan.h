@@ -2,7 +2,6 @@
 #define CLIENT_SCAN_H_
 
 #include <boost/tuple/tuple.hpp>
-#include <boost/iostreams/device/mapped_file.hpp>
 #include "client/Project.h"
 #include "client/PartitionStats.h"
 #include "client/Value.h"
@@ -47,7 +46,7 @@ protected:
     const std::string alias_;
     const Table *table_;
     const PartitionStats *stats_;
-    boost::iostreams::mapped_file_source file_;
+    std::pair<const char *, const char *> file_;
     Tuple input_tuple_;
 
 private:
