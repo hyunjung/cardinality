@@ -31,6 +31,7 @@ protected:
 
     enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT } state_;
     Tuple left_tuple_;
+    Tuple right_tuple_;
 
 private:
     NLJoin& operator=(const NLJoin &);

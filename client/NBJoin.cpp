@@ -56,6 +56,7 @@ void NBJoin::Open(const char *, const uint32_t)
     main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
     left_tuples_.reset(new multimap());
     state_ = RIGHT_OPEN;
+    right_tuple_.reserve(right_child_->numOutputCols());
     left_child_->Open();
 }
 
@@ -71,6 +72,7 @@ bool NBJoin::GetNext(Tuple &tuple)
         case RIGHT_OPEN:
         case RIGHT_REOPEN: {
             Tuple left_tuple;
+            left_tuple.reserve(left_child_->numOutputCols());
             for (char *pos = main_buffer_.get();
                  pos - main_buffer_.get() < NBJOIN_BUFSIZE - 512
                  && !(left_done_ = left_child_->GetNext(left_tuple)); ) {

@@ -6,7 +6,9 @@ namespace cardinality {
 NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
     : Join(n, l, r, q, x),
-      index_join_col_id_(NOT_INDEX_JOIN)
+      index_join_col_id_(NOT_INDEX_JOIN),
+      state_(),
+      left_tuple_(), right_tuple_()
 {
     if (idxJoinCol) {
         index_join_col_id_ = getInputColID(idxJoinCol);
@@ -15,13 +17,17 @@ NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 
 NLJoin::NLJoin()
     : Join(),
-      index_join_col_id_()
+      index_join_col_id_(),
+      state_(),
+      left_tuple_(), right_tuple_()
 {
 }
 
 NLJoin::NLJoin(const NLJoin &x)
     : Join(x),
-      index_join_col_id_(x.index_join_col_id_)
+      index_join_col_id_(x.index_join_col_id_),
+      state_(),
+      left_tuple_(), right_tuple_()
 {
 }
 
@@ -37,6 +43,8 @@ Operator::Ptr NLJoin::clone() const
 void NLJoin::Open(const char *, const uint32_t)
 {
     state_ = RIGHT_OPEN;
+    left_tuple_.reserve(left_child_->numOutputCols());
+    right_tuple_.reserve(right_child_->numOutputCols());
     left_child_->Open();
 }
 
@@ -47,8 +55,6 @@ void NLJoin::ReOpen(const char *, const uint32_t)
 
 bool NLJoin::GetNext(Tuple &tuple)
 {
-    Tuple right_tuple;
-
     for (;;) {
         if (state_ == RIGHT_OPEN) {
             if (left_child_->GetNext(left_tuple_)) {
@@ -75,9 +81,9 @@ bool NLJoin::GetNext(Tuple &tuple)
             }
         }
 
-        while (!right_child_->GetNext(right_tuple)) {
-            if (execFilter(left_tuple_, right_tuple)) {
-                execProject(left_tuple_, right_tuple, tuple);
+        while (!right_child_->GetNext(right_tuple_)) {
+            if (execFilter(left_tuple_, right_tuple_)) {
+                execProject(left_tuple_, right_tuple_, tuple);
                 return false;
             }
         }
