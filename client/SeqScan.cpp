@@ -34,6 +34,7 @@ Operator::Ptr SeqScan::clone() const
 void SeqScan::Open(const char *, const uint32_t)
 {
     file_.open(filename_);
+    input_tuple_.reserve(num_input_cols_);
     pos_ = file_.begin();
 }
 
@@ -44,13 +45,11 @@ void SeqScan::ReOpen(const char *, const uint32_t)
 
 bool SeqScan::GetNext(Tuple &tuple)
 {
-    Tuple temp;
-
     while (pos_ < file_.end()) {
-        pos_ = splitLine(pos_, temp);
+        pos_ = parseLine(pos_);
 
-        if (execFilter(temp)) {
-            execProject(temp, tuple);
+        if (execFilter(input_tuple_)) {
+            execProject(input_tuple_, tuple);
             return false;
         }
     }

@@ -9,7 +9,8 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
       filename_(f),
       gteq_conds_(), join_conds_(),
       num_input_cols_(t->nbFields),
-      alias_(a), table_(t), stats_(p), file_()
+      alias_(a), table_(t), stats_(p),
+      file_(), input_tuple_()
 {
     initProject(q);
     initFilter(q);
@@ -20,7 +21,8 @@ Scan::Scan()
       filename_(),
       gteq_conds_(), join_conds_(),
       num_input_cols_(),
-      alias_(), table_(), stats_(), file_()
+      alias_(), table_(), stats_(),
+      file_(), input_tuple_()
 {
 }
 
@@ -29,7 +31,8 @@ Scan::Scan(const Scan &x)
       filename_(x.filename_),
       gteq_conds_(x.gteq_conds_), join_conds_(x.join_conds_),
       num_input_cols_(x.num_input_cols_),
-      alias_(x.alias_), table_(x.table_), stats_(x.stats_), file_()
+      alias_(x.alias_), table_(x.table_), stats_(x.stats_),
+      file_(), input_tuple_()
 {
 }
 
@@ -67,27 +70,23 @@ void Scan::initFilter(const Query *q)
     }
 }
 
-const char * Scan::splitLine(const char *pos, Tuple &temp) const
+const char * Scan::parseLine(const char *pos)
 {
-    temp.clear();
+    input_tuple_.clear();
 
     for (int i = 0; i < num_input_cols_ - 1; ++i) {
         const char *delim = static_cast<const char *>(rawmemchr(pos, '|'));
-        temp.push_back(std::make_pair(pos, delim - pos));
+        input_tuple_.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }
 
     const char *delim = static_cast<const char *>(rawmemchr(pos, '\n'));
-    temp.push_back(std::make_pair(pos, delim - pos));
+    input_tuple_.push_back(std::make_pair(pos, delim - pos));
     return delim + 1;
 }
 
 bool Scan::execFilter(const Tuple &tuple) const
 {
-    if (tuple.size() != static_cast<std::size_t>(num_input_cols_)) {
-        return false;
-    }
-
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<0>()->type == INT) {
             int cmp = gteq_conds_[i].get<0>()->intVal

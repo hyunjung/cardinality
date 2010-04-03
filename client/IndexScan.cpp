@@ -73,6 +73,7 @@ Operator::Ptr IndexScan::clone() const
 void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
 {
     file_.open(filename_);
+    input_tuple_.reserve(num_input_cols_);
     openIndex(index_col_.c_str(), &index_);
 
     ReOpen(left_ptr, left_len);
@@ -178,13 +179,11 @@ commit:
 
 bool IndexScan::GetNext(Tuple &tuple)
 {
-    Tuple temp;
-
     while (i_ < addrs_.size()) {
-        splitLine(file_.begin() + addrs_[i_++], temp);
+        parseLine(file_.begin() + addrs_[i_++]);
 
-        if (execFilter(temp)) {
-            execProject(temp, tuple);
+        if (execFilter(input_tuple_)) {
+            execProject(input_tuple_, tuple);
             return false;
         }
     }

@@ -37,7 +37,7 @@ protected:
     void initFilter(const Query *q);
     bool execFilter(const Tuple &) const;
     void execProject(const Tuple &, Tuple &) const;
-    const char *splitLine(const char *, Tuple &) const;
+    const char *parseLine(const char *);
 
     const std::string filename_;
     std::vector<boost::tuple<Value *, ColID, CompOp> > gteq_conds_;
@@ -48,6 +48,7 @@ protected:
     const Table *table_;
     const PartitionStats *stats_;
     boost::iostreams::mapped_file_source file_;
+    Tuple input_tuple_;
 
 private:
     Scan& operator=(const Scan &);
