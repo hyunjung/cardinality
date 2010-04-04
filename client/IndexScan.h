@@ -43,7 +43,7 @@ private:
     IndexScan& operator=(const IndexScan &);
 
     friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+    template<class Archive> void serialize(Archive &ar, const unsigned int) {
         ar & boost::serialization::base_object<Scan>(*this);
         ar & index_col_;
         ar & index_col_type_;

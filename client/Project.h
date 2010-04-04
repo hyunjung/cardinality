@@ -26,7 +26,7 @@ private:
     Project& operator=(const Project &);
 
     friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+    template<class Archive> void serialize(Archive &ar, const unsigned int) {
         ar & boost::serialization::base_object<Operator>(*this);
         ar & selected_input_col_ids_;
     }

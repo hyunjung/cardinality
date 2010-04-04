@@ -37,7 +37,7 @@ private:
     NLJoin& operator=(const NLJoin &);
 
     friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+    template<class Archive> void serialize(Archive &ar, const unsigned int) {
         ar & boost::serialization::base_object<Join>(*this);
         ar & index_join_col_id_;
     }

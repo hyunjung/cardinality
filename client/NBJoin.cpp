@@ -1,12 +1,10 @@
 #include "client/NBJoin.h"
 #include <cstring>
 
-#ifndef NBJOIN_BUFSIZE
-#define NBJOIN_BUFSIZE 65536
-#endif
-
 
 namespace cardinality {
+
+static const int NBJOIN_BUFSIZE = 65536;
 
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
@@ -85,7 +83,8 @@ bool NBJoin::GetNext(Tuple &tuple)
                         pos += len + 1;
                     } else {  // main_buffer_ doesn't have enough space
                         int overflow_len = len + 1;
-                        for (std::size_t j = i + 1; j < left_tuple.size(); ++j) {
+                        for (std::size_t j = i + 1;
+                             j < left_tuple.size(); ++j) {
                             overflow_len += left_tuple[j].second + 1;
                         }
                         overflow_buffer_.reset(new char[overflow_len]);
@@ -218,7 +217,7 @@ double NBJoin::estCost(const double) const
 uint64_t NBJoin::hashString(const char *str, const uint32_t len)
 {
     uint64_t hash = 0;
-    memcpy(&hash, str, std::min(len, 8u));
+    std::memcpy(&hash, str, std::min(len, 8u));
     return hash;
 }
 

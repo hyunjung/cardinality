@@ -46,20 +46,26 @@ void Project::initProject(const Query *q)
 
     for (int i = 0; i < q->nbOutputFields; ++i) {
         if (hasCol(q->outputFields[i])
-            && selected_cols.count(std::string(q->outputFields[i])) == 0) {
+            && selected_cols.find(std::string(q->outputFields[i]))
+               == selected_cols.end()) {
             selected_cols.insert(std::string(q->outputFields[i]));
-            selected_input_col_ids_.push_back(getInputColID(q->outputFields[i]));
+            selected_input_col_ids_.push_back(
+                getInputColID(q->outputFields[i]));
         }
     }
     for (int i = 0; i < q->nbJoins; ++i) {
         if (hasCol(q->joinFields1[i]) && !hasCol(q->joinFields2[i])
-            && selected_cols.count(std::string(q->joinFields1[i])) == 0) {
+            && selected_cols.find(std::string(q->joinFields1[i]))
+               == selected_cols.end()) {
             selected_cols.insert(std::string(q->joinFields1[i]));
-            selected_input_col_ids_.push_back(getInputColID(q->joinFields1[i]));
+            selected_input_col_ids_.push_back(
+                getInputColID(q->joinFields1[i]));
         } else if (hasCol(q->joinFields2[i]) && !hasCol(q->joinFields1[i])
-                   && selected_cols.count(std::string(q->joinFields2[i])) == 0) {
+                   && selected_cols.find(std::string(q->joinFields2[i]))
+                      == selected_cols.end()) {
             selected_cols.insert(std::string(q->joinFields2[i]));
-            selected_input_col_ids_.push_back(getInputColID(q->joinFields2[i]));
+            selected_input_col_ids_.push_back(
+                getInputColID(q->joinFields2[i]));
         }
     }
 }

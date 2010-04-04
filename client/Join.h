@@ -39,7 +39,7 @@ private:
     Join& operator=(const Join &);
 
     friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+    template<class Archive> void serialize(Archive &ar, const unsigned int) {
         ar & boost::serialization::base_object<Project>(*this);
         ar & left_child_;
         ar & right_child_;
@@ -55,7 +55,7 @@ namespace boost {
 namespace serialization {
 
 template<class Archive, class T1, class T2, class T3, class T4>
-void serialize(Archive &ar, boost::tuple<T1, T2, T3, T4> &t, const unsigned int ver) {
+void serialize(Archive &ar, boost::tuple<T1, T2, T3, T4> &t, const unsigned int) {
     ar & t.get<0>();
     ar & t.get<1>();
     ar & t.get<2>();

@@ -46,27 +46,30 @@ void Scan::initFilter(const Query *q)
     for (int i = 0; i < q->nbRestrictionsEqual; ++i) {
         if (hasCol(q->restrictionEqualFields[i])) {
             gteq_conds_.push_back(
-                boost::make_tuple(&q->restrictionEqualValues[i],
-                                  getInputColID(q->restrictionEqualFields[i]),
-                                  EQ));
+                boost::make_tuple(
+                    &q->restrictionEqualValues[i],
+                    getInputColID(q->restrictionEqualFields[i]),
+                    EQ));
         }
     }
 
     for (int i = 0; i < q->nbRestrictionsGreaterThan; ++i) {
         if (hasCol(q->restrictionGreaterThanFields[i])) {
             gteq_conds_.push_back(
-                boost::make_tuple(&q->restrictionGreaterThanValues[i],
-                                  getInputColID(q->restrictionGreaterThanFields[i]),
-                                  GT));
+                boost::make_tuple(
+                    &q->restrictionGreaterThanValues[i],
+                    getInputColID(q->restrictionGreaterThanFields[i]),
+                    GT));
         }
     }
 
     for (int i = 0; i < q->nbJoins; ++i) {
         if (hasCol(q->joinFields1[i]) && hasCol(q->joinFields2[i])) {
             join_conds_.push_back(
-                boost::make_tuple(getInputColID(q->joinFields1[i]),
-                                  getInputColID(q->joinFields2[i]),
-                                  table_->fieldsType[getInputColID(q->joinFields1[i])]));
+                boost::make_tuple(
+                    getInputColID(q->joinFields1[i]),
+                    getInputColID(q->joinFields2[i]),
+                    table_->fieldsType[getInputColID(q->joinFields1[i])]));
         }
     }
 }
@@ -107,10 +110,11 @@ bool Scan::execFilter(const Tuple &tuple) const
                     return false;
                 }
             } else {  // GT
-                int cmp = std::memcmp(gteq_conds_[i].get<0>()->charVal,
-                                      tuple[gteq_conds_[i].get<1>()].first,
-                                      std::min(gteq_conds_[i].get<0>()->intVal,
-                                               tuple[gteq_conds_[i].get<1>()].second));
+                int cmp = std::memcmp(
+                              gteq_conds_[i].get<0>()->charVal,
+                              tuple[gteq_conds_[i].get<1>()].first,
+                              std::min(gteq_conds_[i].get<0>()->intVal,
+                                       tuple[gteq_conds_[i].get<1>()].second));
                 if (cmp > 0
                     || (cmp == 0
                         && gteq_conds_[i].get<0>()->intVal
@@ -143,7 +147,8 @@ bool Scan::execFilter(const Tuple &tuple) const
     return true;
 }
 
-void Scan::execProject(const Tuple &input_tuple, Tuple &output_tuple) const
+void Scan::execProject(const Tuple &input_tuple,
+                       Tuple &output_tuple) const
 {
     output_tuple.clear();
 

@@ -157,7 +157,8 @@ void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
             } else {  // STRING
                 if (comp_op_ == EQ) {
                     if (record.val.charVal[key_intval] != '\0'
-                        || std::memcmp(key_charval, record.val.charVal, key_intval)) {
+                        || std::memcmp(key_charval, record.val.charVal,
+                                       key_intval)) {
                         break;
                     }
                 } else {  // GT
@@ -267,8 +268,9 @@ double IndexScan::estCost(const double left_cardinality) const
             if (unique_) {
                 seq_pages = stats_->num_pages_ * SELECTIVITY_GT;
             } else {
-                random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                              stats_->cardinality_ * SELECTIVITY_GT);
+                random_pages
+                    = MACKERT_LOHMAN(stats_->num_pages_,
+                                     stats_->cardinality_ * SELECTIVITY_GT);
             }
         }
     }

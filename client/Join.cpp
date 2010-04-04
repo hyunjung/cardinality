@@ -41,22 +41,25 @@ void Join::initFilter(const Query *q, const int x)
         if (right_child_->hasCol(q->joinFields1[i])
             && left_child_->hasCol(q->joinFields2[i])) {
             join_conds_.push_back(
-                boost::make_tuple(left_child_->getOutputColID(q->joinFields2[i]),
-                                  right_child_->getOutputColID(q->joinFields1[i]),
-                                  right_child_->getColType(q->joinFields1[i]),
-                                  i == x));
+                boost::make_tuple(
+                    left_child_->getOutputColID(q->joinFields2[i]),
+                    right_child_->getOutputColID(q->joinFields1[i]),
+                    right_child_->getColType(q->joinFields1[i]),
+                    i == x));
         } else if (right_child_->hasCol(q->joinFields2[i])
                    && left_child_->hasCol(q->joinFields1[i])) {
             join_conds_.push_back(
-                boost::make_tuple(left_child_->getOutputColID(q->joinFields1[i]),
-                                  right_child_->getOutputColID(q->joinFields2[i]),
-                                  right_child_->getColType(q->joinFields2[i]),
-                                  i == x));
+                boost::make_tuple(
+                    left_child_->getOutputColID(q->joinFields1[i]),
+                    right_child_->getOutputColID(q->joinFields2[i]),
+                    right_child_->getColType(q->joinFields2[i]),
+                    i == x));
         }
     }
 }
 
-bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
+bool Join::execFilter(const Tuple &left_tuple,
+                      const Tuple &right_tuple) const
 {
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
         if (join_conds_[i].get<3>()) {  // already applied by IndexScan
@@ -84,7 +87,9 @@ bool Join::execFilter(const Tuple &left_tuple, const Tuple &right_tuple) const
     return true;
 }
 
-void Join::execProject(const Tuple &left_tuple, const Tuple &right_tuple, Tuple &output_tuple) const
+void Join::execProject(const Tuple &left_tuple,
+                       const Tuple &right_tuple,
+                       Tuple &output_tuple) const
 {
     output_tuple.clear();
 
@@ -94,7 +99,8 @@ void Join::execProject(const Tuple &left_tuple, const Tuple &right_tuple, Tuple 
                 left_tuple[selected_input_col_ids_[i]]);
         } else {
             output_tuple.push_back(
-                right_tuple[selected_input_col_ids_[i] - left_child_->numOutputCols()]);
+                right_tuple[selected_input_col_ids_[i]
+                            - left_child_->numOutputCols()]);
         }
     }
 }
@@ -107,7 +113,8 @@ bool Join::hasCol(const char *col) const
 ColID Join::getInputColID(const char *col) const
 {
     if (right_child_->hasCol(col)) {
-        return right_child_->getOutputColID(col) + left_child_->numOutputCols();
+        return right_child_->getOutputColID(col)
+               + left_child_->numOutputCols();
     } else {
         return left_child_->getOutputColID(col);
     }
@@ -116,8 +123,8 @@ ColID Join::getInputColID(const char *col) const
 ColID Join::getBaseColID(const ColID cid) const
 {
     if (selected_input_col_ids_[cid] > left_child_->numOutputCols()) {
-        return right_child_->getBaseColID(
-                   selected_input_col_ids_[cid] - left_child_->numOutputCols());
+        return right_child_->getBaseColID(selected_input_col_ids_[cid]
+                                          - left_child_->numOutputCols());
     } else {
         return left_child_->getBaseColID(selected_input_col_ids_[cid]);
     }
@@ -188,8 +195,8 @@ double Join::estColLength(const ColID cid) const
     if (selected_input_col_ids_[cid] < left_child_->numOutputCols()) {
         return left_child_->estColLength(selected_input_col_ids_[cid]);
     } else {
-        return right_child_->estColLength(
-                   selected_input_col_ids_[cid] - left_child_->numOutputCols());
+        return right_child_->estColLength(selected_input_col_ids_[cid]
+                                          - left_child_->numOutputCols());
     }
 }
 

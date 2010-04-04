@@ -50,7 +50,7 @@ private:
     Remote& operator=(const Remote &);
 
     friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+    template<class Archive> void serialize(Archive &ar, const unsigned int) {
         ar & boost::serialization::base_object<Operator>(*this);
         ar & child_;
         ar & const_cast<std::string &>(ip_address_);

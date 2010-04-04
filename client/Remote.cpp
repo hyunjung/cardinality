@@ -140,7 +140,8 @@ bool Remote::GetNext(Tuple &tuple)
     for (ColID i = 0; i < child_->numOutputCols(); ++i) {
         const char *delim
             = static_cast<const char *>(
-                  rawmemchr(pos, (i == child_->numOutputCols() - 1) ? '\n' : '|'));
+                  rawmemchr(pos,
+                            (i == child_->numOutputCols() - 1) ? '\n' : '|'));
         tuple.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;
     }

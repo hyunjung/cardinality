@@ -53,7 +53,7 @@ private:
     Scan& operator=(const Scan &);
 
     friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int ver) {
+    template<class Archive> void serialize(Archive &ar, const unsigned int) {
         ar & boost::serialization::base_object<Project>(*this);
         ar & const_cast<std::string &>(filename_);
         ar & gteq_conds_;
@@ -70,7 +70,7 @@ namespace boost {
 namespace serialization {
 
 template<class Archive, class T1, class T2, class T3>
-void serialize(Archive &ar, boost::tuple<T1, T2, T3> &t, const unsigned int ver) {
+void serialize(Archive &ar, boost::tuple<T1, T2, T3> &t, const unsigned int) {
     ar & t.get<0>();
     ar & t.get<1>();
     ar & t.get<2>();

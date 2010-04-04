@@ -81,7 +81,8 @@ void Server::closeSocket(const NodeID node_id, tcpsocket_ptr sock)
     connpool_mutex_.unlock();
 }
 
-std::pair<const char *, const char *> Server::openFile(const std::string &filename)
+std::pair<const char *, const char *>
+Server::openFile(const std::string &filename)
 {
     mapped_file_ptr file;
 

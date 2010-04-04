@@ -10,7 +10,8 @@ namespace boost {
 namespace serialization {
 
 template<class Archive>
-void save(Archive &ar, const Value &v, const unsigned int ver) {
+void save(Archive &ar, const Value &v, const unsigned int)
+{
     ar << v.type;
     ar << v.intVal;
     if (v.type == STRING) {
@@ -20,7 +21,8 @@ void save(Archive &ar, const Value &v, const unsigned int ver) {
 }
 
 template<class Archive>
-void load(Archive &ar, Value &v, const unsigned int ver) {
+void load(Archive &ar, Value &v, const unsigned int)
+{
     ar >> v.type;
     ar >> v.intVal;
     if (v.type == STRING) {
