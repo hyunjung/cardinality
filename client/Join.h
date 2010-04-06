@@ -50,7 +50,6 @@ private:
 }  // namespace cardinality
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Join)
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Join)
 
 namespace boost {
 namespace serialization {

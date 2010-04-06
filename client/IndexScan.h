@@ -55,6 +55,4 @@ private:
 
 }  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::IndexScan)
-
 #endif  // CLIENT_INDEXSCAN_H_

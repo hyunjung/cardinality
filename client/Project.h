@@ -35,6 +35,5 @@ private:
 }  // namespace cardinality
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Project)
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Project)
 
 #endif  // CLIENT_PROJECT_H_

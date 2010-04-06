@@ -46,6 +46,4 @@ private:
 
 }  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Dummy)
-
 #endif  // CLIENT_DUMMY_H_

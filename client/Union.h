@@ -52,6 +52,4 @@ private:
 
 }  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Union)
-
 #endif  // CLIENT_UNION_H_

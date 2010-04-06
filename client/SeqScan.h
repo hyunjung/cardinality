@@ -40,6 +40,4 @@ private:
 
 }  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::SeqScan)
-
 #endif  // CLIENT_SEQSCAN_H_

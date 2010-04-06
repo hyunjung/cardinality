@@ -59,6 +59,4 @@ private:
 
 }  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Remote)
-
 #endif  // CLIENT_REMOTE_H_

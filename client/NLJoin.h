@@ -45,6 +45,4 @@ private:
 
 }  // namespace cardinality
 
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::NLJoin)
-
 #endif  // CLIENT_NLJOIN_H_

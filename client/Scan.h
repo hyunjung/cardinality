@@ -65,7 +65,6 @@ private:
 }  // namespace cardinality
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Scan)
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Scan)
 
 namespace boost {
 namespace serialization {
