@@ -37,7 +37,7 @@ NLJoin::~NLJoin()
 
 Operator::Ptr NLJoin::clone() const
 {
-    return Operator::Ptr(new NLJoin(*this));
+    return boost::make_shared<NLJoin>(*this);
 }
 
 void NLJoin::Open(const char *, const uint32_t)

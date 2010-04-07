@@ -9,6 +9,7 @@ namespace cardinality {
 class Dummy: public Operator {
 public:
     explicit Dummy(const NodeID);
+    Dummy(const Dummy &);
     ~Dummy();
     Operator::Ptr clone() const;
 
@@ -33,7 +34,6 @@ public:
 
 protected:
     Dummy();
-    Dummy(const Dummy &);
 
 private:
     Dummy& operator=(const Dummy &);

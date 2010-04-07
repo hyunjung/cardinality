@@ -2,6 +2,7 @@
 #define CLIENT_OPERATOR_H_
 
 #include <iostream>
+#include <boost/smart_ptr/make_shared.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 #include <boost/serialization/base_object.hpp>
@@ -32,6 +33,7 @@ public:
     typedef boost::shared_ptr<Operator> Ptr;
 
     explicit Operator(const NodeID);
+    Operator(const Operator &);
     virtual ~Operator();
     virtual Operator::Ptr clone() const = 0;
 
@@ -60,7 +62,6 @@ public:
 
 protected:
     Operator();
-    Operator(const Operator &);
 
     const NodeID node_id_;
 

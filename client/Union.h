@@ -9,6 +9,7 @@ namespace cardinality {
 class Union: public Operator {
 public:
     Union(const NodeID, std::vector<Operator::Ptr>);
+    Union(const Union &);
     ~Union();
     Operator::Ptr clone() const;
 
@@ -33,7 +34,6 @@ public:
 
 protected:
     Union();
-    Union(const Union &);
 
     std::vector<Operator::Ptr> children_;
 

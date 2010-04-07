@@ -8,7 +8,8 @@ namespace cardinality {
 
 class Project: public Operator {
 public:
-    Project(const NodeID);
+    explicit Project(const NodeID);
+    Project(const Project &);
     virtual ~Project();
 
     ColID numOutputCols() const;
@@ -16,7 +17,6 @@ public:
 
 protected:
     Project();
-    Project(const Project &);
 
     void initProject(const Query *);
 

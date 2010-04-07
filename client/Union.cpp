@@ -32,7 +32,7 @@ Union::~Union()
 
 Operator::Ptr Union::clone() const
 {
-    return Operator::Ptr(new Union(*this));
+    return boost::make_shared<Union>(*this);
 }
 
 void Union::Open(const char *left_ptr, const uint32_t left_len)

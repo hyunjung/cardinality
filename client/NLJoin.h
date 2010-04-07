@@ -10,6 +10,7 @@ class NLJoin: public Join {
 public:
     NLJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *, const int = -1, const char * = NULL);
+    NLJoin(const NLJoin &);
     ~NLJoin();
     Operator::Ptr clone() const;
 
@@ -24,7 +25,6 @@ public:
 
 protected:
     NLJoin();
-    NLJoin(const NLJoin &);
 
     ColID index_join_col_id_;
     static const ColID NOT_INDEX_JOIN = -1;

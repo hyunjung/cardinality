@@ -84,17 +84,17 @@ static void enumerateScans(const Query *q,
         ca::PartitionStats *stats = g_stats[table_name][0];
 
         ca::Operator::Ptr seqscan(
-            new ca::SeqScan(part->iNode,
-                            part->fileName,
-                            q->aliasNames[i],
-                            table, stats, q));
+            boost::make_shared<ca::SeqScan>(
+                part->iNode,
+                part->fileName, q->aliasNames[i],
+                table, stats, q));
 
         try {
             ca::Operator::Ptr indexscan(
-                new ca::IndexScan(part->iNode,
-                                  part->fileName,
-                                  q->aliasNames[i],
-                                  table, stats, q));
+                boost::make_shared<ca::IndexScan>(
+                    part->iNode,
+                    part->fileName, q->aliasNames[i],
+                    table, stats, q));
 
             if (indexscan->estCost() < seqscan->estCost()) {
                 scans.push_back(indexscan);
@@ -114,7 +114,6 @@ static void enumerateJoins(const Query *q,
                            std::vector<ca::Operator::Ptr> &plans)
 {
     ca::Operator::Ptr subplan;
-    ca::Operator::Ptr right;
 
     for (std::size_t k = 0; k < subplans.size(); ++k) {
         for (int i = 0; i < q->nbTable; ++i) {
@@ -130,46 +129,47 @@ static void enumerateJoins(const Query *q,
 
             // add a Remote operator if needed
             if (subplan->node_id() != part->iNode) {
-                subplan.reset(
-                    new ca::Remote(part->iNode, subplan,
-                                   g_nodes->nodes[subplan->node_id()].ip));
+                subplan = boost::make_shared<ca::Remote>(
+                              part->iNode, subplan,
+                              g_nodes->nodes[subplan->node_id()].ip);
             }
 
             // Nested Loop Index Join
             for (int j = 0; j < q->nbJoins; ++j) {
                 if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i])
                     && subplan->hasCol(q->joinFields2[j])) {
-                    right.reset(
-                        new ca::IndexScan(part->iNode,
-                                          part->fileName,
-                                          q->aliasNames[i],
-                                          table, stats, q,
-                                          q->joinFields1[j]));
-                    plans.push_back(ca::Operator::Ptr(
-                        new ca::NLJoin(right->node_id(),
-                                       subplan, right,
-                                       q, j, q->joinFields2[j])));
+                    plans.push_back(
+                        boost::make_shared<ca::NLJoin>(
+                            part->iNode,
+                            subplan,
+                            boost::make_shared<ca::IndexScan>(
+                                part->iNode,
+                                part->fileName, q->aliasNames[i],
+                                table, stats, q,
+                                q->joinFields1[j]),
+                            q, j, q->joinFields2[j]));
                     break;
                 }
                 if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i])
                     && subplan->hasCol(q->joinFields1[j])) {
-                    right.reset(
-                        new ca::IndexScan(part->iNode,
-                                          part->fileName,
-                                          q->aliasNames[i],
-                                          table, stats, q,
-                                          q->joinFields2[j]));
-                    plans.push_back(ca::Operator::Ptr(
-                        new ca::NLJoin(right->node_id(),
-                                       subplan, right,
-                                       q, j, q->joinFields1[j])));
+                    plans.push_back(
+                        boost::make_shared<ca::NLJoin>(
+                            part->iNode,
+                            subplan,
+                            boost::make_shared<ca::IndexScan>(
+                                part->iNode,
+                                part->fileName, q->aliasNames[i],
+                                table, stats, q,
+                                q->joinFields2[j]),
+                            q, j, q->joinFields1[j]));
                     break;
                 }
             }
 
             // Nested Block Join
-            plans.push_back(ca::Operator::Ptr(
-                new ca::NBJoin(scans[i]->node_id(), subplan, scans[i], q)));
+            plans.push_back(
+                boost::make_shared<ca::NBJoin>(
+                    scans[i]->node_id(), subplan, scans[i], q));
         }
     }
 }
@@ -201,9 +201,9 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
 
         // add a Remote operator if needed
         if (root->node_id() != MASTER_NODE_ID) {
-            root.reset(
-                new ca::Remote(MASTER_NODE_ID, root,
-                               g_nodes->nodes[root->node_id()].ip));
+            root = boost::make_shared<ca::Remote>(
+                       MASTER_NODE_ID, root,
+                       g_nodes->nodes[root->node_id()].ip);
             plans[k] = root;
         }
 
@@ -228,17 +228,18 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
     Partition *part = &table->partitions[0];
 
     try {
-        root.reset(
-            new ca::IndexScan(part->iNode,
-                              part->fileName,
-                              q->aliasNames[0],
-                              table, NULL, q));
+        root = boost::make_shared<ca::IndexScan>(
+                   part->iNode,
+                   part->fileName, q->aliasNames[0],
+                   table,
+                   static_cast<ca::PartitionStats *>(NULL), q);
+
     } catch (std::runtime_error &e) {
-        root.reset(
-            new ca::SeqScan(part->iNode,
-                            part->fileName,
-                            q->aliasNames[0],
-                            table, NULL, q));
+        root = boost::make_shared<ca::SeqScan>(
+                   part->iNode,
+                   part->fileName, q->aliasNames[0],
+                   table,
+                   static_cast<ca::PartitionStats *>(NULL), q);
     }
 
     for (int i = 1; i < q->nbTable; ++i) {
@@ -248,9 +249,9 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
 
         // add a Remote operator if needed
         if (root->node_id() != part->iNode) {
-            root.reset(
-                new ca::Remote(part->iNode, root,
-                               g_nodes->nodes[root->node_id()].ip));
+            root = boost::make_shared<ca::Remote>(
+                       part->iNode, root,
+                       g_nodes->nodes[root->node_id()].ip);
         }
 
         int j;
@@ -259,28 +260,30 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
         for (j = 0; j < q->nbJoins; ++j) {
             if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i])
                 && root->hasCol(q->joinFields2[j])) {
-                right.reset(
-                    new ca::IndexScan(part->iNode,
-                                      part->fileName,
-                                      q->aliasNames[i],
-                                      table, NULL, q,
-                                      q->joinFields1[j]));
-                root.reset(
-                    new ca::NLJoin(right->node_id(), root, right,
-                                   q, j, q->joinFields2[j]));
+                root = boost::make_shared<ca::NLJoin>(
+                           part->iNode,
+                           root,
+                           boost::make_shared<ca::IndexScan>(
+                               part->iNode,
+                               part->fileName, q->aliasNames[i],
+                               table,
+                               static_cast<ca::PartitionStats *>(NULL), q,
+                               q->joinFields1[j]),
+                           q, j, q->joinFields2[j]);
                 break;
             }
             if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i])
                 && root->hasCol(q->joinFields1[j])) {
-                right.reset(
-                    new ca::IndexScan(part->iNode,
-                                      part->fileName,
-                                      q->aliasNames[i],
-                                      table, NULL, q,
-                                      q->joinFields2[j]));
-                root.reset(
-                    new ca::NLJoin(right->node_id(), root, right,
-                                   q, j, q->joinFields1[j]));
+                root = boost::make_shared<ca::NLJoin>(
+                           part->iNode,
+                           root,
+                           boost::make_shared<ca::IndexScan>(
+                               part->iNode,
+                               part->fileName, q->aliasNames[i],
+                               table,
+                               static_cast<ca::PartitionStats *>(NULL), q,
+                               q->joinFields2[j]),
+                           q, j, q->joinFields1[j]);
                 break;
             }
         }
@@ -288,27 +291,28 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
         // Nested Block Join
         if (j == q->nbJoins) {
             try {
-                right.reset(
-                    new ca::IndexScan(part->iNode,
-                                      part->fileName,
-                                      q->aliasNames[i],
-                                      table, NULL, q));
+                right = boost::make_shared<ca::IndexScan>(
+                            part->iNode,
+                            part->fileName, q->aliasNames[i],
+                            table,
+                            static_cast<ca::PartitionStats *>(NULL), q);
+
             } catch (std::runtime_error &e) {
-                right.reset(
-                    new ca::SeqScan(part->iNode,
-                                    part->fileName,
-                                    q->aliasNames[i],
-                                    table, NULL, q));
+                right = boost::make_shared<ca::SeqScan>(
+                            part->iNode,
+                            part->fileName, q->aliasNames[i],
+                            table,
+                            static_cast<ca::PartitionStats *>(NULL), q);
             }
-            root.reset(
-                new ca::NBJoin(right->node_id(), root, right, q));
+            root = boost::make_shared<ca::NBJoin>(
+                       right->node_id(), root, right, q);
         }
     }
 
     if (root->node_id() != MASTER_NODE_ID) {
-        root.reset(
-            new ca::Remote(MASTER_NODE_ID, root,
-                           g_nodes->nodes[root->node_id()].ip));
+        root = boost::make_shared<ca::Remote>(
+                   MASTER_NODE_ID, root,
+                   g_nodes->nodes[root->node_id()].ip);
     }
 
     return root;
@@ -411,21 +415,20 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
 
     if (it == end) {
         // no partition contains this key
-        root.reset(
-            new ca::Dummy(MASTER_NODE_ID));
+        root = boost::make_shared<ca::Dummy>(MASTER_NODE_ID);
     } else if (end == it + 1) {
         // IndexScan on primary key
         Partition *part = &table->partitions[(*it)->part_no_];
-        root.reset(
-            new ca::IndexScan(part->iNode,
-                              part->fileName, q->aliasNames[0],
-                              table, NULL, q));
+        root = boost::make_shared<ca::IndexScan>(
+                   part->iNode,
+                   part->fileName, q->aliasNames[0],
+                   table, static_cast<ca::PartitionStats *>(NULL), q);
 
         // add a Remote operator if needed
         if (root->node_id() != MASTER_NODE_ID) {
-            root.reset(
-                new ca::Remote(MASTER_NODE_ID, root,
-                               g_nodes->nodes[root->node_id()].ip));
+            root = boost::make_shared<ca::Remote>(
+                       MASTER_NODE_ID, root,
+                       g_nodes->nodes[root->node_id()].ip);
         }
     }
 
@@ -457,23 +460,18 @@ static void buildScans(const Query *q,
              stats != NULL; stats = stats->next_) {
             Partition *part = &table->partitions[stats->part_no_];
             ca::Operator::Ptr root;
-#ifndef DISABLE_INDEXSCAN
             try {
-                root.reset(
-                    new ca::IndexScan(part->iNode,
-                                      part->fileName,
-                                      alias_name,
-                                      table, stats, q));
+                root = boost::make_shared<ca::IndexScan>(
+                           part->iNode,
+                           part->fileName, alias_name,
+                           table, stats, q);
+
             } catch (std::runtime_error &e) {
-#endif
-                root.reset(
-                    new ca::SeqScan(part->iNode,
-                                    part->fileName,
-                                    alias_name,
-                                    table, stats, q));
-#ifndef DISABLE_INDEXSCAN
+                root = boost::make_shared<ca::SeqScan>(
+                           part->iNode,
+                           part->fileName, alias_name,
+                           table, stats, q);
             }
-#endif
             pp.push_back(root);
         }
         right.push_back(pp);
@@ -502,16 +500,13 @@ static void buildIndexScans(const Query *q,
         for (const ca::PartitionStats *stats = *it;
              stats != NULL; stats = stats->next_) {
             Partition *part = &table->partitions[stats->part_no_];
-            ca::Operator::Ptr root;
 
-            root.reset(
-                new ca::IndexScan(part->iNode,
-                                  part->fileName,
-                                  alias_name,
-                                  table, stats, q,
-                                  right_join_col));
-
-            pp.push_back(root);
+            pp.push_back(
+                 boost::make_shared<ca::IndexScan>(
+                     part->iNode,
+                     part->fileName, alias_name,
+                     table, stats, q,
+                     right_join_col));
         }
         right.push_back(pp);
     }
@@ -530,9 +525,9 @@ static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan)
         for (std::size_t jj = 0; jj < plan[j].size(); ++jj) {
             ca::Operator::Ptr root = plan[j][jj];
             if (root->node_id() != n) {
-                root.reset(
-                    new ca::Remote(n, root,
-                                   g_nodes->nodes[root->node_id()].ip));
+                root = boost::make_shared<ca::Remote>(
+                           n, root,
+                           g_nodes->nodes[root->node_id()].ip);
             }
 
             // estimate execution cost
@@ -546,7 +541,7 @@ static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan)
     }
 
     if (best_pps.size() > 1) {
-        return ca::Operator::Ptr(new ca::Union(n, best_pps));
+        return boost::make_shared<ca::Union>(n, best_pps);
     } else {
         return best_pps[0];
     }
@@ -564,7 +559,7 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
     Plan scan;
     buildScans(q, table_name, alias_name, scan);
     if (scan.empty()) {
-        return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+        return boost::make_shared<ca::Dummy>(MASTER_NODE_ID);
     }
     plans.push_back(scan);
 
@@ -575,12 +570,11 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 
         alias_name = q->aliasNames[table_order[i]];
         table_name = q->tableNames[table_order[i]];
-//      Table *table = g_tables[table_name];
 
         const char *left_join_col = NULL;
         const char *right_join_col = NULL;
         int join_cond = 0;
-#ifndef DISABLE_INDEXJOIN
+
         // look for an index join condition
         for (join_cond = 0; join_cond < q->nbJoins; ++join_cond) {
             if (HASIDXCOL(q->joinFields1[join_cond], alias_name)
@@ -595,7 +589,6 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                 break;
             }
         }
-#endif
 
         Plan right;
         Plan right_i;
@@ -609,7 +602,7 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
         }
 
         if (right.empty()) {
-            return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+            return boost::make_shared<ca::Dummy>(MASTER_NODE_ID);
         }
 
         // no Union
@@ -639,25 +632,29 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                         for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
                             ca::Operator::Ptr root = subplan[j][jj];
                             if (root->node_id() != right[k][kk]->node_id()) {
-                                root.reset(
-                                    new ca::Remote(right[k][kk]->node_id(), root,
-                                                   g_nodes->nodes[root->node_id()].ip));
+                                root = boost::make_shared<ca::Remote>(
+                                           right[k][kk]->node_id(), root,
+                                           g_nodes->nodes[root->node_id()].ip);
                             }
 
-                            pp.push_back(ca::Operator::Ptr(
-                                new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
+                            pp.push_back(
+                                boost::make_shared<ca::NBJoin>(
+                                    root->node_id(),
+                                    root, right[k][kk], q));
 
                             if (left_join_col) {
                                 ca::Operator::Ptr root = subplan[j][jj];
                                 if (root->node_id() != right_i[k][kk]->node_id()) {
-                                    root.reset(
-                                        new ca::Remote(right[k][kk]->node_id(), root,
-                                                       g_nodes->nodes[root->node_id()].ip));
+                                    root = boost::make_shared<ca::Remote>(
+                                               right[k][kk]->node_id(), root,
+                                               g_nodes->nodes[root->node_id()].ip);
                                 }
 
-                                pp.push_back(ca::Operator::Ptr(
-                                    new ca::NLJoin(root->node_id(), root, right_i[k][kk],
-                                                   q, join_cond, left_join_col)));
+                                pp.push_back(
+                                    boost::make_shared<ca::NLJoin>(
+                                        root->node_id(),
+                                        root, right_i[k][kk],
+                                        q, join_cond, left_join_col));
                             }
                         }
                     }
@@ -666,7 +663,7 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
             }
 
             if (plan.empty()) {
-                return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+                return boost::make_shared<ca::Dummy>(MASTER_NODE_ID);
             }
             plans.push_back(plan);
         }
@@ -702,24 +699,30 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 
                 PartPlan pp;
                 for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
-                    ca::Operator::Ptr root = buildUnion(right[k][kk]->node_id(),
-                                                        left);
-                    pp.push_back(ca::Operator::Ptr(
-                        new ca::NBJoin(root->node_id(), root, right[k][kk], q)));
+                    ca::Operator::Ptr root(
+                        buildUnion(right[k][kk]->node_id(),
+                                   left));
+                    pp.push_back(
+                        boost::make_shared<ca::NBJoin>(
+                            root->node_id(),
+                            root, right[k][kk], q));
 
                     if (left_join_col) {
-                        ca::Operator::Ptr root = buildUnion(right_i[k][kk]->node_id(),
-                                                            left);
-                        pp.push_back(ca::Operator::Ptr(
-                            new ca::NLJoin(root->node_id(), root, right_i[k][kk],
-                                           q, join_cond, left_join_col)));
+                        ca::Operator::Ptr root(
+                            buildUnion(right_i[k][kk]->node_id(),
+                                       left));
+                        pp.push_back(
+                            boost::make_shared<ca::NLJoin>(
+                                root->node_id(),
+                                root, right_i[k][kk],
+                                q, join_cond, left_join_col));
                     }
                 }
                 plan.push_back(pp);
             }
 
             if (plan.empty()) {
-                return ca::Operator::Ptr(new ca::Dummy(MASTER_NODE_ID));
+                return boost::make_shared<ca::Dummy>(MASTER_NODE_ID);
             }
             plans.push_back(plan);
         }
@@ -759,17 +762,23 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 
                 PartPlan pp;
                 for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
-                    ca::Operator::Ptr root = buildUnion(subplan[j][jj]->node_id(),
-                                                        right1);
-                    pp.push_back(ca::Operator::Ptr(
-                        new ca::NBJoin(subplan[j][jj]->node_id(), subplan[j][jj], root, q)));
+                    ca::Operator::Ptr root(
+                        buildUnion(subplan[j][jj]->node_id(),
+                                   right1));
+                    pp.push_back(
+                        boost::make_shared<ca::NBJoin>(
+                            subplan[j][jj]->node_id(),
+                            subplan[j][jj], root, q));
 
                     if (left_join_col) {
-                        ca::Operator::Ptr root = buildUnion(subplan[j][jj]->node_id(),
-                                                            right1_i);
-                        pp.push_back(ca::Operator::Ptr(
-                            new ca::NLJoin(subplan[j][jj]->node_id(), subplan[j][jj], root,
-                                           q, join_cond, left_join_col)));
+                        ca::Operator::Ptr root(
+                            buildUnion(subplan[j][jj]->node_id(),
+                                       right1_i));
+                        pp.push_back(
+                            boost::make_shared<ca::NLJoin>(
+                                subplan[j][jj]->node_id(),
+                                subplan[j][jj], root,
+                                q, join_cond, left_join_col));
                     }
                 }
                 plan.push_back(pp);
@@ -782,7 +791,9 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
     double min_cost = 0.0;
 
     for (std::size_t l = 0; l < plans.size(); ++l) {
-        ca::Operator::Ptr root = buildUnion(MASTER_NODE_ID, plans[l]);
+        ca::Operator::Ptr root(
+            buildUnion(MASTER_NODE_ID, plans[l]));
+
         double cost = root->estCost();
         if (l == 0 || cost < min_cost) {
             min_cost = cost;
@@ -962,7 +973,8 @@ void performQuery(Connection *conn, const Query *q)
                 join_order.push_back(i);
             }
             do {
-                ca::Operator::Ptr root = buildQueryPlan(q, join_order);
+                ca::Operator::Ptr root(
+                    buildQueryPlan(q, join_order));
 
                 if (!conn->root.get() || conn->root->estCost() > root->estCost()) {
                     conn->root = root;

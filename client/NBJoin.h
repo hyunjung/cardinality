@@ -13,6 +13,7 @@ class NBJoin: public Join {
 public:
     NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
+    NBJoin(const NBJoin &);
     ~NBJoin();
     Operator::Ptr clone() const;
 
@@ -27,7 +28,6 @@ public:
 
 protected:
     NBJoin();
-    NBJoin(const NBJoin &);
 
     static uint64_t hashString(const char *, const uint32_t);
 

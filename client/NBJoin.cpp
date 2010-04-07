@@ -46,7 +46,7 @@ NBJoin::~NBJoin()
 
 Operator::Ptr NBJoin::clone() const
 {
-    return Operator::Ptr(new NBJoin(*this));
+    return boost::make_shared<NBJoin>(*this);
 }
 
 void NBJoin::Open(const char *, const uint32_t)

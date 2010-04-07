@@ -24,7 +24,7 @@ Dummy::~Dummy()
 
 Operator::Ptr Dummy::clone() const
 {
-    return Operator::Ptr(new Dummy(*this));
+    return boost::make_shared<Dummy>(*this);
 }
 
 void Dummy::Open(const char *left_ptr, const uint32_t left_len)

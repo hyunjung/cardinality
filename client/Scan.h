@@ -18,6 +18,7 @@ class Scan: public Project {
 public:
     Scan(const NodeID, const char *, const char *,
          const Table *, const PartitionStats *, const Query *);
+    Scan(const Scan &);
     virtual ~Scan();
 
     bool hasCol(const char *) const;
@@ -31,7 +32,6 @@ public:
 
 protected:
     Scan();
-    Scan(const Scan &);
 
     void initFilter(const Query *q);
     bool execFilter(const Tuple &) const;

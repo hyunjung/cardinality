@@ -71,7 +71,7 @@ IndexScan::~IndexScan()
 
 Operator::Ptr IndexScan::clone() const
 {
-    return Operator::Ptr(new IndexScan(*this));
+    return boost::make_shared<IndexScan>(*this);
 }
 
 void IndexScan::Open(const char *left_ptr, const uint32_t left_len)

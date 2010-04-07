@@ -12,6 +12,7 @@ public:
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartitionStats *, const Query *,
               const char * = NULL);
+    IndexScan(const IndexScan &);
     ~IndexScan();
     Operator::Ptr clone() const;
 
@@ -27,7 +28,6 @@ public:
 
 protected:
     IndexScan();
-    IndexScan(const IndexScan &);
 
     std::string index_col_;
     ValueType index_col_type_;

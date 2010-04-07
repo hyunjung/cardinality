@@ -31,7 +31,7 @@ SeqScan::~SeqScan()
 
 Operator::Ptr SeqScan::clone() const
 {
-    return Operator::Ptr(new SeqScan(*this));
+    return boost::make_shared<SeqScan>(*this);
 }
 
 void SeqScan::Open(const char *, const uint32_t)

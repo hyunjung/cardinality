@@ -51,7 +51,7 @@ Remote::~Remote()
 
 Operator::Ptr Remote::clone() const
 {
-    return Operator::Ptr(new Remote(*this));
+    return boost::make_shared<Remote>(*this);
 }
 
 void Remote::Open(const char *left_ptr, const uint32_t left_len)

@@ -10,6 +10,7 @@ class SeqScan: public Scan {
 public:
     SeqScan(const NodeID, const char *, const char *,
             const Table *, const PartitionStats *, const Query *);
+    SeqScan(const SeqScan &);
     ~SeqScan();
     Operator::Ptr clone() const;
 
@@ -25,7 +26,6 @@ public:
 
 protected:
     SeqScan();
-    SeqScan(const SeqScan &);
 
     const char *pos_;
 

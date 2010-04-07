@@ -13,6 +13,7 @@ typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 class Remote: public Operator {
 public:
     Remote(const NodeID, Operator::Ptr, const char *);
+    Remote(const Remote &);
     ~Remote();
     Operator::Ptr clone() const;
 
@@ -37,7 +38,6 @@ public:
 
 protected:
     Remote();
-    Remote(const Remote &);
 
     Operator::Ptr child_;
     const std::string ip_address_;

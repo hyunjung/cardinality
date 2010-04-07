@@ -11,6 +11,7 @@ class Join: public Project {
 public:
     Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
+    Join(const Join &);
     virtual ~Join();
 
     bool hasCol(const char *) const;
@@ -25,7 +26,6 @@ public:
 
 protected:
     Join();
-    Join(const Join &);
 
     void initFilter(const Query *q, const int);
     bool execFilter(const Tuple &, const Tuple &) const;
