@@ -4,14 +4,11 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
+#include <boost/asio/streambuf.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include "client/SeqScan.h"
-#include "client/IndexScan.h"
-#include "client/NLJoin.h"
-#include "client/NBJoin.h"
-#include "client/Remote.h"
-#include "client/Union.h"
+#include "client/Operator.h"
+#include "client/PartitionStats.h"
 
 
 namespace cardinality {
@@ -92,15 +89,9 @@ void Connection::handle_query()
     body.commit(body_size);
 
     // deserialize
-    std::istream body_stream(&body);
-    boost::archive::binary_iarchive ia(body_stream);
-    ia.register_type(static_cast<NLJoin *>(NULL));
-    ia.register_type(static_cast<NBJoin *>(NULL));
-    ia.register_type(static_cast<SeqScan *>(NULL));
-    ia.register_type(static_cast<IndexScan *>(NULL));
-    ia.register_type(static_cast<Remote *>(NULL));
-    ia.register_type(static_cast<Union *>(NULL));
-
+    boost::archive::binary_iarchive ia(body,
+                                       boost::archive::no_header
+                                       | boost::archive::no_codecvt);
     Operator::Ptr root;
     ia >> root;
 
@@ -149,10 +140,9 @@ void Connection::handle_param_query()
     body.commit(body_size);
 
     // deserialize
-    std::istream body_stream(&body);
-    boost::archive::binary_iarchive ia(body_stream);
-    ia.register_type(static_cast<IndexScan *>(NULL));
-
+    boost::archive::binary_iarchive ia(body,
+                                       boost::archive::no_header
+                                       | boost::archive::no_codecvt);
     Operator::Ptr root;
     ia >> root;
 
@@ -245,9 +235,9 @@ void Connection::handle_stats()
         PartitionStats *stats
             = new PartitionStats(data + 4, nbFields, fieldType);
 
-        std::ostream body_stream(&buf);
-        boost::archive::binary_oarchive oa(body_stream);
-        oa.register_type(static_cast<PartitionStats *>(NULL));
+        boost::archive::binary_oarchive oa(buf,
+                                           boost::archive::no_header
+                                           | boost::archive::no_codecvt);
         oa << stats;
 
         delete stats;

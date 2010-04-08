@@ -3,11 +3,6 @@
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include "client/NLJoin.h"
-#include "client/NBJoin.h"
-#include "client/SeqScan.h"
-#include "client/IndexScan.h"
-#include "client/Union.h"
 #include "client/Server.h"
 
 
@@ -63,8 +58,9 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
     std::ostream body_stream(&body);
 
     if (left_ptr) {
-        boost::archive::binary_oarchive oa(body_stream);
-        oa.register_type(static_cast<IndexScan *>(NULL));
+        boost::archive::binary_oarchive oa(body_stream,
+                                           boost::archive::no_header
+                                           | boost::archive::no_codecvt);
         oa << child_;
 
         header_stream << 'P';
@@ -76,13 +72,9 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         socket_reusable_ = false;
 
     } else {
-        boost::archive::binary_oarchive oa(body_stream);
-        oa.register_type(static_cast<NLJoin *>(NULL));
-        oa.register_type(static_cast<NBJoin *>(NULL));
-        oa.register_type(static_cast<SeqScan *>(NULL));
-        oa.register_type(static_cast<IndexScan *>(NULL));
-        oa.register_type(static_cast<Remote *>(NULL));
-        oa.register_type(static_cast<Union *>(NULL));
+        boost::archive::binary_oarchive oa(body_stream,
+                                           boost::archive::no_header
+                                           | boost::archive::no_codecvt);
         oa << child_;
 
         header_stream << 'Q';

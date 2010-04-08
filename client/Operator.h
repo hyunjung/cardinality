@@ -2,11 +2,12 @@
 #define CLIENT_OPERATOR_H_
 
 #include <iostream>
+#include <vector>
+#include <stdexcept>
 #include <boost/smart_ptr/make_shared.hpp>
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 #include <boost/serialization/base_object.hpp>
-#include <boost/serialization/vector.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include "include/client.h"
 

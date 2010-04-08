@@ -832,9 +832,9 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             tcpstream << std::setw(1) << std::hex << data->tables[i].fieldsType[0];
             tcpstream << data->tables[i].partitions[j].fileName << std::endl;
 
-            boost::archive::binary_iarchive ia(tcpstream);
-            ia.register_type(static_cast<ca::PartitionStats *>(NULL));
-
+            boost::archive::binary_iarchive ia(tcpstream,
+                                               boost::archive::no_header
+                                               | boost::archive::no_codecvt);
             ca::PartitionStats *stats;
             ia >> stats;
             stats->part_no_ = j;
