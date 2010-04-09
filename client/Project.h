@@ -36,4 +36,9 @@ private:
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Project)
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::Project,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::Project,
+                     boost::serialization::track_never)
+
 #endif  // CLIENT_PROJECT_H_

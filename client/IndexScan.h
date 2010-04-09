@@ -55,4 +55,9 @@ private:
 
 }  // namespace cardinality
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::IndexScan,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::IndexScan,
+                     boost::serialization::track_never)
+
 #endif  // CLIENT_INDEXSCAN_H_

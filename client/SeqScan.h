@@ -40,4 +40,9 @@ private:
 
 }  // namespace cardinality
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::SeqScan,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::SeqScan,
+                     boost::serialization::track_never)
+
 #endif  // CLIENT_SEQSCAN_H_

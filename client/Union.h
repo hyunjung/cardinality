@@ -52,4 +52,9 @@ private:
 
 }  // namespace cardinality
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::Union,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::Union,
+                     boost::serialization::track_never)
+
 #endif  // CLIENT_UNION_H_

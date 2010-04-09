@@ -59,4 +59,9 @@ private:
 
 }  // namespace cardinality
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::Remote,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::Remote,
+                     boost::serialization::track_never)
+
 #endif  // CLIENT_REMOTE_H_

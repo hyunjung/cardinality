@@ -3,6 +3,7 @@
 
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/vector.hpp>
+#include <boost/serialization/tracking.hpp>
 #include "client/Value.h"
 
 
@@ -40,5 +41,10 @@ private:
 };
 
 }  // namespace cardinality
+
+BOOST_CLASS_IMPLEMENTATION(cardinality::PartitionStats,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::PartitionStats,
+                     boost::serialization::track_never)
 
 #endif  // CLIENT_PARTITIONSTATS_H_

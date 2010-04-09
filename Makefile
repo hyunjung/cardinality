@@ -3,7 +3,7 @@ FLAGS = -fPIC -O3
 LIBS = -ldl -pthread
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
-MYFLAGS = -fno-strict-aliasing -Wall -I. -I/u/hyunjung/boost_1_42_0
+MYFLAGS = -fno-strict-aliasing -Wall -Wno-sign-compare -I. -I/u/hyunjung/boost_1_42_0
 MYOBJS = objs/Operator.o \
 		 objs/Project.o \
 		 objs/Scan.o \

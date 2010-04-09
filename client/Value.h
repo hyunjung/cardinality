@@ -3,6 +3,7 @@
 
 #include <string>
 #include <boost/serialization/split_free.hpp>
+#include <boost/serialization/tracking.hpp>
 #include "include/client.h"
 
 
@@ -36,5 +37,10 @@ void load(Archive &ar, Value &v, const unsigned int)
 }}
 
 BOOST_SERIALIZATION_SPLIT_FREE(Value)
+
+BOOST_CLASS_IMPLEMENTATION(Value,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(Value,
+                     boost::serialization::track_never)
 
 #endif  // CLIENT_VALUE_H_

@@ -51,6 +51,11 @@ private:
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Join)
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::Join,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::Join,
+                     boost::serialization::track_never)
+
 namespace boost {
 namespace serialization {
 

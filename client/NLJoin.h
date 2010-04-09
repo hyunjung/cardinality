@@ -45,4 +45,9 @@ private:
 
 }  // namespace cardinality
 
+BOOST_CLASS_IMPLEMENTATION(cardinality::NLJoin,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::NLJoin,
+                     boost::serialization::track_never)
+
 #endif  // CLIENT_NLJOIN_H_

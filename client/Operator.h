@@ -8,7 +8,7 @@
 #include <boost/serialization/access.hpp>
 #include <boost/serialization/assume_abstract.hpp>
 #include <boost/serialization/base_object.hpp>
-#include <boost/serialization/shared_ptr.hpp>
+#include <boost/serialization/tracking.hpp>
 #include "include/client.h"
 
 #define COST_DISK_READ_PAGE 1.0
@@ -78,6 +78,39 @@ private:
 }  // namespace cardinality
 
 BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Operator)
-BOOST_SERIALIZATION_SHARED_PTR(cardinality::Operator)
+
+BOOST_CLASS_IMPLEMENTATION(cardinality::Operator,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::Operator,
+                     boost::serialization::track_never)
+
+#include <boost/serialization/split_free.hpp>
+
+namespace boost {
+namespace serialization {
+
+template<class Archive>
+void save(Archive &ar, const cardinality::Operator::Ptr &p, const unsigned int)
+{
+    const cardinality::Operator *q = p.get();
+    ar << q;
+}
+
+template<class Archive>
+void load(Archive &ar, cardinality::Operator::Ptr &p, const unsigned int)
+{
+    cardinality::Operator *q;
+    ar >> q;
+    p.reset(q);
+}
+
+}}
+
+BOOST_SERIALIZATION_SPLIT_FREE(cardinality::Operator::Ptr)
+
+BOOST_CLASS_IMPLEMENTATION(cardinality::Operator::Ptr,
+                           boost::serialization::object_serializable)
+BOOST_CLASS_TRACKING(cardinality::Operator::Ptr,
+                     boost::serialization::track_never)
 
 #endif  // CLIENT_OPERATOR_H_
