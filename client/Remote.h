@@ -3,6 +3,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
+#include <boost/smart_ptr/scoped_ptr.hpp>
 #include "client/Operator.h"
 
 
@@ -45,7 +46,7 @@ protected:
 
     tcpsocket_ptr socket_;
     bool socket_reusable_;
-    boost::asio::streambuf response_;
+    boost::scoped_ptr<boost::asio::streambuf> response_;
 
 private:
     Remote& operator=(const Remote &);

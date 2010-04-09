@@ -85,10 +85,13 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
     }
 
     std::vector<boost::asio::const_buffer> buffers;
-    std::string header = header_stream.str();
+    buffers.reserve(2);
+    std::string header(header_stream.str());
     buffers.push_back(boost::asio::buffer(header));
     buffers.push_back(body.data());
     boost::asio::write(*socket_, buffers);
+
+    response_.reset(new boost::asio::streambuf());
 }
 
 void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
@@ -108,7 +111,7 @@ void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 bool Remote::GetNext(Tuple &tuple)
 {
     boost::system::error_code error;
-    std::size_t len = boost::asio::read_until(*socket_, response_, '\n', error);
+    std::size_t len = boost::asio::read_until(*socket_, *response_, '\n', error);
     if (error) {
         if (error == boost::asio::error::eof) {
             return true;
@@ -122,8 +125,8 @@ bool Remote::GetNext(Tuple &tuple)
         return false;
     }
 
-    boost::asio::streambuf::const_buffers_type line_buffer = response_.data();
-    response_.consume(len);
+    boost::asio::streambuf::const_buffers_type line_buffer = response_->data();
+    response_->consume(len);
     const char *pos = boost::asio::buffer_cast<const char *>(line_buffer);
 
     if (*pos == '|') {
@@ -144,6 +147,8 @@ bool Remote::GetNext(Tuple &tuple)
 
 void Remote::Close()
 {
+    response_.reset();
+
     if (socket_reusable_) {
         g_server->closeSocket(child_->node_id(), socket_);
     } else {
