@@ -42,7 +42,7 @@ void Server::handle_accept(const boost::system::error_code &e)
 }
 
 tcpsocket_ptr Server::connectSocket(const NodeID node_id,
-                                    const std::string &ip_address)
+                                    const boost::asio::ip::address_v4 &addr)
 {
     tcpsocket_ptr socket;
 
@@ -52,15 +52,12 @@ tcpsocket_ptr Server::connectSocket(const NodeID node_id,
 
     if (it == connection_pool_.end()) {
         connpool_mutex_.unlock();
-        boost::asio::ip::tcp::endpoint endpoint
-            = boost::asio::ip::tcp::endpoint(
-                  boost::asio::ip::address::from_string(ip_address),
-                  17000 + node_id);
 
         socket.reset(new boost::asio::ip::tcp::socket(io_service_));
 
         boost::system::error_code error;
-        socket->connect(endpoint, error);
+        socket->connect(boost::asio::ip::tcp::endpoint(addr, 17000 + node_id),
+                        error);
         if (error) {
             throw boost::system::system_error(error);
         }

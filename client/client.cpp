@@ -31,6 +31,7 @@ struct Connection {
 static const ca::NodeID MASTER_NODE_ID = 0;
 
 static const Nodes *g_nodes;
+static boost::asio::ip::address_v4 *g_addrs;
 static std::map<std::string, Table *> g_tables;
 static std::map<std::string, std::vector<ca::PartitionStats *> > g_stats;
 static boost::mutex g_stats_mutex;
@@ -131,7 +132,7 @@ static void enumerateJoins(const Query *q,
             if (subplan->node_id() != part->iNode) {
                 subplan = boost::make_shared<ca::Remote>(
                               part->iNode, subplan,
-                              g_nodes->nodes[subplan->node_id()].ip);
+                              g_addrs[subplan->node_id()]);
             }
 
             // Nested Loop Index Join
@@ -203,7 +204,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
         if (root->node_id() != MASTER_NODE_ID) {
             root = boost::make_shared<ca::Remote>(
                        MASTER_NODE_ID, root,
-                       g_nodes->nodes[root->node_id()].ip);
+                       g_addrs[root->node_id()]);
             plans[k] = root;
         }
 
@@ -251,7 +252,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
         if (root->node_id() != part->iNode) {
             root = boost::make_shared<ca::Remote>(
                        part->iNode, root,
-                       g_nodes->nodes[root->node_id()].ip);
+                       g_addrs[root->node_id()]);
         }
 
         int j;
@@ -312,7 +313,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
     if (root->node_id() != MASTER_NODE_ID) {
         root = boost::make_shared<ca::Remote>(
                    MASTER_NODE_ID, root,
-                   g_nodes->nodes[root->node_id()].ip);
+                   g_addrs[root->node_id()]);
     }
 
     return root;
@@ -428,7 +429,7 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
         if (root->node_id() != MASTER_NODE_ID) {
             root = boost::make_shared<ca::Remote>(
                        MASTER_NODE_ID, root,
-                       g_nodes->nodes[root->node_id()].ip);
+                       g_addrs[root->node_id()]);
         }
     }
 
@@ -527,7 +528,7 @@ static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan)
             if (root->node_id() != n) {
                 root = boost::make_shared<ca::Remote>(
                            n, root,
-                           g_nodes->nodes[root->node_id()].ip);
+                           g_addrs[root->node_id()]);
             }
 
             // estimate execution cost
@@ -634,7 +635,7 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                             if (root->node_id() != right[k][kk]->node_id()) {
                                 root = boost::make_shared<ca::Remote>(
                                            right[k][kk]->node_id(), root,
-                                           g_nodes->nodes[root->node_id()].ip);
+                                           g_addrs[root->node_id()]);
                             }
 
                             pp.push_back(
@@ -647,7 +648,7 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                                 if (root->node_id() != right_i[k][kk]->node_id()) {
                                     root = boost::make_shared<ca::Remote>(
                                                right[k][kk]->node_id(), root,
-                                               g_nodes->nodes[root->node_id()].ip);
+                                               g_addrs[root->node_id()]);
                                 }
 
                                 pp.push_back(
@@ -851,6 +852,12 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                              const Data *data, const Queries *preset)
 {
     g_nodes = nodes;
+    g_addrs = new boost::asio::ip::address_v4[g_nodes->nbNodes];
+
+    for (int n = 0; n < g_nodes->nbNodes; ++n) {
+        g_addrs[n] = boost::asio::ip::address_v4::from_string(
+                         g_nodes->nodes[n].ip);
+    }
 
     usleep(50000);  // 0.05s
 
@@ -1041,4 +1048,6 @@ void closeProcess()
 
     g_stats.clear();
     g_tables.clear();
+
+    delete [] g_addrs;
 }

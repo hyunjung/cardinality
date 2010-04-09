@@ -10,7 +10,8 @@ extern cardinality::Server *g_server;  // client.cpp
 
 namespace cardinality {
 
-Remote::Remote(const NodeID n, Operator::Ptr c, const char *i)
+Remote::Remote(const NodeID n, Operator::Ptr c,
+               const boost::asio::ip::address_v4 &i)
     : Operator(n),
       child_(c),
       ip_address_(i),

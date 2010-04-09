@@ -20,7 +20,8 @@ public:
 
     void run();
 
-    tcpsocket_ptr connectSocket(const NodeID, const std::string &);
+    tcpsocket_ptr connectSocket(const NodeID,
+                                const boost::asio::ip::address_v4 &);
     void closeSocket(const NodeID, tcpsocket_ptr);
 
     std::pair<const char *, const char *> openFile(const std::string &);
