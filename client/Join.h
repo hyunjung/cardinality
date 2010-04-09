@@ -56,17 +56,4 @@ BOOST_CLASS_IMPLEMENTATION(cardinality::Join,
 BOOST_CLASS_TRACKING(cardinality::Join,
                      boost::serialization::track_never)
 
-namespace boost {
-namespace serialization {
-
-template<class Archive, class T1, class T2, class T3, class T4>
-void serialize(Archive &ar, boost::tuple<T1, T2, T3, T4> &t, const unsigned int) {
-    ar & t.get<0>();
-    ar & t.get<1>();
-    ar & t.get<2>();
-    ar & t.get<3>();
-}
-
-}}
-
 #endif  // CLIENT_JOIN_H_

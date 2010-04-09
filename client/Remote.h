@@ -66,32 +66,4 @@ BOOST_CLASS_IMPLEMENTATION(cardinality::Remote,
 BOOST_CLASS_TRACKING(cardinality::Remote,
                      boost::serialization::track_never)
 
-#include <boost/serialization/split_free.hpp>
-
-namespace boost {
-namespace serialization {
-
-template<class Archive>
-void save(Archive &ar, const boost::asio::ip::address_v4 &a, const unsigned int)
-{
-    unsigned long addr = a.to_ulong();
-    ar << addr;
-}
-
-template<class Archive>
-void load(Archive &ar, boost::asio::ip::address_v4 &a, const unsigned int)
-{
-    unsigned long addr;
-    ar >> addr;
-    a = boost::asio::ip::address_v4(addr);
-}
-}}
-
-BOOST_SERIALIZATION_SPLIT_FREE(boost::asio::ip::address_v4)
-
-BOOST_CLASS_IMPLEMENTATION(boost::asio::ip::address_v4,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(boost::asio::ip::address_v4,
-                     boost::serialization::track_never)
-
 #endif  // CLIENT_REMOTE_H_

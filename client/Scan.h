@@ -71,16 +71,4 @@ BOOST_CLASS_IMPLEMENTATION(cardinality::Scan,
 BOOST_CLASS_TRACKING(cardinality::Scan,
                      boost::serialization::track_never)
 
-namespace boost {
-namespace serialization {
-
-template<class Archive, class T1, class T2, class T3>
-void serialize(Archive &ar, boost::tuple<T1, T2, T3> &t, const unsigned int) {
-    ar & t.get<0>();
-    ar & t.get<1>();
-    ar & t.get<2>();
-}
-
-}}
-
 #endif  // CLIENT_SCAN_H_
