@@ -84,27 +84,19 @@ static void enumerateScans(const Query *q,
         Partition *part = &table->partitions[0];
         ca::PartitionStats *stats = g_stats[table_name][0];
 
-        ca::Operator::Ptr seqscan(
-            boost::make_shared<ca::SeqScan>(
-                part->iNode,
-                part->fileName, q->aliasNames[i],
-                table, stats, q));
-
         try {
-            ca::Operator::Ptr indexscan(
+            scans.push_back(
                 boost::make_shared<ca::IndexScan>(
                     part->iNode,
                     part->fileName, q->aliasNames[i],
                     table, stats, q));
 
-            if (indexscan->estCost() < seqscan->estCost()) {
-                scans.push_back(indexscan);
-            } else {
-                scans.push_back(seqscan);
-            }
-
         } catch (std::runtime_error &e) {
-            scans.push_back(seqscan);
+            scans.push_back(
+                boost::make_shared<ca::SeqScan>(
+                    part->iNode,
+                    part->fileName, q->aliasNames[i],
+                    table, stats, q));
         }
     }
 }
