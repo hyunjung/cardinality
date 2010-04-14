@@ -25,6 +25,7 @@ MYLIBS = lib/thirdparty/libboost_serialization.a \
 		 lib/thirdparty/libboost_iostreams.a \
 		 lib/thirdparty/libboost_thread.a \
 		 lib/thirdparty/libboost_filesystem.a \
+		 lib/thirdparty/libprotobuf-lite.a \
 		 lib/thirdparty/libtcmalloc_minimal.a \
 		 lib/thirdparty/rawmemchr.os
 
@@ -47,7 +48,7 @@ $(MYOBJS): objs/%.o:
 
 zip: objs/Client.so
 	strip objs/Client.so -o submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.so
-	zip submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.zip Makefile client/*
+	zip -r submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.zip Makefile client
 
 buildLib:objs/SimpleClient.so objs/TrivialClient.so $(OBJS) 
 buildBench: objs/mainSimpleClient objs/mainSlaveSimpleClient objs/mainTrivialClient objs/mainSlaveTrivialClient
