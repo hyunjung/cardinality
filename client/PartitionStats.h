@@ -1,10 +1,9 @@
 #ifndef CLIENT_PARTITIONSTATS_H_
 #define CLIENT_PARTITIONSTATS_H_
 
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/tracking.hpp>
-#include "client/Value.h"
+#include <vector>
+#include <google/protobuf/io/coded_stream.h>
+#include "include/client.h"
 
 
 namespace cardinality {
@@ -15,6 +14,10 @@ public:
                    const int = 0);
     PartitionStats();
     ~PartitionStats();
+
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     int part_no_;
     std::size_t num_pages_;
@@ -29,22 +32,8 @@ private:
     PartitionStats& operator=(const PartitionStats &);
 
     void init(const std::string, const int, const ValueType);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & num_pages_;
-        ar & cardinality_;
-        ar & col_lengths_;
-        ar & min_pkey_;
-        ar & max_pkey_;
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::PartitionStats,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::PartitionStats,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_PARTITIONSTATS_H_

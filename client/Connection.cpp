@@ -2,11 +2,10 @@
 #include <boost/thread/thread.hpp>
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/read.hpp>
-#include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/asio/streambuf.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
+#include <google/protobuf/wire_format_lite_inl.h>
+#include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include "client/Operator.h"
 #include "client/PartitionStats.h"
 
@@ -89,11 +88,11 @@ void Connection::handle_query()
     body.commit(body_size);
 
     // deserialize
-    boost::archive::binary_iarchive ia(body,
-                                       boost::archive::no_header
-                                       | boost::archive::no_codecvt);
-    Operator::Ptr root;
-    ia >> root;
+    google::protobuf::io::ArrayInputStream ais(
+        boost::asio::buffer_cast<const char *>(body.data()), body_size);
+    google::protobuf::io::CodedInputStream cis(&ais);
+    Operator::Ptr root = Operator::parsePlan(&cis);
+    body.consume(body_size);
 
     Tuple tuple;
     std::vector<boost::asio::const_buffer> buffers;
@@ -117,7 +116,7 @@ void Connection::handle_query()
     // send a special sequence indicating the end of results
     boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2));
 
-    // flush the sending buffer
+    // flush the send buffer
     socket_.set_option(
         boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(0));
 
@@ -140,11 +139,11 @@ void Connection::handle_param_query()
     body.commit(body_size);
 
     // deserialize
-    boost::archive::binary_iarchive ia(body,
-                                       boost::archive::no_header
-                                       | boost::archive::no_codecvt);
-    Operator::Ptr root;
-    ia >> root;
+    google::protobuf::io::ArrayInputStream ais(
+        boost::asio::buffer_cast<const char *>(body.data()), body_size);
+    google::protobuf::io::CodedInputStream cis(&ais);
+    Operator::Ptr root = Operator::parsePlan(&cis);
+    body.consume(body_size);
 
     Tuple tuple;
     std::vector<boost::asio::const_buffer> buffers;
@@ -196,7 +195,7 @@ void Connection::handle_param_query()
         // send a special sequence indicating the end of results
         boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2));
 
-        // flush the sending buffer
+        // flush the send buffer
         socket_.set_option(
             boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(0));
         socket_.set_option(
@@ -211,41 +210,67 @@ void Connection::handle_stats()
 {
     boost::asio::streambuf buf;
     boost::system::error_code error;
-    std::size_t bytes_read;
+    unsigned char header[4];
+    uint32_t size;
 
     for (;;) {
-        bytes_read = boost::asio::read_until(socket_, buf, '\n', error);
-        if (error) {
-            if (error == boost::asio::error::eof) {
-                break;
-            }
-            throw boost::system::system_error(error);
+        // receive a request header
+        boost::asio::read(socket_, boost::asio::buffer(header));
+        google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
+            &header[0], &size);
+        if (size == 0xffffffff) {
+            break;
         }
 
-        char *data = const_cast<char *>(
-                         boost::asio::buffer_cast<const char *>(buf.data()));
-        buf.consume(bytes_read);
+        // receive a request body
+        boost::asio::read(socket_, buf.prepare(size));
+        buf.commit(size);
 
-        std::istringstream is(std::string(data, 3));
-        int nbFields;
-        is >> std::hex >> nbFields;
-        enum ValueType fieldType = (data[3] == '0') ? INT : STRING;
-        data[bytes_read - 1] = '\0';  // remove the trailing '\n'
+        google::protobuf::io::ArrayInputStream ais(
+            boost::asio::buffer_cast<const char *>(buf.data()), size);
+        google::protobuf::io::CodedInputStream cis(&ais);
 
+        uint32_t nbFields;
+        cis.ReadVarint32(&nbFields);
+        uint32_t fieldType;
+        cis.ReadVarint32(&fieldType);
+        std::string fileName;
+        google::protobuf::internal::WireFormatLite::ReadString(
+            &cis, &fileName);
+        buf.consume(size);
+
+        // construct a PartitionStats object
         PartitionStats *stats
-            = new PartitionStats(data + 4, nbFields, fieldType);
+            = new PartitionStats(fileName,
+                                 nbFields,
+                                 static_cast<ValueType>(fieldType));
 
-        boost::archive::binary_oarchive oa(buf,
-                                           boost::archive::no_header
-                                           | boost::archive::no_codecvt);
-        oa << stats;
+        // send a response
+        size = stats->ByteSize();
+
+        google::protobuf::io::ArrayOutputStream aos(
+            boost::asio::buffer_cast<char *>(buf.prepare(4 + size)),
+            4 + size);
+        google::protobuf::io::CodedOutputStream cos(&aos);
+
+        cos.WriteLittleEndian32(size);
+        stats->Serialize(&cos);
+        buf.commit(4 + size);
 
         delete stats;
 
         boost::asio::write(socket_, buf);
+        buf.consume(4 + size);
+
+        // flush the send buffer
+        socket_.set_option(
+            boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(0));
+        socket_.set_option(
+            boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(1));
     }
 
-    socket_.close();
+    // thread exits, socket waits for another request
+    start();
 }
 
 }  // namespace cardinality

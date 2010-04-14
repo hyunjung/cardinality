@@ -13,6 +13,7 @@ class NBJoin: public Join {
 public:
     NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
+    NBJoin();
     NBJoin(const NBJoin &);
     ~NBJoin();
     Operator::Ptr clone() const;
@@ -22,13 +23,15 @@ public:
     bool GetNext(Tuple &);
     void Close();
 
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
+
     void print(std::ostream &, const int) const;
 
     double estCost(const double = 0.0) const;
 
 protected:
-    NBJoin();
-
     static uint64_t hashString(const char *, const uint32_t);
 
     enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state_;
@@ -43,18 +46,8 @@ protected:
 
 private:
     NBJoin& operator=(const NBJoin &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Join>(*this);
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::NBJoin,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::NBJoin,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_NBJOIN_H_

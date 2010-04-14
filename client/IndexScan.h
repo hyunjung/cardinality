@@ -12,6 +12,7 @@ public:
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartitionStats *, const Query *,
               const char * = NULL);
+    IndexScan();
     IndexScan(const IndexScan &);
     ~IndexScan();
     Operator::Ptr clone() const;
@@ -21,14 +22,16 @@ public:
     bool GetNext(Tuple &);
     void Close();
 
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
+
     void print(std::ostream &, const int) const;
 
     double estCost(const double = 0.0) const;
     double estCardinality() const;
 
 protected:
-    IndexScan();
-
     std::string index_col_;
     ValueType index_col_type_;
     CompOp comp_op_;
@@ -41,23 +44,8 @@ protected:
 
 private:
     IndexScan& operator=(const IndexScan &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Scan>(*this);
-        ar & index_col_;
-        ar & index_col_type_;
-        ar & comp_op_;
-        ar & value_;
-        ar & unique_;
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::IndexScan,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::IndexScan,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_INDEXSCAN_H_

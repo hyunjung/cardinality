@@ -44,6 +44,21 @@ void Dummy::Close()
 {
 }
 
+void Dummy::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
+}
+
+int Dummy::ByteSize() const
+{
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
+}
+
+void Dummy::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
+}
+
 void Dummy::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');

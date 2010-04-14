@@ -1,5 +1,6 @@
 #include "client/Scan.h"
 #include <cstring>
+#include <google/protobuf/wire_format_lite_inl.h>
 
 
 namespace cardinality {
@@ -41,6 +42,151 @@ Scan::~Scan()
 {
 }
 
+void Scan::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(node_id_);
+
+    output->WriteVarint32(selected_input_col_ids_.size());
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        output->WriteVarint32(selected_input_col_ids_[i]);
+    }
+
+    output->WriteVarint32(filename_.size());
+    output->WriteString(filename_);
+
+    output->WriteVarint32(gteq_conds_.size());
+    for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
+        output->WriteVarint32(gteq_conds_[i].get<0>()->type);
+        output->WriteVarint32(gteq_conds_[i].get<0>()->intVal);
+        if (gteq_conds_[i].get<0>()->type == STRING) {
+            int len = std::strlen(gteq_conds_[i].get<0>()->charVal);
+            output->WriteVarint32(len);
+            output->WriteRaw(gteq_conds_[i].get<0>()->charVal, len);
+        }
+
+        output->WriteVarint32(gteq_conds_[i].get<1>());
+        output->WriteVarint32(gteq_conds_[i].get<2>());
+    }
+
+    output->WriteVarint32(join_conds_.size());
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        output->WriteVarint32(join_conds_[i].get<0>());
+        output->WriteVarint32(join_conds_[i].get<1>());
+        output->WriteVarint32(join_conds_[i].get<2>());
+    }
+
+    output->WriteVarint32(num_input_cols_);
+}
+
+int Scan::ByteSize() const
+{
+    int total_size = 0;
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      node_id_);
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      selected_input_col_ids_.size());
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          selected_input_col_ids_[i]);
+    }
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      filename_.size());
+    total_size += filename_.size();
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      gteq_conds_.size());
+    for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
+        total_size += 1;
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          gteq_conds_[i].get<0>()->intVal);
+        if (gteq_conds_[i].get<0>()->type == STRING) {
+            int len = std::strlen(gteq_conds_[i].get<0>()->charVal);
+            total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          len);
+            total_size += len;
+        }
+
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          gteq_conds_[i].get<1>());
+        total_size += 1;
+    }
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      join_conds_.size());
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          join_conds_[i].get<0>());
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          join_conds_[i].get<1>());
+        total_size += 1;
+    }
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      num_input_cols_);
+
+    return total_size;
+}
+
+void Scan::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    input->ReadVarint32(&node_id_);
+
+    uint32_t size;
+    input->ReadVarint32(&size);
+    selected_input_col_ids_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        uint32_t col_id;
+        input->ReadVarint32(&col_id);
+        selected_input_col_ids_.push_back(col_id);
+    }
+
+    google::protobuf::internal::WireFormatLite::ReadString(
+        input, &filename_);
+
+    input->ReadVarint32(&size);
+    gteq_conds_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        Value *value = new Value();
+        uint32_t temp1, temp2;
+        input->ReadVarint32(&temp1);
+        value->type = static_cast<ValueType>(temp1);
+        input->ReadVarint32(&value->intVal);
+        if (value->type == STRING) {
+            input->ReadVarint32(&temp2);
+            input->ReadRaw(value->charVal, temp2);
+            value->charVal[temp2] = '\0';
+        }
+
+        input->ReadVarint32(&temp1);
+        input->ReadVarint32(&temp2);
+
+        gteq_conds_.push_back(
+            boost::make_tuple(value,
+                              static_cast<ColID>(temp1),
+                              static_cast<CompOp>(temp2)));
+    }
+
+    input->ReadVarint32(&size);
+    join_conds_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        uint32_t col_id_1;
+        uint32_t col_id_2;
+        uint32_t type;
+        input->ReadVarint32(&col_id_1);
+        input->ReadVarint32(&col_id_2);
+        input->ReadVarint32(&type);
+        join_conds_.push_back(
+            boost::make_tuple(static_cast<ColID>(col_id_1),
+                              static_cast<ColID>(col_id_2),
+                              static_cast<bool>(type)));
+    }
+
+    input->ReadVarint32(&num_input_cols_);
+}
+
 void Scan::initFilter(const Query *q)
 {
     for (int i = 0; i < q->nbRestrictionsEqual; ++i) {
@@ -78,7 +224,7 @@ const char * Scan::parseLine(const char *pos)
 {
     input_tuple_.clear();
 
-    for (int i = 0; i < num_input_cols_ - 1; ++i) {
+    for (std::size_t i = 0; i < num_input_cols_ - 1; ++i) {
         const char *delim = static_cast<const char *>(rawmemchr(pos, '|'));
         input_tuple_.push_back(std::make_pair(pos, delim - pos));
         pos = delim + 1;

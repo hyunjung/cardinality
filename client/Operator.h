@@ -5,10 +5,7 @@
 #include <vector>
 #include <stdexcept>
 #include <boost/smart_ptr/make_shared.hpp>
-#include <boost/serialization/access.hpp>
-#include <boost/serialization/assume_abstract.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/serialization/tracking.hpp>
+#include <google/protobuf/io/coded_stream.h>
 #include "include/client.h"
 
 #define COST_DISK_READ_PAGE 1.0
@@ -22,7 +19,7 @@
 namespace cardinality {
 
 typedef uint16_t ColID;
-typedef uint16_t NodeID;
+typedef uint32_t NodeID;
 
 // pointer and length for each value
 typedef std::vector<std::pair<const char *, uint32_t> > Tuple;
@@ -34,6 +31,7 @@ public:
     typedef boost::shared_ptr<Operator> Ptr;
 
     explicit Operator(const NodeID);
+    Operator();
     Operator(const Operator &);
     virtual ~Operator();
     virtual Operator::Ptr clone() const = 0;
@@ -42,6 +40,10 @@ public:
     virtual void ReOpen(const char * = NULL, const uint32_t = 0) = 0;
     virtual bool GetNext(Tuple &) = 0;
     virtual void Close() = 0;
+
+    virtual void Serialize(google::protobuf::io::CodedOutputStream *) const = 0;
+    virtual int ByteSize() const = 0;
+    virtual void Deserialize(google::protobuf::io::CodedInputStream *) = 0;
 
     virtual void print(std::ostream &, const int = 0) const = 0;
     virtual bool hasCol(const char *) const = 0;
@@ -60,57 +62,15 @@ public:
     NodeID node_id() const;
 
     static uint32_t parseInt(const char *, const uint32_t);
+    static Operator::Ptr parsePlan(google::protobuf::io::CodedInputStream *);
 
 protected:
-    Operator();
-
-    const NodeID node_id_;
+    NodeID node_id_;
 
 private:
     Operator& operator=(const Operator &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & const_cast<NodeID &>(node_id_);
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Operator)
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::Operator,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::Operator,
-                     boost::serialization::track_never)
-
-#include <boost/serialization/split_free.hpp>
-
-namespace boost {
-namespace serialization {
-
-template<class Archive>
-void save(Archive &ar, const cardinality::Operator::Ptr &p, const unsigned int)
-{
-    const cardinality::Operator *q = p.get();
-    ar << q;
-}
-
-template<class Archive>
-void load(Archive &ar, cardinality::Operator::Ptr &p, const unsigned int)
-{
-    cardinality::Operator *q;
-    ar >> q;
-    p.reset(q);
-}
-
-}}
-
-BOOST_SERIALIZATION_SPLIT_FREE(cardinality::Operator::Ptr)
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::Operator::Ptr,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::Operator::Ptr,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_OPERATOR_H_

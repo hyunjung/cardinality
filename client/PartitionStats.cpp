@@ -1,7 +1,9 @@
 #include "client/PartitionStats.h"
+#include <string>
 #include <boost/filesystem/operations.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/spirit/include/qi.hpp>
+#include <google/protobuf/wire_format_lite_inl.h>
 
 
 namespace cardinality {
@@ -36,6 +38,109 @@ PartitionStats::PartitionStats()
 
 PartitionStats::~PartitionStats()
 {
+}
+
+void
+PartitionStats::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint64(num_pages_);
+    google::protobuf::internal::WireFormatLite::WriteDoubleNoTag(
+        cardinality_, output);
+
+    output->WriteVarint32(col_lengths_.size());
+    for (std::size_t i = 0; i < col_lengths_.size(); ++i) {
+        google::protobuf::internal::WireFormatLite::WriteDoubleNoTag(
+            col_lengths_[i], output);
+    }
+
+    output->WriteVarint32(min_pkey_.type);
+    output->WriteVarint32(min_pkey_.intVal);
+    if (min_pkey_.type == STRING) {
+        int len = std::strlen(min_pkey_.charVal);
+        output->WriteVarint32(len);
+        output->WriteRaw(min_pkey_.charVal, len);
+    }
+
+    output->WriteVarint32(max_pkey_.type);
+    output->WriteVarint32(max_pkey_.intVal);
+    if (max_pkey_.type == STRING) {
+        int len = std::strlen(max_pkey_.charVal);
+        output->WriteVarint32(len);
+        output->WriteRaw(max_pkey_.charVal, len);
+    }
+}
+
+int PartitionStats::ByteSize() const
+{
+    int total_size = 0;
+
+    total_size += google::protobuf::internal::WireFormatLite::UInt64Size(
+                      num_pages_);
+    total_size += 8;
+
+    total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
+                      col_lengths_.size());
+    total_size += 8 * col_lengths_.size();
+
+    total_size += 1;
+    total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
+                      min_pkey_.intVal);
+    if (min_pkey_.type == STRING) {
+        int len = std::strlen(min_pkey_.charVal);
+        total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
+                          len);
+        total_size += len;
+    }
+
+    total_size += 1;
+    total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
+                      max_pkey_.intVal);
+    if (max_pkey_.type == STRING) {
+        int len = std::strlen(max_pkey_.charVal);
+        total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
+                          len);
+        total_size += len;
+    }
+
+    return total_size;
+}
+
+void PartitionStats::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    input->ReadVarint64(&num_pages_);
+    google::protobuf::internal::WireFormatLite::ReadPrimitive<
+        double, google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
+            input, &cardinality_);
+
+    uint32_t size;
+    input->ReadVarint32(&size);
+    col_lengths_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        double col_length;
+        google::protobuf::internal::WireFormatLite::ReadPrimitive<
+            double, google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
+                input, &col_length);
+        col_lengths_.push_back(col_length);
+    }
+
+    uint32_t temp;
+    input->ReadVarint32(&temp);
+    min_pkey_.type = static_cast<ValueType>(temp);
+    input->ReadVarint32(&min_pkey_.intVal);
+    if (min_pkey_.type == STRING) {
+        input->ReadVarint32(&temp);
+        input->ReadRaw(min_pkey_.charVal, temp);
+        min_pkey_.charVal[temp] = '\0';
+    }
+
+    input->ReadVarint32(&temp);
+    max_pkey_.type = static_cast<ValueType>(temp);
+    input->ReadVarint32(&max_pkey_.intVal);
+    if (max_pkey_.type == STRING) {
+        input->ReadVarint32(&temp);
+        input->ReadRaw(max_pkey_.charVal, temp);
+        max_pkey_.charVal[temp] = '\0';
+    }
 }
 
 static inline void extractPrimaryKey(const char *pos,

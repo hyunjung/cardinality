@@ -1,5 +1,6 @@
 #include "client/IndexScan.h"
 #include <cstring>
+#include <google/protobuf/wire_format_lite_inl.h>
 #include "client/Server.h"
 
 
@@ -200,6 +201,88 @@ void IndexScan::Close()
 {
     closeIndex(index_);
 //  file_.close();
+}
+
+void IndexScan::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(2);
+
+    Scan::Serialize(output);
+
+    output->WriteVarint32(index_col_.size());
+    output->WriteString(index_col_);
+
+    output->WriteVarint32(index_col_type_);
+    output->WriteVarint32(comp_op_);
+    output->WriteVarint32(unique_);
+
+    output->WriteVarint32(!value_);
+    if (value_) {
+        output->WriteVarint32(value_->type);
+        output->WriteVarint32(value_->intVal);
+        if (value_->type == STRING) {
+            int len = std::strlen(value_->charVal);
+            output->WriteVarint32(len);
+            output->WriteRaw(value_->charVal, len);
+        }
+    }
+}
+
+int IndexScan::ByteSize() const
+{
+    int total_size = 1;
+
+    total_size += Scan::ByteSize();
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      index_col_.size());
+    total_size += index_col_.size();
+
+    total_size += 3;
+
+    total_size += 1;
+    if (value_) {
+        total_size += 1;
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          value_->intVal);
+        if (value_->type == STRING) {
+            int len = std::strlen(value_->charVal);
+            total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          len);
+            total_size += len;
+        }
+    }
+
+    return total_size;
+}
+
+void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    Scan::Deserialize(input);
+
+    google::protobuf::internal::WireFormatLite::ReadString(
+        input, &index_col_);
+
+    uint32_t temp;
+    input->ReadVarint32(&temp);
+    index_col_type_ = static_cast<ValueType>(temp);
+    input->ReadVarint32(&temp);
+    comp_op_ = static_cast<CompOp>(temp);
+    input->ReadVarint32(&temp);
+    unique_ = static_cast<bool>(temp);
+
+    input->ReadVarint32(&temp);
+    if (!temp) {
+        value_ = new Value();
+        input->ReadVarint32(&temp);
+        value_->type = static_cast<ValueType>(temp);
+        input->ReadVarint32(&value_->intVal);
+        if (value_->type == STRING) {
+            input->ReadVarint32(&temp);
+            input->ReadRaw(value_->charVal, temp);
+            value_->charVal[temp] = '\0';
+        }
+    }
 }
 
 void IndexScan::print(std::ostream &os, const int tab) const

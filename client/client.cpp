@@ -1,10 +1,10 @@
-#include <iomanip>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/archive/binary_iarchive.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/read.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/checked_delete.hpp>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "include/client.h"
 #include "client/Server.h"
 #include "client/PartitionStats.h"
@@ -30,7 +30,6 @@ struct Connection {
 // on master
 static const ca::NodeID MASTER_NODE_ID = 0;
 
-static const Nodes *g_nodes;
 static boost::asio::ip::address_v4 *g_addrs;
 static std::map<std::string, Table *> g_tables;
 static std::map<std::string, std::vector<ca::PartitionStats *> > g_stats;
@@ -121,7 +120,7 @@ static void enumerateJoins(const Query *q,
             subplan = subplans[k];
 
             // add a Remote operator if needed
-            if (subplan->node_id() != part->iNode) {
+            if (subplan->node_id() != static_cast<ca::NodeID>(part->iNode)) {
                 subplan = boost::make_shared<ca::Remote>(
                               part->iNode, subplan,
                               g_addrs[subplan->node_id()]);
@@ -241,7 +240,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
         part = &table->partitions[0];
 
         // add a Remote operator if needed
-        if (root->node_id() != part->iNode) {
+        if (root->node_id() != static_cast<ca::NodeID>(part->iNode)) {
             root = boost::make_shared<ca::Remote>(
                        part->iNode, root,
                        g_addrs[root->node_id()]);
@@ -799,21 +798,21 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 
 static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 {
-    boost::asio::ip::tcp::iostream tcpstream;
+    ca::tcpsocket_ptr socket;
     for (int attempt = 0; attempt < 20; ++attempt) {
-        tcpstream.connect(g_nodes->nodes[n].ip,
-                          boost::lexical_cast<std::string>(17000 + n));
-        if (tcpstream.good()) {
+        try {
+            socket = g_server->connectSocket(n, g_addrs[n]);
             break;
-        }
-        tcpstream.clear();
+        } catch (...) {}
+
         usleep(100000);  // 0.1s
     }
-    if (tcpstream.fail()) {
-        throw std::runtime_error("tcp::iostream.connect() failed");
-    }
 
-    tcpstream.put('S');
+    boost::asio::streambuf buf;
+
+    uint8_t *target = boost::asio::buffer_cast<uint8_t *>(buf.prepare(1));
+    target = CodedOutputStream::WriteRawToArray("S", 1, target);
+    buf.commit(1);
 
     for (int i = 0; i < data->nbTables; ++i) {
         for (int j = 0; j < data->tables[i].nbPartitions; ++j) {
@@ -821,40 +820,78 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
                 continue;
             }
 
-            tcpstream << std::setw(3) << std::hex << data->tables[i].nbFields;
-            tcpstream << std::setw(1) << std::hex << data->tables[i].fieldsType[0];
-            tcpstream << data->tables[i].partitions[j].fileName << std::endl;
+            // compute a request body size
+            int len = std::strlen(data->tables[i].partitions[j].fileName);
+            uint32_t size = CodedOutputStream::VarintSize32(
+                                data->tables[i].nbFields)
+                            + 1 + CodedOutputStream::VarintSize32(len) + len;
 
-            boost::archive::binary_iarchive ia(tcpstream,
-                                               boost::archive::no_header
-                                               | boost::archive::no_codecvt);
-            ca::PartitionStats *stats;
-            ia >> stats;
+            // send a request
+            google::protobuf::io::ArrayOutputStream aos(
+                boost::asio::buffer_cast<char *>(buf.prepare(size + 4)), size + 4);
+            google::protobuf::io::CodedOutputStream cos(&aos);
+
+            cos.WriteLittleEndian32(size);  // header
+            cos.WriteVarint32(data->tables[i].nbFields);
+            cos.WriteVarint32(data->tables[i].fieldsType[0]);
+            cos.WriteVarint32(len);
+            cos.WriteRaw(data->tables[i].partitions[j].fileName, len);
+            buf.commit(size + 4);
+
+            boost::asio::write(*socket, buf);
+            buf.consume(size + 4);
+
+            // receive a response header
+            unsigned char header[4];
+            boost::asio::read(*socket, boost::asio::buffer(header));
+            google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
+                &header[0], &size);
+
+            // receive a response body
+            boost::asio::read(*socket, buf.prepare(size));
+            buf.commit(size);
+
+            google::protobuf::io::ArrayInputStream ais(
+                boost::asio::buffer_cast<const char *>(buf.data()), size);
+            google::protobuf::io::CodedInputStream cis(&ais);
+
+            ca::PartitionStats *stats = new ca::PartitionStats();
+            stats->Deserialize(&cis);
             stats->part_no_ = j;
 
+            buf.consume(size);
+
+            // store the stats
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[std::string(data->tables[i].tableName)].push_back(stats);
         }
     }
 
-    tcpstream.close();
+    // end of requests
+    target = boost::asio::buffer_cast<uint8_t *>(buf.prepare(4));
+    target = CodedOutputStream::WriteLittleEndian32ToArray(0xffffffff, target);
+    buf.commit(4);
+    boost::asio::write(*socket, buf);
+
+    g_server->closeSocket(n, socket);
 }
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                              const Data *data, const Queries *preset)
 {
-    g_nodes = nodes;
-    g_addrs = new boost::asio::ip::address_v4[g_nodes->nbNodes];
+    g_addrs = new boost::asio::ip::address_v4[nodes->nbNodes];
 
-    for (int n = 0; n < g_nodes->nbNodes; ++n) {
+    for (int n = 0; n < nodes->nbNodes; ++n) {
         g_addrs[n] = boost::asio::ip::address_v4::from_string(
-                         g_nodes->nodes[n].ip);
+                         nodes->nodes[n].ip);
     }
 
     usleep(50000);  // 0.05s
 
+    g_server = new ca::Server(17000);
+
     boost::thread_group threads;
-    for (int n = 1; n < g_nodes->nbNodes; ++n) {
+    for (int n = 1; n < nodes->nbNodes; ++n) {
         threads.create_thread(boost::bind(&startPreTreatmentSlave, n, data));
     }
 
@@ -864,7 +901,8 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
         g_tables[table_name] = table;
 
         for (int j = 0; j < table->nbPartitions; ++j) {
-            if (table->partitions[j].iNode != MASTER_NODE_ID) {
+            if (static_cast<ca::NodeID>(table->partitions[j].iNode)
+                != MASTER_NODE_ID) {
                 continue;
             }
             ca::PartitionStats *stats
@@ -878,7 +916,6 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
         }
     }
 
-    g_server = new ca::Server(17000);
     boost::thread t(boost::bind(&ca::Server::run, g_server));
 
     threads.join_all();

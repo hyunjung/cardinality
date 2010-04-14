@@ -9,6 +9,7 @@ namespace cardinality {
 class Union: public Operator {
 public:
     Union(const NodeID, std::vector<Operator::Ptr>);
+    Union();
     Union(const Union &);
     ~Union();
     Operator::Ptr clone() const;
@@ -17,6 +18,10 @@ public:
     void ReOpen(const char * = NULL, const uint32_t = 0);
     bool GetNext(Tuple &);
     void Close();
+
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
@@ -33,8 +38,6 @@ public:
     double estColLength(const ColID) const;
 
 protected:
-    Union();
-
     std::vector<Operator::Ptr> children_;
 
     std::size_t it_;
@@ -42,19 +45,8 @@ protected:
 
 private:
     Union& operator=(const Union &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Operator>(*this);
-        ar & children_;
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::Union,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::Union,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_UNION_H_

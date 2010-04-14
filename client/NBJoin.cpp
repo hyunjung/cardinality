@@ -192,6 +192,27 @@ void NBJoin::Close()
     left_child_->Close();
 }
 
+void NBJoin::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(4);
+
+    Join::Serialize(output);
+}
+
+int NBJoin::ByteSize() const
+{
+    int total_size = 1;
+
+    total_size += Join::ByteSize();
+
+    return total_size;
+}
+
+void NBJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    Join::Deserialize(input);
+}
+
 void NBJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');

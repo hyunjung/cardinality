@@ -10,6 +10,7 @@ class NLJoin: public Join {
 public:
     NLJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *, const int = -1, const char * = NULL);
+    NLJoin();
     NLJoin(const NLJoin &);
     ~NLJoin();
     Operator::Ptr clone() const;
@@ -19,15 +20,17 @@ public:
     bool GetNext(Tuple &);
     void Close();
 
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
+
     void print(std::ostream &, const int) const;
 
     double estCost(const double = 0.0) const;
 
 protected:
-    NLJoin();
-
     ColID index_join_col_id_;
-    static const ColID NOT_INDEX_JOIN = -1;
+    static const ColID NOT_INDEX_JOIN = 0xffff;
 
     enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT } state_;
     Tuple left_tuple_;
@@ -35,19 +38,8 @@ protected:
 
 private:
     NLJoin& operator=(const NLJoin &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Join>(*this);
-        ar & index_join_col_id_;
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::NLJoin,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::NLJoin,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_NLJOIN_H_

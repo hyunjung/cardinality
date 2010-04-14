@@ -65,6 +65,27 @@ void SeqScan::Close()
 //  file_.close();
 }
 
+void SeqScan::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(1);
+
+    Scan::Serialize(output);
+}
+
+int SeqScan::ByteSize() const
+{
+    int total_size = 1;
+
+    total_size += Scan::ByteSize();
+
+    return total_size;
+}
+
+void SeqScan::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    Scan::Deserialize(input);
+}
+
 void SeqScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');

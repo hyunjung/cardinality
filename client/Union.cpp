@@ -88,6 +88,46 @@ void Union::Close()
     }
 }
 
+void Union::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(6);
+
+    output->WriteVarint32(node_id_);
+
+    output->WriteVarint32(children_.size());
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        children_[i]->Serialize(output);
+    }
+}
+
+int Union::ByteSize() const
+{
+    int total_size = 1;
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      node_id_);
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      children_.size());
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        total_size += children_[i]->ByteSize();
+    }
+
+    return total_size;
+}
+
+void Union::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    input->ReadVarint32(&node_id_);
+
+    uint32_t size;
+    input->ReadVarint32(&size);
+    children_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        children_.push_back(parsePlan(input));
+    }
+}
+
 void Union::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');

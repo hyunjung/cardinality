@@ -15,6 +15,7 @@ class Remote: public Operator {
 public:
     Remote(const NodeID, Operator::Ptr,
            const boost::asio::ip::address_v4 &);
+    Remote();
     Remote(const Remote &);
     ~Remote();
     Operator::Ptr clone() const;
@@ -23,6 +24,10 @@ public:
     void ReOpen(const char * = NULL, const uint32_t = 0);
     bool GetNext(Tuple &);
     void Close();
+
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
@@ -39,10 +44,8 @@ public:
     double estColLength(const ColID) const;
 
 protected:
-    Remote();
-
     Operator::Ptr child_;
-    const boost::asio::ip::address_v4 ip_address_;
+    boost::asio::ip::address_v4 ip_address_;
 
     tcpsocket_ptr socket_;
     bool socket_reusable_;
@@ -50,20 +53,8 @@ protected:
 
 private:
     Remote& operator=(const Remote &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Operator>(*this);
-        ar & child_;
-        ar & const_cast<boost::asio::ip::address_v4 &>(ip_address_);
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::Remote,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::Remote,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_REMOTE_H_

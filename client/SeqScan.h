@@ -10,6 +10,7 @@ class SeqScan: public Scan {
 public:
     SeqScan(const NodeID, const char *, const char *,
             const Table *, const PartitionStats *, const Query *);
+    SeqScan();
     SeqScan(const SeqScan &);
     ~SeqScan();
     Operator::Ptr clone() const;
@@ -19,30 +20,22 @@ public:
     bool GetNext(Tuple &);
     void Close();
 
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
+
     void print(std::ostream &, const int) const;
 
     double estCost(const double = 0.0) const;
     double estCardinality() const;
 
 protected:
-    SeqScan();
-
     const char *pos_;
 
 private:
     SeqScan& operator=(const SeqScan &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Scan>(*this);
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::SeqScan,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::SeqScan,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_SEQSCAN_H_

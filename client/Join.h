@@ -11,8 +11,13 @@ class Join: public Project {
 public:
     Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
+    Join();
     Join(const Join &);
     virtual ~Join();
+
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
@@ -25,8 +30,6 @@ public:
     double estColLength(const ColID) const;
 
 protected:
-    Join();
-
     void initFilter(const Query *q, const int);
     bool execFilter(const Tuple &, const Tuple &) const;
     void execProject(const Tuple &, const Tuple &, Tuple &) const;
@@ -37,23 +40,8 @@ protected:
 
 private:
     Join& operator=(const Join &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Project>(*this);
-        ar & left_child_;
-        ar & right_child_;
-        ar & join_conds_;
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Join)
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::Join,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::Join,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_JOIN_H_

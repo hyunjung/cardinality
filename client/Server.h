@@ -9,7 +9,7 @@
 
 namespace cardinality {
 
-typedef uint16_t NodeID;  // Operator.h
+typedef uint32_t NodeID;  // Operator.h
 typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 typedef boost::shared_ptr<boost::iostreams::mapped_file_source> mapped_file_ptr;
 

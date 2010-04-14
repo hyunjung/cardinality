@@ -9,6 +9,7 @@ namespace cardinality {
 class Project: public Operator {
 public:
     explicit Project(const NodeID);
+    Project();
     Project(const Project &);
     virtual ~Project();
 
@@ -16,29 +17,14 @@ public:
     ColID getOutputColID(const char *) const;
 
 protected:
-    Project();
-
     void initProject(const Query *);
 
     std::vector<ColID> selected_input_col_ids_;
 
 private:
     Project& operator=(const Project &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Operator>(*this);
-        ar & selected_input_col_ids_;
-    }
 };
 
 }  // namespace cardinality
-
-BOOST_SERIALIZATION_ASSUME_ABSTRACT(cardinality::Project)
-
-BOOST_CLASS_IMPLEMENTATION(cardinality::Project,
-                           boost::serialization::object_serializable)
-BOOST_CLASS_TRACKING(cardinality::Project,
-                     boost::serialization::track_never)
 
 #endif  // CLIENT_PROJECT_H_

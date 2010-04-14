@@ -9,6 +9,7 @@ namespace cardinality {
 class Dummy: public Operator {
 public:
     explicit Dummy(const NodeID);
+    Dummy();
     Dummy(const Dummy &);
     ~Dummy();
     Operator::Ptr clone() const;
@@ -17,6 +18,10 @@ public:
     void ReOpen(const char * = NULL, const uint32_t = 0);
     bool GetNext(Tuple &);
     void Close();
+
+    void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
@@ -32,16 +37,8 @@ public:
     double estTupleLength() const;
     double estColLength(const ColID) const;
 
-protected:
-    Dummy();
-
 private:
     Dummy& operator=(const Dummy &);
-
-    friend class boost::serialization::access;
-    template<class Archive> void serialize(Archive &ar, const unsigned int) {
-        ar & boost::serialization::base_object<Operator>(*this);
-    }
 };
 
 }  // namespace cardinality

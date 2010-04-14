@@ -2,7 +2,7 @@
 #include <iomanip>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
-#include <boost/archive/binary_oarchive.hpp>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "client/Server.h"
 
 
@@ -58,12 +58,14 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
     boost::asio::streambuf body;
     std::ostream body_stream(&body);
 
-    if (left_ptr) {
-        boost::archive::binary_oarchive oa(body_stream,
-                                           boost::archive::no_header
-                                           | boost::archive::no_codecvt);
-        oa << child_;
+    google::protobuf::io::ArrayOutputStream aos(
+        boost::asio::buffer_cast<char *>(body.prepare(child_->ByteSize())),
+        child_->ByteSize());
+    google::protobuf::io::CodedOutputStream cos(&aos);
+    child_->Serialize(&cos);
+    body.commit(child_->cached_size());
 
+    if (left_ptr) {
         header_stream << 'P';
         header_stream << std::setw(4) << std::hex << body.size();
 
@@ -71,13 +73,7 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         body_stream.write(left_ptr, left_len);
 
         socket_reusable_ = false;
-
     } else {
-        boost::archive::binary_oarchive oa(body_stream,
-                                           boost::archive::no_header
-                                           | boost::archive::no_codecvt);
-        oa << child_;
-
         header_stream << 'Q';
         header_stream << std::setw(4) << std::hex << body.size();
 
@@ -155,6 +151,42 @@ void Remote::Close()
         socket_->close();
     }
     socket_.reset();
+}
+
+void Remote::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(5);
+
+    output->WriteVarint32(node_id_);
+
+    output->WriteLittleEndian64(ip_address_.to_ulong());
+
+    child_->Serialize(output);
+}
+
+int Remote::ByteSize() const
+{
+    int total_size = 1;
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      node_id_);
+
+    total_size += 8;
+
+    total_size += child_->ByteSize();
+
+    return total_size;
+}
+
+void Remote::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    input->ReadVarint32(&node_id_);
+
+    unsigned long addr;
+    input->ReadLittleEndian64(&addr);
+    ip_address_ = boost::asio::ip::address_v4(addr);
+
+    child_ = parsePlan(input);
 }
 
 void Remote::print(std::ostream &os, const int tab) const

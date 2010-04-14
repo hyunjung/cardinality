@@ -99,6 +99,35 @@ void NLJoin::Close()
     left_child_->Close();
 }
 
+void NLJoin::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(3);
+
+    Join::Serialize(output);
+
+    output->WriteLittleEndian32(index_join_col_id_);
+}
+
+int NLJoin::ByteSize() const
+{
+    int total_size = 1;
+
+    total_size += Join::ByteSize();
+
+    total_size += 4;
+
+    return total_size;
+}
+
+void NLJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    Join::Deserialize(input);
+
+    uint32_t col_id;
+    input->ReadLittleEndian32(&col_id);
+    index_join_col_id_ = static_cast<ColID>(col_id);
+}
+
 void NLJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');

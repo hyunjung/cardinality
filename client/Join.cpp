@@ -35,6 +35,94 @@ Join::~Join()
 {
 }
 
+void Join::Serialize(google::protobuf::io::CodedOutputStream *output) const
+{
+    output->WriteVarint32(node_id_);
+
+    output->WriteVarint32(selected_input_col_ids_.size());
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        output->WriteVarint32(selected_input_col_ids_[i]);
+    }
+
+    output->WriteVarint32(join_conds_.size());
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        output->WriteVarint32(join_conds_[i].get<0>());
+        output->WriteVarint32(join_conds_[i].get<1>());
+        output->WriteVarint32(join_conds_[i].get<2>());
+        output->WriteVarint32(join_conds_[i].get<3>());
+    }
+
+    left_child_->Serialize(output);
+    right_child_->Serialize(output);
+}
+
+int Join::ByteSize() const
+{
+    int total_size = 0;
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      node_id_);
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      selected_input_col_ids_.size());
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          selected_input_col_ids_[i]);
+    }
+
+    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                      join_conds_.size());
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          join_conds_[i].get<0>());
+        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+                          join_conds_[i].get<1>());
+        total_size += 1;
+        total_size += 1;
+    }
+
+    total_size += left_child_->ByteSize();
+    total_size += right_child_->ByteSize();
+
+    return total_size;
+}
+
+void Join::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    input->ReadVarint32(&node_id_);
+
+    uint32_t size;
+    input->ReadVarint32(&size);
+    selected_input_col_ids_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        uint32_t col_id;
+        input->ReadVarint32(&col_id);
+        selected_input_col_ids_.push_back(col_id);
+    }
+
+    input->ReadVarint32(&size);
+    join_conds_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        uint32_t col_id_1;
+        uint32_t col_id_2;
+        uint32_t type;
+        uint32_t skip;
+        input->ReadVarint32(&col_id_1);
+        input->ReadVarint32(&col_id_2);
+        input->ReadVarint32(&type);
+        input->ReadVarint32(&skip);
+
+        join_conds_.push_back(
+            boost::make_tuple(static_cast<ColID>(col_id_1),
+                              static_cast<ColID>(col_id_2),
+                              static_cast<bool>(type),
+                              static_cast<bool>(skip)));
+    }
+
+    left_child_ = parsePlan(input);
+    right_child_ = parsePlan(input);
+}
+
 void Join::initFilter(const Query *q, const int x)
 {
     for (int i = 0; i < q->nbJoins; ++i) {
