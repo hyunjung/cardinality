@@ -76,7 +76,7 @@ void Connection::handle_read(const boost::system::error_code &e,
 void Connection::handle_query()
 {
     // receive a request header
-    unsigned char header[4];
+    uint8_t header[4];
     uint32_t size;
     boost::asio::read(socket_, boost::asio::buffer(header));
     google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
@@ -87,11 +87,10 @@ void Connection::handle_query()
     boost::asio::read(socket_, buf.prepare(size));
     buf.commit(size);
 
-    google::protobuf::io::ArrayInputStream ais(
-        boost::asio::buffer_cast<const char *>(buf.data()), size);
-    google::protobuf::io::CodedInputStream cis(&ais);
+    google::protobuf::io::CodedInputStream cis(
+        boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
     Operator::Ptr root = Operator::parsePlan(&cis);
-    body.consume(size);
+    buf.consume(size);
 
     // execute the query plan and transfer results
     Tuple tuple;
@@ -127,7 +126,7 @@ void Connection::handle_query()
 void Connection::handle_param_query()
 {
     // receive a request header
-    unsigned char header[4];
+    uint8_t header[4];
     uint32_t size;
     boost::asio::read(socket_, boost::asio::buffer(header));
     google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
@@ -138,11 +137,10 @@ void Connection::handle_param_query()
     boost::asio::read(socket_, buf.prepare(size));
     buf.commit(size);
 
-    google::protobuf::io::ArrayInputStream ais(
-        boost::asio::buffer_cast<const char *>(buf.data()), size);
-    google::protobuf::io::CodedInputStream cis(&ais);
+    google::protobuf::io::CodedInputStream cis(
+        boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
     Operator::Ptr root = Operator::parsePlan(&cis);
-    body.consume(size);
+    buf.consume(size);
 
     // execute the query plan and transfer results
     Tuple tuple;
@@ -211,7 +209,7 @@ void Connection::handle_stats()
 
     for (;;) {
         // receive a request header
-        unsigned char header[4];
+        uint8_t header[4];
         uint32_t size;
         boost::asio::read(socket_, boost::asio::buffer(header));
         google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
@@ -224,9 +222,8 @@ void Connection::handle_stats()
         boost::asio::read(socket_, buf.prepare(size));
         buf.commit(size);
 
-        google::protobuf::io::ArrayInputStream ais(
-            boost::asio::buffer_cast<const char *>(buf.data()), size);
-        google::protobuf::io::CodedInputStream cis(&ais);
+        google::protobuf::io::CodedInputStream cis(
+            boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
         uint32_t nbFields;
         cis.ReadVarint32(&nbFields);
@@ -247,7 +244,7 @@ void Connection::handle_stats()
         size = stats->ByteSize();
 
         google::protobuf::io::ArrayOutputStream aos(
-            boost::asio::buffer_cast<char *>(buf.prepare(4 + size)),
+            boost::asio::buffer_cast<uint8_t *>(buf.prepare(4 + size)),
             4 + size);
         google::protobuf::io::CodedOutputStream cos(&aos);
 

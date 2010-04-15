@@ -62,7 +62,7 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
     }
 
     google::protobuf::io::ArrayOutputStream aos(
-        boost::asio::buffer_cast<char *>(buffer_->prepare(total_size)),
+        boost::asio::buffer_cast<uint8_t *>(buffer_->prepare(total_size)),
         total_size);
     google::protobuf::io::CodedOutputStream cos(&aos);
 
@@ -91,7 +91,7 @@ void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (left_ptr) {
         google::protobuf::io::ArrayOutputStream aos(
-            boost::asio::buffer_cast<char *>(buffer_->prepare(4 + left_len)),
+            boost::asio::buffer_cast<uint8_t *>(buffer_->prepare(4 + left_len)),
             4 + left_len);
         google::protobuf::io::CodedOutputStream cos(&aos);
 

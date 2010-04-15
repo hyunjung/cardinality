@@ -828,7 +828,8 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 
             // send a request
             google::protobuf::io::ArrayOutputStream aos(
-                boost::asio::buffer_cast<char *>(buf.prepare(size + 4)), size + 4);
+                boost::asio::buffer_cast<uint8_t *>(buf.prepare(size + 4)),
+                size + 4);
             google::protobuf::io::CodedOutputStream cos(&aos);
 
             cos.WriteLittleEndian32(size);  // header
@@ -842,7 +843,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             buf.consume(size + 4);
 
             // receive a response header
-            unsigned char header[4];
+            uint8_t header[4];
             boost::asio::read(*socket, boost::asio::buffer(header));
             google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
                 &header[0], &size);
@@ -851,9 +852,8 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             boost::asio::read(*socket, buf.prepare(size));
             buf.commit(size);
 
-            google::protobuf::io::ArrayInputStream ais(
-                boost::asio::buffer_cast<const char *>(buf.data()), size);
-            google::protobuf::io::CodedInputStream cis(&ais);
+            google::protobuf::io::CodedInputStream cis(
+                boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
             ca::PartitionStats *stats = new ca::PartitionStats();
             stats->Deserialize(&cis);
