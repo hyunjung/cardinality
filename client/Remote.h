@@ -50,7 +50,7 @@ protected:
 
     tcpsocket_ptr socket_;
     bool socket_reusable_;
-    boost::scoped_ptr<boost::asio::streambuf> response_;
+    boost::scoped_ptr<boost::asio::streambuf> buffer_;
 
 private:
     Remote& operator=(const Remote &);

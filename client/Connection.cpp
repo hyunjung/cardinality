@@ -75,25 +75,25 @@ void Connection::handle_read(const boost::system::error_code &e,
 
 void Connection::handle_query()
 {
-    char header[4];
+    // receive a request header
+    unsigned char header[4];
+    uint32_t size;
     boost::asio::read(socket_, boost::asio::buffer(header));
+    google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
+        &header[0], &size);
 
-    std::istringstream is(std::string(header, sizeof(header)));
-    std::size_t body_size;
-    is >> std::hex >> body_size;
+    // receive a request body (serialized query plan)
+    boost::asio::streambuf buf;
+    boost::asio::read(socket_, buf.prepare(size));
+    buf.commit(size);
 
-    // receive a serialized query plan
-    boost::asio::streambuf body;
-    boost::asio::read(socket_, body.prepare(body_size));
-    body.commit(body_size);
-
-    // deserialize
     google::protobuf::io::ArrayInputStream ais(
-        boost::asio::buffer_cast<const char *>(body.data()), body_size);
+        boost::asio::buffer_cast<const char *>(buf.data()), size);
     google::protobuf::io::CodedInputStream cis(&ais);
     Operator::Ptr root = Operator::parsePlan(&cis);
-    body.consume(body_size);
+    body.consume(size);
 
+    // execute the query plan and transfer results
     Tuple tuple;
     std::vector<boost::asio::const_buffer> buffers;
     char delim[2] = {'|', '\n'};
@@ -126,31 +126,32 @@ void Connection::handle_query()
 
 void Connection::handle_param_query()
 {
-    char header[4];
+    // receive a request header
+    unsigned char header[4];
+    uint32_t size;
     boost::asio::read(socket_, boost::asio::buffer(header));
+    google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
+        &header[0], &size);
 
-    std::istringstream is(std::string(header, sizeof(header)));
-    std::size_t body_size;
-    is >> std::hex >> body_size;
+    // receive a request body (serialized query plan)
+    boost::asio::streambuf buf;
+    boost::asio::read(socket_, buf.prepare(size));
+    buf.commit(size);
 
-    // receive a serialized query plan
-    boost::asio::streambuf body;
-    boost::asio::read(socket_, body.prepare(body_size));
-    body.commit(body_size);
-
-    // deserialize
     google::protobuf::io::ArrayInputStream ais(
-        boost::asio::buffer_cast<const char *>(body.data()), body_size);
+        boost::asio::buffer_cast<const char *>(buf.data()), size);
     google::protobuf::io::CodedInputStream cis(&ais);
     Operator::Ptr root = Operator::parsePlan(&cis);
-    body.consume(body_size);
+    body.consume(size);
 
+    // execute the query plan and transfer results
     Tuple tuple;
     std::vector<boost::asio::const_buffer> buffers;
     char delim[2] = {'|', '\n'};
 
     boost::system::error_code error;
     bool reopen = false;
+    uint32_t left_len;
 
     for (;;) {
         // receive parameters (a key for index lookup)
@@ -162,15 +163,13 @@ void Connection::handle_param_query()
             }
             throw boost::system::system_error(error);
         }
+        google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
+            &header[0], &left_len);
 
-        std::istringstream is(std::string(header, sizeof(header)));
-        uint32_t left_len;
-        is >> std::hex >> left_len;
-
-        boost::asio::read(socket_, body.prepare(left_len));
+        boost::asio::read(socket_, buf.prepare(left_len));
         const char *left_ptr
-            = boost::asio::buffer_cast<const char *>(body.data());
-        body.consume(left_len);
+            = boost::asio::buffer_cast<const char *>(buf.data());
+        buf.consume(left_len);
 
         if (reopen) {
             root->ReOpen(left_ptr, left_len);
@@ -209,12 +208,11 @@ void Connection::handle_param_query()
 void Connection::handle_stats()
 {
     boost::asio::streambuf buf;
-    boost::system::error_code error;
-    unsigned char header[4];
-    uint32_t size;
 
     for (;;) {
         // receive a request header
+        unsigned char header[4];
+        uint32_t size;
         boost::asio::read(socket_, boost::asio::buffer(header));
         google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
             &header[0], &size);
@@ -253,7 +251,7 @@ void Connection::handle_stats()
             4 + size);
         google::protobuf::io::CodedOutputStream cos(&aos);
 
-        cos.WriteLittleEndian32(size);
+        cos.WriteLittleEndian32(size); // header
         stats->Serialize(&cos);
         buf.commit(4 + size);
 

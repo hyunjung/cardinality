@@ -1,5 +1,4 @@
 #include "client/Remote.h"
-#include <iomanip>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
@@ -17,7 +16,7 @@ Remote::Remote(const NodeID n, Operator::Ptr c,
       ip_address_(i),
       socket_(),
       socket_reusable_(),
-      response_()
+      buffer_()
 {
 }
 
@@ -27,7 +26,7 @@ Remote::Remote()
       ip_address_(),
       socket_(),
       socket_reusable_(),
-      response_()
+      buffer_()
 {
 }
 
@@ -37,7 +36,7 @@ Remote::Remote(const Remote &x)
       ip_address_(x.ip_address_),
       socket_(),
       socket_reusable_(),
-      response_()
+      buffer_()
 {
 }
 
@@ -54,50 +53,54 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
 {
     socket_ = g_server->connectSocket(child_->node_id(), ip_address_);
 
-    std::ostringstream header_stream;
-    boost::asio::streambuf body;
-    std::ostream body_stream(&body);
+    buffer_.reset(new boost::asio::streambuf());
 
-    google::protobuf::io::ArrayOutputStream aos(
-        boost::asio::buffer_cast<char *>(body.prepare(child_->ByteSize())),
-        child_->ByteSize());
-    google::protobuf::io::CodedOutputStream cos(&aos);
-    child_->Serialize(&cos);
-    body.commit(child_->cached_size());
-
+    uint32_t plan_size = child_->ByteSize();
+    int total_size = 5 + plan_size;
     if (left_ptr) {
-        header_stream << 'P';
-        header_stream << std::setw(4) << std::hex << body.size();
-
-        body_stream << std::setw(4) << std::hex << left_len;
-        body_stream.write(left_ptr, left_len);
-
-        socket_reusable_ = false;
-    } else {
-        header_stream << 'Q';
-        header_stream << std::setw(4) << std::hex << body.size();
-
-        socket_reusable_ = true;
+        total_size += 4 + left_len;
     }
 
-    std::vector<boost::asio::const_buffer> buffers;
-    buffers.reserve(2);
-    std::string header(header_stream.str());
-    buffers.push_back(boost::asio::buffer(header));
-    buffers.push_back(body.data());
-    boost::asio::write(*socket_, buffers);
+    google::protobuf::io::ArrayOutputStream aos(
+        boost::asio::buffer_cast<char *>(buffer_->prepare(total_size)),
+        total_size);
+    google::protobuf::io::CodedOutputStream cos(&aos);
 
-    response_.reset(new boost::asio::streambuf());
+    if (!left_ptr) {
+        cos.WriteRaw("Q", 1);
+    } else {
+        cos.WriteRaw("P", 1);
+    }
+    cos.WriteLittleEndian32(plan_size);
+    child_->Serialize(&cos);
+
+    if (left_ptr) {
+        cos.WriteLittleEndian32(left_len);
+        cos.WriteRaw(left_ptr, left_len);
+        socket_reusable_ = false;
+    } else {
+        socket_reusable_ = true;
+    }
+    buffer_->commit(total_size);
+
+    boost::asio::write(*socket_, *buffer_);
+    buffer_->consume(total_size);
 }
 
 void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     if (left_ptr) {
-        boost::asio::streambuf body;
-        std::ostream body_stream(&body);
-        body_stream << std::setw(4) << std::hex << left_len;
-        body_stream.write(left_ptr, left_len);
-        boost::asio::write(*socket_, body);
+        google::protobuf::io::ArrayOutputStream aos(
+            boost::asio::buffer_cast<char *>(buffer_->prepare(4 + left_len)),
+            4 + left_len);
+        google::protobuf::io::CodedOutputStream cos(&aos);
+
+        cos.WriteLittleEndian32(left_len);
+        cos.WriteRaw(left_ptr, left_len);
+        buffer_->commit(4 + left_len);
+
+        boost::asio::write(*socket_, *buffer_);
+        buffer_->consume(4 + left_len);
     } else {
         Close();
         Open();
@@ -107,7 +110,7 @@ void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 bool Remote::GetNext(Tuple &tuple)
 {
     boost::system::error_code error;
-    std::size_t len = boost::asio::read_until(*socket_, *response_, '\n', error);
+    std::size_t size = boost::asio::read_until(*socket_, *buffer_, '\n', error);
     if (error) {
         if (error == boost::asio::error::eof) {
             return true;
@@ -117,12 +120,12 @@ bool Remote::GetNext(Tuple &tuple)
 
     tuple.clear();
 
-    if (len == 0) {
+    if (size == 0) {
         return false;
     }
 
-    boost::asio::streambuf::const_buffers_type line_buffer = response_->data();
-    response_->consume(len);
+    boost::asio::streambuf::const_buffers_type line_buffer = buffer_->data();
+    buffer_->consume(size);
     const char *pos = boost::asio::buffer_cast<const char *>(line_buffer);
 
     if (*pos == '|') {
@@ -143,7 +146,7 @@ bool Remote::GetNext(Tuple &tuple)
 
 void Remote::Close()
 {
-    response_.reset();
+    buffer_.reset();
 
     if (socket_reusable_) {
         g_server->closeSocket(child_->node_id(), socket_);
