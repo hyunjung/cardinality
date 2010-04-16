@@ -1,7 +1,6 @@
 #include "client/Remote.h"
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
-#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "client/Server.h"
 
 
@@ -51,6 +50,8 @@ Operator::Ptr Remote::clone() const
 
 void Remote::Open(const char *left_ptr, const uint32_t left_len)
 {
+    using google::protobuf::io::CodedOutputStream;
+
     socket_ = g_server->connectSocket(child_->node_id(), ip_address_);
 
     buffer_.reset(new boost::asio::streambuf());
@@ -61,26 +62,28 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
         total_size += 4 + left_len;
     }
 
-    google::protobuf::io::ArrayOutputStream aos(
-        boost::asio::buffer_cast<uint8_t *>(buffer_->prepare(total_size)),
-        total_size);
-    google::protobuf::io::CodedOutputStream cos(&aos);
+    uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
+                          buffer_->prepare(total_size));
 
     if (!left_ptr) {
-        cos.WriteRaw("Q", 1);
+        target = CodedOutputStream::WriteRawToArray("Q", 1, target);
     } else {
-        cos.WriteRaw("P", 1);
+        target = CodedOutputStream::WriteRawToArray("P", 1, target);
     }
-    cos.WriteLittleEndian32(plan_size);
-    child_->Serialize(&cos);
+
+    target = CodedOutputStream::WriteLittleEndian32ToArray(plan_size, target);
+    target = child_->SerializeToArray(target);
 
     if (left_ptr) {
-        cos.WriteLittleEndian32(left_len);
-        cos.WriteRaw(left_ptr, left_len);
+        target = CodedOutputStream::WriteLittleEndian32ToArray(
+                     left_len, target);
+        target = CodedOutputStream::WriteRawToArray(
+                     left_ptr, left_len, target);
         socket_reusable_ = false;
     } else {
         socket_reusable_ = true;
     }
+
     buffer_->commit(total_size);
 
     boost::asio::write(*socket_, *buffer_);
@@ -89,14 +92,15 @@ void Remote::Open(const char *left_ptr, const uint32_t left_len)
 
 void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
-    if (left_ptr) {
-        google::protobuf::io::ArrayOutputStream aos(
-            boost::asio::buffer_cast<uint8_t *>(buffer_->prepare(4 + left_len)),
-            4 + left_len);
-        google::protobuf::io::CodedOutputStream cos(&aos);
+    using google::protobuf::io::CodedOutputStream;
 
-        cos.WriteLittleEndian32(left_len);
-        cos.WriteRaw(left_ptr, left_len);
+    if (left_ptr) {
+        uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
+                              buffer_->prepare(4 + left_len));
+        target = CodedOutputStream::WriteLittleEndian32ToArray(
+                     left_len, target);
+        target = CodedOutputStream::WriteRawToArray(
+                     left_ptr, left_len, target);
         buffer_->commit(4 + left_len);
 
         boost::asio::write(*socket_, *buffer_);

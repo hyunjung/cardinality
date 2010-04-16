@@ -4,7 +4,6 @@
 #include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/checked_delete.hpp>
-#include <google/protobuf/io/zero_copy_stream_impl.h>
 #include "include/client.h"
 #include "client/Server.h"
 #include "client/PartitionStats.h"
@@ -798,6 +797,9 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
 
 static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 {
+    using google::protobuf::io::CodedInputStream;
+    using google::protobuf::io::CodedOutputStream;
+
     ca::tcpsocket_ptr socket;
     for (int attempt = 0; attempt < 20; ++attempt) {
         try {
@@ -827,16 +829,18 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
                             + 1 + CodedOutputStream::VarintSize32(len) + len;
 
             // send a request
-            google::protobuf::io::ArrayOutputStream aos(
-                boost::asio::buffer_cast<uint8_t *>(buf.prepare(size + 4)),
-                size + 4);
-            google::protobuf::io::CodedOutputStream cos(&aos);
-
-            cos.WriteLittleEndian32(size);  // header
-            cos.WriteVarint32(data->tables[i].nbFields);
-            cos.WriteVarint32(data->tables[i].fieldsType[0]);
-            cos.WriteVarint32(len);
-            cos.WriteRaw(data->tables[i].partitions[j].fileName, len);
+            uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
+                                  buf.prepare(4 + size));
+            target = CodedOutputStream::WriteLittleEndian32ToArray(
+                         size, target);  // header
+            target = CodedOutputStream::WriteVarint32ToArray(
+                         data->tables[i].nbFields, target);
+            target = CodedOutputStream::WriteVarint32ToArray(
+                         data->tables[i].fieldsType[0], target);
+            target = CodedOutputStream::WriteVarint32ToArray(
+                         len, target);
+            target = CodedOutputStream::WriteRawToArray(
+                         data->tables[i].partitions[j].fileName, len, target);
             buf.commit(size + 4);
 
             boost::asio::write(*socket, buf);
@@ -845,14 +849,13 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             // receive a response header
             uint8_t header[4];
             boost::asio::read(*socket, boost::asio::buffer(header));
-            google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
-                &header[0], &size);
+            CodedInputStream::ReadLittleEndian32FromArray(&header[0], &size);
 
             // receive a response body
             boost::asio::read(*socket, buf.prepare(size));
             buf.commit(size);
 
-            google::protobuf::io::CodedInputStream cis(
+            CodedInputStream cis(
                 boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
             ca::PartitionStats *stats = new ca::PartitionStats();

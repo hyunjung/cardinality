@@ -5,7 +5,6 @@
 #include <boost/asio/write.hpp>
 #include <boost/asio/streambuf.hpp>
 #include <google/protobuf/wire_format_lite_inl.h>
-#include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include "client/Operator.h"
 #include "client/PartitionStats.h"
 
@@ -205,6 +204,9 @@ void Connection::handle_param_query()
 
 void Connection::handle_stats()
 {
+    using google::protobuf::io::CodedInputStream;
+    using google::protobuf::io::CodedOutputStream;
+
     boost::asio::streambuf buf;
 
     for (;;) {
@@ -212,8 +214,7 @@ void Connection::handle_stats()
         uint8_t header[4];
         uint32_t size;
         boost::asio::read(socket_, boost::asio::buffer(header));
-        google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
-            &header[0], &size);
+        CodedInputStream::ReadLittleEndian32FromArray(&header[0], &size);
         if (size == 0xffffffff) {
             break;
         }
@@ -222,7 +223,7 @@ void Connection::handle_stats()
         boost::asio::read(socket_, buf.prepare(size));
         buf.commit(size);
 
-        google::protobuf::io::CodedInputStream cis(
+        CodedInputStream cis(
             boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
         uint32_t nbFields;
@@ -243,13 +244,11 @@ void Connection::handle_stats()
         // send a response
         size = stats->ByteSize();
 
-        google::protobuf::io::ArrayOutputStream aos(
-            boost::asio::buffer_cast<uint8_t *>(buf.prepare(4 + size)),
-            4 + size);
-        google::protobuf::io::CodedOutputStream cos(&aos);
+        uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
+                              buf.prepare(4 + size));
 
-        cos.WriteLittleEndian32(size); // header
-        stats->Serialize(&cos);
+        target = CodedOutputStream::WriteLittleEndian32ToArray(size, target);
+        target = stats->SerializeToArray(target);
         buf.commit(4 + size);
 
         delete stats;
