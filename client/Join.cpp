@@ -56,29 +56,58 @@ void Join::Serialize(google::protobuf::io::CodedOutputStream *output) const
     right_child_->Serialize(output);
 }
 
+uint8_t *Join::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 selected_input_col_ids_.size(), target);
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     selected_input_col_ids_[i], target);
+    }
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 join_conds_.size(), target);
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<0>(), target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<1>(), target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<2>(), target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<3>(), target);
+    }
+
+    target = left_child_->SerializeToArray(target);
+    target = right_child_->SerializeToArray(target);
+
+    return target;
+}
+
 int Join::ByteSize() const
 {
+    using google::protobuf::io::CodedOutputStream;
+
     int total_size = 0;
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      node_id_);
+    total_size += CodedOutputStream::VarintSize32(node_id_);
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+    total_size += CodedOutputStream::VarintSize32(
                       selected_input_col_ids_.size());
     for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+        total_size += CodedOutputStream::VarintSize32(
                           selected_input_col_ids_[i]);
     }
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      join_conds_.size());
+    total_size += CodedOutputStream::VarintSize32(join_conds_.size());
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          join_conds_[i].get<0>());
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          join_conds_[i].get<1>());
-        total_size += 1;
-        total_size += 1;
+        total_size += CodedOutputStream::VarintSize32(join_conds_[i].get<0>());
+        total_size += CodedOutputStream::VarintSize32(join_conds_[i].get<1>());
+        total_size += 2;
     }
 
     total_size += left_child_->ByteSize();

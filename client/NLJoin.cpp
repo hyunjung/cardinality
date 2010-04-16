@@ -108,6 +108,20 @@ void NLJoin::Serialize(google::protobuf::io::CodedOutputStream *output) const
     output->WriteLittleEndian32(index_join_col_id_);
 }
 
+uint8_t *NLJoin::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(3, target);
+
+    target = Join::SerializeToArray(target);
+
+    target = CodedOutputStream::WriteLittleEndian32ToArray(
+                 index_join_col_id_, target);
+
+    return target;
+}
+
 int NLJoin::ByteSize() const
 {
     int total_size = 1;

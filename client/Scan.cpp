@@ -78,54 +78,99 @@ void Scan::Serialize(google::protobuf::io::CodedOutputStream *output) const
     output->WriteVarint32(num_input_cols_);
 }
 
+uint8_t *Scan::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 selected_input_col_ids_.size(), target);
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     selected_input_col_ids_[i], target);
+    }
+
+    target = CodedOutputStream::WriteVarint32ToArray(filename_.size(), target);
+    target = CodedOutputStream::WriteStringToArray(filename_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 gteq_conds_.size(), target);
+    for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     gteq_conds_[i].get<0>()->type, target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     gteq_conds_[i].get<0>()->intVal, target);
+        if (gteq_conds_[i].get<0>()->type == STRING) {
+            int len = std::strlen(gteq_conds_[i].get<0>()->charVal);
+            target = CodedOutputStream::WriteVarint32ToArray(len, target);
+            target = CodedOutputStream::WriteRawToArray(
+                         gteq_conds_[i].get<0>()->charVal, len, target);
+        }
+
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     gteq_conds_[i].get<1>(), target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     gteq_conds_[i].get<2>(), target);
+    }
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 join_conds_.size(), target);
+    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<0>(), target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<1>(), target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     join_conds_[i].get<2>(), target);
+    }
+
+    target = CodedOutputStream::WriteVarint32ToArray(num_input_cols_, target);
+
+    return target;
+}
+
 int Scan::ByteSize() const
 {
+    using google::protobuf::io::CodedOutputStream;
+
     int total_size = 0;
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      node_id_);
+    total_size += CodedOutputStream::VarintSize32(node_id_);
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+    total_size += CodedOutputStream::VarintSize32(
                       selected_input_col_ids_.size());
     for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+        total_size += CodedOutputStream::VarintSize32(
                           selected_input_col_ids_[i]);
     }
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      filename_.size());
+    total_size += CodedOutputStream::VarintSize32(filename_.size());
     total_size += filename_.size();
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      gteq_conds_.size());
+    total_size += CodedOutputStream::VarintSize32(gteq_conds_.size());
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         total_size += 1;
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
+        total_size += CodedOutputStream::VarintSize32(
                           gteq_conds_[i].get<0>()->intVal);
         if (gteq_conds_[i].get<0>()->type == STRING) {
             int len = std::strlen(gteq_conds_[i].get<0>()->charVal);
-            total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          len);
+            total_size += CodedOutputStream::VarintSize32(len);
             total_size += len;
         }
 
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          gteq_conds_[i].get<1>());
+        total_size += CodedOutputStream::VarintSize32(gteq_conds_[i].get<1>());
         total_size += 1;
     }
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      join_conds_.size());
+    total_size += CodedOutputStream::VarintSize32(join_conds_.size());
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          join_conds_[i].get<0>());
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          join_conds_[i].get<1>());
+        total_size += CodedOutputStream::VarintSize32(join_conds_[i].get<0>());
+        total_size += CodedOutputStream::VarintSize32(join_conds_[i].get<1>());
         total_size += 1;
     }
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      num_input_cols_);
+    total_size += CodedOutputStream::VarintSize32(num_input_cols_);
 
     return total_size;
 }
@@ -143,8 +188,7 @@ void Scan::Deserialize(google::protobuf::io::CodedInputStream *input)
         selected_input_col_ids_.push_back(col_id);
     }
 
-    google::protobuf::internal::WireFormatLite::ReadString(
-        input, &filename_);
+    google::protobuf::internal::WireFormatLite::ReadString(input, &filename_);
 
     input->ReadVarint32(&size);
     gteq_conds_.reserve(size);

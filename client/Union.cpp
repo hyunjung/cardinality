@@ -100,15 +100,31 @@ void Union::Serialize(google::protobuf::io::CodedOutputStream *output) const
     }
 }
 
+uint8_t *Union::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(6, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(children_.size(), target);
+    for (std::size_t i = 0; i < children_.size(); ++i) {
+        target = children_[i]->SerializeToArray(target);
+    }
+
+    return target;
+}
+
 int Union::ByteSize() const
 {
+    using google::protobuf::io::CodedOutputStream;
+
     int total_size = 1;
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      node_id_);
+    total_size += CodedOutputStream::VarintSize32(node_id_);
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      children_.size());
+    total_size += CodedOutputStream::VarintSize32(children_.size());
     for (std::size_t i = 0; i < children_.size(); ++i) {
         total_size += children_[i]->ByteSize();
     }

@@ -16,6 +16,7 @@ public:
     ~PartitionStats();
 
     void Serialize(google::protobuf::io::CodedOutputStream *) const;
+    uint8_t *SerializeToArray(uint8_t *target) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 

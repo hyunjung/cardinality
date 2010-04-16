@@ -160,19 +160,33 @@ void Remote::Serialize(google::protobuf::io::CodedOutputStream *output) const
     output->WriteVarint32(node_id_);
 
     output->WriteLittleEndian64(ip_address_.to_ulong());
-
     child_->Serialize(output);
+}
+
+uint8_t *Remote::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(5, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+
+    target = CodedOutputStream::WriteLittleEndian64ToArray(
+                 ip_address_.to_ulong(), target);
+    target = child_->SerializeToArray(target);
+
+    return target;
 }
 
 int Remote::ByteSize() const
 {
+    using google::protobuf::io::CodedOutputStream;
+
     int total_size = 1;
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      node_id_);
+    total_size += CodedOutputStream::VarintSize32(node_id_);
 
     total_size += 8;
-
     total_size += child_->ByteSize();
 
     return total_size;
@@ -185,7 +199,6 @@ void Remote::Deserialize(google::protobuf::io::CodedInputStream *input)
     unsigned long addr;
     input->ReadLittleEndian64(&addr);
     ip_address_ = boost::asio::ip::address_v4(addr);
-
     child_ = parsePlan(input);
 }
 

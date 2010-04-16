@@ -72,6 +72,17 @@ void SeqScan::Serialize(google::protobuf::io::CodedOutputStream *output) const
     Scan::Serialize(output);
 }
 
+uint8_t *SeqScan::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(1, target);
+
+    target = Scan::SerializeToArray(target);
+
+    return target;
+}
+
 int SeqScan::ByteSize() const
 {
     int total_size = 1;

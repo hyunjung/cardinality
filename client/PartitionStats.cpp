@@ -43,14 +43,15 @@ PartitionStats::~PartitionStats()
 void
 PartitionStats::Serialize(google::protobuf::io::CodedOutputStream *output) const
 {
+    using google::protobuf::internal::WireFormatLite;
+
     output->WriteVarint64(num_pages_);
-    google::protobuf::internal::WireFormatLite::WriteDoubleNoTag(
-        cardinality_, output);
+
+    WireFormatLite::WriteDoubleNoTag(cardinality_, output);
 
     output->WriteVarint32(col_lengths_.size());
     for (std::size_t i = 0; i < col_lengths_.size(); ++i) {
-        google::protobuf::internal::WireFormatLite::WriteDoubleNoTag(
-            col_lengths_[i], output);
+        WireFormatLite::WriteDoubleNoTag(col_lengths_[i], output);
     }
 
     output->WriteVarint32(min_pkey_.type);
@@ -70,35 +71,69 @@ PartitionStats::Serialize(google::protobuf::io::CodedOutputStream *output) const
     }
 }
 
+uint8_t *PartitionStats::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+    using google::protobuf::internal::WireFormatLite;
+
+    target = CodedOutputStream::WriteVarint64ToArray(num_pages_, target);
+
+    target = WireFormatLite::WriteDoubleNoTagToArray(cardinality_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 col_lengths_.size(), target);
+    for (std::size_t i = 0; i < col_lengths_.size(); ++i) {
+        target = WireFormatLite::WriteDoubleNoTagToArray(
+                     col_lengths_[i], target);
+    }
+
+    target = CodedOutputStream::WriteVarint32ToArray(min_pkey_.type, target);
+    target = CodedOutputStream::WriteVarint32ToArray(min_pkey_.intVal, target);
+    if (min_pkey_.type == STRING) {
+        int len = std::strlen(min_pkey_.charVal);
+        target = CodedOutputStream::WriteVarint32ToArray(len, target);
+        target = CodedOutputStream::WriteRawToArray(
+                     min_pkey_.charVal, len, target);
+    }
+
+    target = CodedOutputStream::WriteVarint32ToArray(max_pkey_.type, target);
+    target = CodedOutputStream::WriteVarint32ToArray(max_pkey_.intVal, target);
+    if (max_pkey_.type == STRING) {
+        int len = std::strlen(max_pkey_.charVal);
+        target = CodedOutputStream::WriteVarint32ToArray(len, target);
+        target = CodedOutputStream::WriteRawToArray(
+                     max_pkey_.charVal, len, target);
+    }
+
+    return target;
+}
+
 int PartitionStats::ByteSize() const
 {
+    using google::protobuf::internal::WireFormatLite;
+
     int total_size = 0;
 
-    total_size += google::protobuf::internal::WireFormatLite::UInt64Size(
-                      num_pages_);
+    total_size += WireFormatLite::UInt64Size(num_pages_);
+
     total_size += 8;
 
-    total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
-                      col_lengths_.size());
+    total_size += WireFormatLite::UInt32Size(col_lengths_.size());
     total_size += 8 * col_lengths_.size();
 
     total_size += 1;
-    total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
-                      min_pkey_.intVal);
+    total_size += WireFormatLite::UInt32Size(min_pkey_.intVal);
     if (min_pkey_.type == STRING) {
         int len = std::strlen(min_pkey_.charVal);
-        total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
-                          len);
+        total_size += WireFormatLite::UInt32Size(len);
         total_size += len;
     }
 
     total_size += 1;
-    total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
-                      max_pkey_.intVal);
+    total_size += WireFormatLite::UInt32Size(max_pkey_.intVal);
     if (max_pkey_.type == STRING) {
         int len = std::strlen(max_pkey_.charVal);
-        total_size += google::protobuf::internal::WireFormatLite::UInt32Size(
-                          len);
+        total_size += WireFormatLite::UInt32Size(len);
         total_size += len;
     }
 
@@ -107,19 +142,20 @@ int PartitionStats::ByteSize() const
 
 void PartitionStats::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
+    using google::protobuf::internal::WireFormatLite;
+
     input->ReadVarint64(&num_pages_);
-    google::protobuf::internal::WireFormatLite::ReadPrimitive<
-        double, google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
-            input, &cardinality_);
+
+    WireFormatLite::ReadPrimitive<double, WireFormatLite::TYPE_DOUBLE>(
+        input, &cardinality_);
 
     uint32_t size;
     input->ReadVarint32(&size);
     col_lengths_.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {
         double col_length;
-        google::protobuf::internal::WireFormatLite::ReadPrimitive<
-            double, google::protobuf::internal::WireFormatLite::TYPE_DOUBLE>(
-                input, &col_length);
+        WireFormatLite::ReadPrimitive<double, WireFormatLite::TYPE_DOUBLE>(
+            input, &col_length);
         col_lengths_.push_back(col_length);
     }
 

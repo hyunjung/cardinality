@@ -199,6 +199,17 @@ void NBJoin::Serialize(google::protobuf::io::CodedOutputStream *output) const
     Join::Serialize(output);
 }
 
+uint8_t *NBJoin::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(4, target);
+
+    target = Join::SerializeToArray(target);
+
+    return target;
+}
+
 int NBJoin::ByteSize() const
 {
     int total_size = 1;

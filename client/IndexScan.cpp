@@ -228,14 +228,47 @@ void IndexScan::Serialize(google::protobuf::io::CodedOutputStream *output) const
     }
 }
 
+uint8_t *IndexScan::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(2, target);
+
+    target = Scan::SerializeToArray(target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(index_col_.size(), target);
+    target = CodedOutputStream::WriteStringToArray(index_col_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(index_col_type_, target);
+    target = CodedOutputStream::WriteVarint32ToArray(comp_op_, target);
+    target = CodedOutputStream::WriteVarint32ToArray(unique_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(!value_, target);
+    if (value_) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     value_->type, target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     value_->intVal, target);
+        if (value_->type == STRING) {
+            int len = std::strlen(value_->charVal);
+            target = CodedOutputStream::WriteVarint32ToArray(len, target);
+            target = CodedOutputStream::WriteRawToArray(
+                         value_->charVal, len, target);
+        }
+    }
+
+    return target;
+}
+
 int IndexScan::ByteSize() const
 {
+    using google::protobuf::io::CodedOutputStream;
+
     int total_size = 1;
 
     total_size += Scan::ByteSize();
 
-    total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                      index_col_.size());
+    total_size += CodedOutputStream::VarintSize32(index_col_.size());
     total_size += index_col_.size();
 
     total_size += 3;
@@ -243,12 +276,10 @@ int IndexScan::ByteSize() const
     total_size += 1;
     if (value_) {
         total_size += 1;
-        total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          value_->intVal);
+        total_size += CodedOutputStream::VarintSize32(value_->intVal);
         if (value_->type == STRING) {
             int len = std::strlen(value_->charVal);
-            total_size += google::protobuf::io::CodedOutputStream::VarintSize32(
-                          len);
+            total_size += CodedOutputStream::VarintSize32(len);
             total_size += len;
         }
     }
@@ -260,8 +291,7 @@ void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
     Scan::Deserialize(input);
 
-    google::protobuf::internal::WireFormatLite::ReadString(
-        input, &index_col_);
+    google::protobuf::internal::WireFormatLite::ReadString(input, &index_col_);
 
     uint32_t temp;
     input->ReadVarint32(&temp);
