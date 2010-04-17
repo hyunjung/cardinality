@@ -2,6 +2,10 @@
 #define CLIENT_SCAN_H_
 
 #include <boost/tuple/tuple.hpp>
+#ifdef DISABLE_MEMORY_MAPPED_IO
+#include <fstream>
+#include <boost/smart_ptr/scoped_array.hpp>
+#endif
 #include "client/Project.h"
 #include "client/PartitionStats.h"
 
@@ -48,7 +52,12 @@ protected:
     const std::string alias_;
     const Table *table_;
     const PartitionStats *stats_;
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    std::ifstream file_;
+    boost::scoped_array<char> buffer_;
+#else
     std::pair<const char *, const char *> file_;
+#endif
     Tuple input_tuple_;
 
 private:

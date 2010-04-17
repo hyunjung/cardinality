@@ -77,7 +77,12 @@ Operator::Ptr IndexScan::clone() const
 
 void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
 {
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    buffer_.reset(new char[4096]);
+    file_.open(filename_.c_str(), std::ifstream::in | std::ifstream::binary);
+#else
     file_ = g_server->openFile(filename_);
+#endif
     input_tuple_.reserve(num_input_cols_);
     openIndex(index_col_.c_str(), &index_);
 
@@ -186,7 +191,13 @@ commit:
 bool IndexScan::GetNext(Tuple &tuple)
 {
     while (i_ < addrs_.size()) {
+#ifdef DISABLE_MEMORY_MAPPED_IO
+        file_.seekg(addrs_[i_++], std::ios::beg);
+        file_.getline(buffer_.get(), 4096);
+        parseLine(buffer_.get());
+#else
         parseLine(file_.first + addrs_[i_++]);
+#endif
 
         if (execFilter(input_tuple_)) {
             execProject(input_tuple_, tuple);
@@ -200,7 +211,10 @@ bool IndexScan::GetNext(Tuple &tuple)
 void IndexScan::Close()
 {
     closeIndex(index_);
-//  file_.close();
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    file_.close();
+    buffer_.reset();
+#endif
 }
 
 uint8_t *IndexScan::SerializeToArray(uint8_t *target) const

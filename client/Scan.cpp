@@ -12,7 +12,11 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
       gteq_conds_(), join_conds_(),
       num_input_cols_(t->nbFields),
       alias_(a), table_(t), stats_(p),
-      file_(), input_tuple_()
+      file_(),
+#ifdef DISABLE_MEMORY_MAPPED_IO
+      buffer_(),
+#endif
+      input_tuple_()
 {
     initProject(q);
     initFilter(q);
@@ -24,7 +28,11 @@ Scan::Scan()
       gteq_conds_(), join_conds_(),
       num_input_cols_(),
       alias_(), table_(), stats_(),
-      file_(), input_tuple_()
+      file_(),
+#ifdef DISABLE_MEMORY_MAPPED_IO
+      buffer_(),
+#endif
+      input_tuple_()
 {
 }
 
@@ -34,7 +42,11 @@ Scan::Scan(const Scan &x)
       gteq_conds_(x.gteq_conds_), join_conds_(x.join_conds_),
       num_input_cols_(x.num_input_cols_),
       alias_(x.alias_), table_(x.table_), stats_(x.stats_),
-      file_(), input_tuple_()
+      file_(),
+#ifdef DISABLE_MEMORY_MAPPED_IO
+      buffer_(),
+#endif
+      input_tuple_()
 {
 }
 
@@ -238,7 +250,11 @@ const char * Scan::parseLine(const char *pos)
         pos = delim + 1;
     }
 
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    const char *delim = static_cast<const char *>(rawmemchr(pos, '\0'));
+#else
     const char *delim = static_cast<const char *>(rawmemchr(pos, '\n'));
+#endif
     input_tuple_.push_back(std::make_pair(pos, delim - pos));
     return delim + 1;
 }

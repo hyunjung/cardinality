@@ -36,20 +36,39 @@ Operator::Ptr SeqScan::clone() const
 
 void SeqScan::Open(const char *, const uint32_t)
 {
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    buffer_.reset(new char[4096]);
+    file_.open(filename_.c_str(), std::ifstream::in | std::ifstream::binary);
+#else
     file_ = g_server->openFile(filename_);
-    input_tuple_.reserve(num_input_cols_);
     pos_ = file_.first;
+#endif
+    input_tuple_.reserve(num_input_cols_);
 }
 
 void SeqScan::ReOpen(const char *, const uint32_t)
 {
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    file_.clear();
+    file_.seekg(0, std::ios::beg);
+#else
     pos_ = file_.first;
+#endif
 }
 
 bool SeqScan::GetNext(Tuple &tuple)
 {
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    for (;;) {
+        file_.getline(buffer_.get(), 4096);
+        if (*buffer_.get() == '\0') {
+            return true;
+        }
+        parseLine(buffer_.get());
+#else
     while (pos_ < file_.second) {
         pos_ = parseLine(pos_);
+#endif
 
         if (execFilter(input_tuple_)) {
             execProject(input_tuple_, tuple);
@@ -62,7 +81,10 @@ bool SeqScan::GetNext(Tuple &tuple)
 
 void SeqScan::Close()
 {
-//  file_.close();
+#ifdef DISABLE_MEMORY_MAPPED_IO
+    file_.close();
+    buffer_.reset();
+#endif
 }
 
 uint8_t *SeqScan::SerializeToArray(uint8_t *target) const
