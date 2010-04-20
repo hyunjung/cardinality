@@ -10,7 +10,6 @@ class Dummy: public Operator {
 public:
     explicit Dummy(const NodeID);
     Dummy();
-    Dummy(const Dummy &);
     ~Dummy();
     Operator::Ptr clone() const;
 

@@ -13,18 +13,13 @@ Dummy::Dummy()
 {
 }
 
-Dummy::Dummy(const Dummy &x)
-    : Operator(x)
-{
-}
-
 Dummy::~Dummy()
 {
 }
 
 Operator::Ptr Dummy::clone() const
 {
-    return boost::make_shared<Dummy>(*this);
+    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
 void Dummy::Open(const char *left_ptr, const uint32_t left_len)
@@ -88,7 +83,7 @@ const PartitionStats *Dummy::getPartitionStats(const char *) const
 
 ValueType Dummy::getColType(const char *col) const
 {
-    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
+    return INT;
 }
 
 ColID Dummy::numOutputCols() const
@@ -98,7 +93,7 @@ ColID Dummy::numOutputCols() const
 
 ColID Dummy::getOutputColID(const char *col) const
 {
-    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
+    return 0;
 }
 
 double Dummy::estCost(const double) const
