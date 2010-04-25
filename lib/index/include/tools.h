@@ -98,7 +98,7 @@ int64_t hashKeyToolFull(const char * key)
 {
   int64_t hash = 0 ;
   int c = 0 ;
-  for( ; c < 8 ; c ++ )
+  for( ; c < 7 ; c ++ )
     {
       char k = key[c] ;
       if( k == '\0' )
@@ -107,7 +107,7 @@ int64_t hashKeyToolFull(const char * key)
     }
 
   //cout << hash << endl ;
-  for( ; c < 8 ; c ++ )
+  for( ; c < 7 ; c ++ )
     hash = hash*256 ;
   
   return hash ;

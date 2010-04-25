@@ -198,8 +198,10 @@ class HashTable
 	//average = evalAverage() ;
 	//deviation = evalDeviation(average) ;
         //SIGMOD OPTIMIZE
-	average = evalAverage()*2 ;
-	deviation = evalDeviation(average)*2 ;
+	average = evalAverage() ;
+	deviation = evalDeviation(average) ;
+        average += deviation ;
+        deviation *= 2 ;
         //cout << minDist/2 << endl ;
         //cout << average  << " " << deviation << endl ;
 	Key ** newHashTab = new Key*[size*2] ;
@@ -430,18 +432,19 @@ class HashTable
     cout << "warpMode : "<< warpMode << endl ;
     cout << "domain : " << domain << endl ;
     cout << "nbEl : " << nbEl << endl ;
-
-    /* 
+    cout << average << endl ;
+    cout << deviation << endl ;
+/*
     for( int s = 0 ; s < size ; s ++ )
       {
 	Key * el = hashTab[ s ] ;
 	while( el != NULL )
 	  {
-	    cout << s << ":" << el->key << " " << el->payload << endl ;
+	    cout << s << ":" << el->key << " " << el->hashKey << endl ;
 	    el = el->next ;
 	  }
       }
-    */
+*/    
   }
 
   void outSize()

@@ -6,9 +6,12 @@ using namespace std ;
 
 void createIndex( char * indexName, char * fileName, int iIndex, ValueType indexType )
 {
-  assert( SUCCESS == create( indexType, indexName ) );
+  ErrCode ret;
+  ret = create( indexType, indexName ) ;
+  assert( SUCCESS == ret );
   Index * index ;
-  assert( SUCCESS == openIndex( indexName, & index ) ) ;
+  ret = openIndex( indexName, & index ) ;
+  assert( SUCCESS == ret );
 
   FileReader fr(fileName) ;
 

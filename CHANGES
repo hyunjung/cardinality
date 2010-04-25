@@ -1,5 +1,18 @@
 --------------------------------------------------------------------
-Release 1.11 (March 21, 2009)
+Release 1.12 (April 25, 2010)
+---------------------------------------------------------------------
+- Fix incorrect computation of hash value (lib/index/include/tools.h)
+- Fix estimation of average and deviation in hash table
+  (lib/index/include/hashTableOptimizedModes.h)
+- Fix behavior of deleteDb to delete only the index passed as argument
+  (lib/index/index.h)
+- Fix delete after new[] (bench/clientHelper.cpp)
+- Fix compilation when asserts are removed with -DNEBUG
+  (bench/clientIndex.cpp)
+- Fix year in change log (CHANGES)
+
+--------------------------------------------------------------------
+Release 1.11 (March 21, 2010)
 ---------------------------------------------------------------------
 - Add a primary key to the courses table in Test4
   (dataBench/Test4/structure, dataBench/Test4/data/courses/part0)
@@ -9,31 +22,31 @@ Release 1.11 (March 21, 2009)
   (bench/mainMaster.cpp)
 
 --------------------------------------------------------------------
-Release 1.10 (March 9, 2009)
+Release 1.10 (March 9, 2010)
 ---------------------------------------------------------------------
 - Specify in the documentation that no partial overlap can occur (README)
 - Fix a bug in the index that crashes when getNext is called before
   any other call to get/getNext (lib/index/index.h)
 
 --------------------------------------------------------------------
-Release 1.9 (March 2, 2009)
+Release 1.9 (March 2, 2010)
 ---------------------------------------------------------------------
 - Fix queries of dataBench/Test4 (< is not a supported operator)
 
 --------------------------------------------------------------------
-Release 1.8 (March 2, 2009)
+Release 1.8 (March 2, 2010)
 ---------------------------------------------------------------------
 - Added dataBench/Test4 that has similar behavior than the unit tests used
   in the evaluation
 
 --------------------------------------------------------------------
-Release 1.7 (February 25, 2009)
+Release 1.7 (February 25, 2010)
 ---------------------------------------------------------------------
 - Improved loading time of the index
   (current/lib/index/include/hashTableOptimizedModes.h)
 
 --------------------------------------------------------------------
-Release 1.6 (February 24, 2009)
+Release 1.6 (February 24, 2010)
 ---------------------------------------------------------------------
 - Wait for all indexes to be generated before pretreatment phase
   (bench/mainClient.cpp, bench/mainMaster.cpp)
@@ -43,20 +56,20 @@ Release 1.6 (February 24, 2009)
   only two nodes are involved (README)
 
 ---------------------------------------------------------------------
-Release 1.5 (February 16, 2009)
+Release 1.5 (February 16, 2010)
 ---------------------------------------------------------------------
 - Wait for the end of startPretreatmentMaster to start the query load
   (bench/mainMaster.cpp, include/client.h)
 
 ---------------------------------------------------------------------
-Release 1.4 (February 16, 2009)
+Release 1.4 (February 16, 2010)
 ---------------------------------------------------------------------
 - Additional fix to the ordering of the index for strings of
   non-alphabetic charactaters (lib/index/include/tools.h)
 - Add test for string ordering (unitTest/TestTools.cpp)
 
 ---------------------------------------------------------------------
-Release 1.3 (February 15, 2009)
+Release 1.3 (February 15, 2010)
 ---------------------------------------------------------------------
 - Revert erroneous bug fix in the ordering of the index from previous
   release (lib/index/include/keyHashTest.h)
@@ -68,7 +81,7 @@ Release 1.3 (February 15, 2009)
   (lib/clientCom.cpp)
 
 ---------------------------------------------------------------------
-Release 1.2 (February 14, 2009)
+Release 1.2 (February 14, 2010)
 ---------------------------------------------------------------------
 - Bug fix in the ordering of the index (lib/index/include/keyHashTest.h)
 - Improvement in the optimizaion of the hash table in the index
@@ -80,7 +93,7 @@ Release 1.2 (February 14, 2009)
   * results is now dynamically allocated
 
 ---------------------------------------------------------------------
-Release 1.1 (January 12, 2009)
+Release 1.1 (January 12, 2010)
 ---------------------------------------------------------------------
 - Bug fix in the naming of the index (bench/mainMaster.cpp)
 - Bug fix in the return value of the openIndex function (lib/index/index.h)

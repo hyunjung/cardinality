@@ -515,8 +515,12 @@ public:
     **/
   ErrCode deleteDb(char *name)
   {
-    hs.clear();
-    nbIndexTab = 0 ;
+    Index * index = hs.get(name) ;
+    if( index == NULL )
+      return DB_DNE ;
+    
+    delete index ;
+
     return SUCCESS ;
   }
 

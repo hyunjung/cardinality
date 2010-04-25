@@ -88,7 +88,7 @@ void deletePartition(Partition & partition)
 void deleteTable(Table & table)
 {
   for( int f = 0 ; f < table.nbFields ; f ++ )
-    delete table.fieldsName[f] ; 
+    delete[] table.fieldsName[f] ; 
 
   for( int p = 0 ; p < table.nbPartitions ; p ++ )
     deletePartition( table.partitions[p] );
