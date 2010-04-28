@@ -74,22 +74,21 @@ void Connection::handle_read(const boost::system::error_code &e,
 
 void Connection::handle_query()
 {
+    using google::protobuf::io::CodedInputStream;
+
     // receive a request header
     uint8_t header[4];
     uint32_t size;
     boost::asio::read(socket_, boost::asio::buffer(header));
-    google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
-        &header[0], &size);
+    CodedInputStream::ReadLittleEndian32FromArray(&header[0], &size);
 
     // receive a request body (serialized query plan)
-    boost::asio::streambuf buf;
-    boost::asio::read(socket_, buf.prepare(size));
-    buf.commit(size);
+    std::vector<char> buf(std::max(size, 128u));
+    buf.resize(size);
+    boost::asio::read(socket_, boost::asio::buffer(buf));
 
-    google::protobuf::io::CodedInputStream cis(
-        boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
+    CodedInputStream cis(reinterpret_cast<const uint8_t *>(buf.data()), size);
     Operator::Ptr root = Operator::parsePlan(&cis);
-    buf.consume(size);
 
     // execute the query plan and transfer results
     Tuple tuple;
@@ -104,7 +103,8 @@ void Connection::handle_query()
             }
         }
 
-        char *pos = boost::asio::buffer_cast<char *>(buf.prepare(tuple_len));
+        buf.resize(tuple_len);
+        char *pos = buf.data();
         for (std::size_t i = 0; i < tuple.size(); i++) {
             std::memcpy(pos, tuple[i].first, tuple[i].second);
             pos += tuple[i].second;
@@ -113,10 +113,8 @@ void Connection::handle_query()
             }
         }
         *pos = '\n';
-        buf.commit(tuple_len);
 
-        boost::asio::write(socket_, buf);
-        buf.consume(tuple_len);
+        boost::asio::write(socket_, boost::asio::buffer(buf));
     }
     root->Close();
 
@@ -142,14 +140,13 @@ void Connection::handle_param_query()
         &header[0], &size);
 
     // receive a request body (serialized query plan)
-    boost::asio::streambuf buf;
-    boost::asio::read(socket_, buf.prepare(size));
-    buf.commit(size);
+    std::vector<char> buf(std::max(size, 128u));
+    buf.resize(size);
+    boost::asio::read(socket_, boost::asio::buffer(buf));
 
     google::protobuf::io::CodedInputStream cis(
-        boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
+        reinterpret_cast<const uint8_t *>(buf.data()), size);
     Operator::Ptr root = Operator::parsePlan(&cis);
-    buf.consume(size);
 
     // execute the query plan and transfer results
     Tuple tuple;
@@ -171,10 +168,9 @@ void Connection::handle_param_query()
         google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
             &header[0], &left_len);
 
-        boost::asio::read(socket_, buf.prepare(left_len));
-        const char *left_ptr
-            = boost::asio::buffer_cast<const char *>(buf.data());
-        buf.consume(left_len);
+        buf.resize(left_len);
+        boost::asio::read(socket_, boost::asio::buffer(buf));
+        const char *left_ptr = buf.data();
 
         if (reopen) {
             root->ReOpen(left_ptr, left_len);
@@ -192,7 +188,8 @@ void Connection::handle_param_query()
                 }
             }
 
-            char *pos = boost::asio::buffer_cast<char *>(buf.prepare(tuple_len));
+            buf.resize(tuple_len);
+            char *pos = buf.data();
             for (std::size_t i = 0; i < tuple.size(); i++) {
                 std::memcpy(pos, tuple[i].first, tuple[i].second);
                 pos += tuple[i].second;
@@ -201,10 +198,8 @@ void Connection::handle_param_query()
                 }
             }
             *pos++ = '\n';
-            buf.commit(tuple_len);
 
-            boost::asio::write(socket_, buf);
-            buf.consume(tuple_len);
+            boost::asio::write(socket_, boost::asio::buffer(buf));
         }
 
         // send a special sequence indicating the end of results
