@@ -93,25 +93,35 @@ void Connection::handle_query()
 
     // execute the query plan and transfer results
     Tuple tuple;
-    std::vector<boost::asio::const_buffer> buffers;
-    char delim[2] = {'|', '\n'};
 
     root->Open();
     while (!root->GetNext(tuple)) {
-        buffers.clear();
+        uint32_t tuple_len = 1;
         for (std::size_t i = 0; i < tuple.size(); i++) {
-            buffers.push_back(boost::asio::buffer(tuple[i].first,
-                                                  tuple[i].second));
+            tuple_len += tuple[i].second;
             if (i < tuple.size() - 1) {
-                buffers.push_back(boost::asio::buffer(&delim[0], 1));
+                ++tuple_len;
             }
         }
-        buffers.push_back(boost::asio::buffer(&delim[1], 1));
-        boost::asio::write(socket_, buffers);
+
+        char *pos = boost::asio::buffer_cast<char *>(buf.prepare(tuple_len));
+        for (std::size_t i = 0; i < tuple.size(); i++) {
+            std::memcpy(pos, tuple[i].first, tuple[i].second);
+            pos += tuple[i].second;
+            if (i < tuple.size() - 1) {
+                *pos++ = '|';
+            }
+        }
+        *pos = '\n';
+        buf.commit(tuple_len);
+
+        boost::asio::write(socket_, buf);
+        buf.consume(tuple_len);
     }
     root->Close();
 
     // send a special sequence indicating the end of results
+    char delim[2] = {'|', '\n'};
     boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2));
 
     // flush the send buffer
@@ -143,8 +153,6 @@ void Connection::handle_param_query()
 
     // execute the query plan and transfer results
     Tuple tuple;
-    std::vector<boost::asio::const_buffer> buffers;
-    char delim[2] = {'|', '\n'};
 
     boost::system::error_code error;
     bool reopen = false;
@@ -176,19 +184,31 @@ void Connection::handle_param_query()
         }
 
         while (!root->GetNext(tuple)) {
-            buffers.clear();
+            uint32_t tuple_len = 1;
             for (std::size_t i = 0; i < tuple.size(); i++) {
-                buffers.push_back(boost::asio::buffer(tuple[i].first,
-                                                      tuple[i].second));
+                tuple_len += tuple[i].second;
                 if (i < tuple.size() - 1) {
-                    buffers.push_back(boost::asio::buffer(&delim[0], 1));
+                    ++tuple_len;
                 }
             }
-            buffers.push_back(boost::asio::buffer(&delim[1], 1));
-            boost::asio::write(socket_, buffers);
+
+            char *pos = boost::asio::buffer_cast<char *>(buf.prepare(tuple_len));
+            for (std::size_t i = 0; i < tuple.size(); i++) {
+                std::memcpy(pos, tuple[i].first, tuple[i].second);
+                pos += tuple[i].second;
+                if (i < tuple.size() - 1) {
+                    *pos++ = '|';
+                }
+            }
+            *pos++ = '\n';
+            buf.commit(tuple_len);
+
+            boost::asio::write(socket_, buf);
+            buf.consume(tuple_len);
         }
 
         // send a special sequence indicating the end of results
+        char delim[2] = {'|', '\n'};
         boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2));
 
         // flush the send buffer
