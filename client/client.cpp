@@ -170,7 +170,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
     std::vector<ca::Operator::Ptr> scans;
     enumerateScans(q, scans);
 
-    if (q->nbTable == 1) {
+    if (q->nbTable == 1 && scans[0]->node_id() == MASTER_NODE_ID) {
         return scans[0];
     }
 
