@@ -65,18 +65,11 @@ void SeqScan::Close()
 //  file_.close();
 }
 
-void SeqScan::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(1);
-
-    Scan::Serialize(output);
-}
-
 uint8_t *SeqScan::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(1, target);
+    target = CodedOutputStream::WriteTagToArray(1, target);
 
     target = Scan::SerializeToArray(target);
 

@@ -15,7 +15,6 @@ public:
     Join(const Join &);
     virtual ~Join();
 
-    void Serialize(google::protobuf::io::CodedOutputStream *) const;
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);

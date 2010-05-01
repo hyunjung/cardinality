@@ -42,42 +42,6 @@ Scan::~Scan()
 {
 }
 
-void Scan::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(node_id_);
-
-    output->WriteVarint32(selected_input_col_ids_.size());
-    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        output->WriteVarint32(selected_input_col_ids_[i]);
-    }
-
-    output->WriteVarint32(filename_.size());
-    output->WriteString(filename_);
-
-    output->WriteVarint32(gteq_conds_.size());
-    for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
-        output->WriteVarint32(gteq_conds_[i].get<0>()->type);
-        output->WriteVarint32(gteq_conds_[i].get<0>()->intVal);
-        if (gteq_conds_[i].get<0>()->type == STRING) {
-            int len = std::strlen(gteq_conds_[i].get<0>()->charVal);
-            output->WriteVarint32(len);
-            output->WriteRaw(gteq_conds_[i].get<0>()->charVal, len);
-        }
-
-        output->WriteVarint32(gteq_conds_[i].get<1>());
-        output->WriteVarint32(gteq_conds_[i].get<2>());
-    }
-
-    output->WriteVarint32(join_conds_.size());
-    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        output->WriteVarint32(join_conds_[i].get<0>());
-        output->WriteVarint32(join_conds_[i].get<1>());
-        output->WriteVarint32(join_conds_[i].get<2>());
-    }
-
-    output->WriteVarint32(num_input_cols_);
-}
-
 uint8_t *Scan::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;

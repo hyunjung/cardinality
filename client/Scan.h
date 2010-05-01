@@ -21,7 +21,6 @@ public:
     Scan(const Scan &);
     virtual ~Scan();
 
-    void Serialize(google::protobuf::io::CodedOutputStream *) const;
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);

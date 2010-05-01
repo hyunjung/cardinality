@@ -40,37 +40,6 @@ PartitionStats::~PartitionStats()
 {
 }
 
-void
-PartitionStats::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    using google::protobuf::internal::WireFormatLite;
-
-    output->WriteVarint64(num_pages_);
-
-    WireFormatLite::WriteDoubleNoTag(cardinality_, output);
-
-    output->WriteVarint32(col_lengths_.size());
-    for (std::size_t i = 0; i < col_lengths_.size(); ++i) {
-        WireFormatLite::WriteDoubleNoTag(col_lengths_[i], output);
-    }
-
-    output->WriteVarint32(min_pkey_.type);
-    output->WriteVarint32(min_pkey_.intVal);
-    if (min_pkey_.type == STRING) {
-        int len = std::strlen(min_pkey_.charVal);
-        output->WriteVarint32(len);
-        output->WriteRaw(min_pkey_.charVal, len);
-    }
-
-    output->WriteVarint32(max_pkey_.type);
-    output->WriteVarint32(max_pkey_.intVal);
-    if (max_pkey_.type == STRING) {
-        int len = std::strlen(max_pkey_.charVal);
-        output->WriteVarint32(len);
-        output->WriteRaw(max_pkey_.charVal, len);
-    }
-}
-
 uint8_t *PartitionStats::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;

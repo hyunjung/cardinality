@@ -41,7 +41,6 @@ public:
     virtual bool GetNext(Tuple &) = 0;
     virtual void Close() = 0;
 
-    virtual void Serialize(google::protobuf::io::CodedOutputStream *) const = 0;
     virtual uint8_t *SerializeToArray(uint8_t *) const = 0;
     virtual int ByteSize() const = 0;
     virtual void Deserialize(google::protobuf::io::CodedInputStream *) = 0;

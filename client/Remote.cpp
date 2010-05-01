@@ -160,21 +160,11 @@ void Remote::Close()
     socket_.reset();
 }
 
-void Remote::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(5);
-
-    output->WriteVarint32(node_id_);
-
-    output->WriteLittleEndian64(ip_address_.to_ulong());
-    child_->Serialize(output);
-}
-
 uint8_t *Remote::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(5, target);
+    target = CodedOutputStream::WriteTagToArray(5, target);
 
     target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
 

@@ -35,27 +35,6 @@ Join::~Join()
 {
 }
 
-void Join::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(node_id_);
-
-    output->WriteVarint32(selected_input_col_ids_.size());
-    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        output->WriteVarint32(selected_input_col_ids_[i]);
-    }
-
-    output->WriteVarint32(join_conds_.size());
-    for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        output->WriteVarint32(join_conds_[i].get<0>());
-        output->WriteVarint32(join_conds_[i].get<1>());
-        output->WriteVarint32(join_conds_[i].get<2>());
-        output->WriteVarint32(join_conds_[i].get<3>());
-    }
-
-    left_child_->Serialize(output);
-    right_child_->Serialize(output);
-}
-
 uint8_t *Join::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;

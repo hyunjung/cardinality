@@ -88,23 +88,11 @@ void Union::Close()
     }
 }
 
-void Union::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(6);
-
-    output->WriteVarint32(node_id_);
-
-    output->WriteVarint32(children_.size());
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->Serialize(output);
-    }
-}
-
 uint8_t *Union::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(6, target);
+    target = CodedOutputStream::WriteTagToArray(6, target);
 
     target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
 

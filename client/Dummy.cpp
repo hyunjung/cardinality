@@ -44,11 +44,6 @@ void Dummy::Close()
 {
 }
 
-void Dummy::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
-}
-
 uint8_t *Dummy::SerializeToArray(uint8_t *target) const
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);

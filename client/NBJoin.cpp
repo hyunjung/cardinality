@@ -192,18 +192,11 @@ void NBJoin::Close()
     left_child_->Close();
 }
 
-void NBJoin::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(4);
-
-    Join::Serialize(output);
-}
-
 uint8_t *NBJoin::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(4, target);
+    target = CodedOutputStream::WriteTagToArray(4, target);
 
     target = Join::SerializeToArray(target);
 

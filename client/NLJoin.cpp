@@ -99,20 +99,11 @@ void NLJoin::Close()
     left_child_->Close();
 }
 
-void NLJoin::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(3);
-
-    Join::Serialize(output);
-
-    output->WriteLittleEndian32(index_join_col_id_);
-}
-
 uint8_t *NLJoin::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(3, target);
+    target = CodedOutputStream::WriteTagToArray(3, target);
 
     target = Join::SerializeToArray(target);
 

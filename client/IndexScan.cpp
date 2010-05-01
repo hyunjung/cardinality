@@ -203,36 +203,11 @@ void IndexScan::Close()
 //  file_.close();
 }
 
-void IndexScan::Serialize(google::protobuf::io::CodedOutputStream *output) const
-{
-    output->WriteVarint32(2);
-
-    Scan::Serialize(output);
-
-    output->WriteVarint32(index_col_.size());
-    output->WriteString(index_col_);
-
-    output->WriteVarint32(index_col_type_);
-    output->WriteVarint32(comp_op_);
-    output->WriteVarint32(unique_);
-
-    output->WriteVarint32(!value_);
-    if (value_) {
-        output->WriteVarint32(value_->type);
-        output->WriteVarint32(value_->intVal);
-        if (value_->type == STRING) {
-            int len = std::strlen(value_->charVal);
-            output->WriteVarint32(len);
-            output->WriteRaw(value_->charVal, len);
-        }
-    }
-}
-
 uint8_t *IndexScan::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(2, target);
+    target = CodedOutputStream::WriteTagToArray(2, target);
 
     target = Scan::SerializeToArray(target);
 
