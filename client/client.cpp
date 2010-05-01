@@ -717,65 +717,6 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
             }
             plans.push_back(plan);
         }
-
-        // right Union
-        for (std::size_t l = 0; l < subplans.size(); ++l) {
-            Plan &subplan = subplans[l];
-            Plan plan;
-
-            for (std::size_t j = 0; j < subplan.size(); ++j) {
-                Plan right1;
-                Plan right1_i;
-
-                for (std::size_t k = 0; k < right.size(); ++k) {
-                    // if both operands of the join condition are primary
-                    // keys and two partition ranges do not overlap, skip
-                    // this combination.
-                    if (left_join_col
-                        && right[k][0]->getBaseColID(
-                               right[k][0]->getOutputColID(right_join_col)) == 0
-                        && subplan[j][0]->getBaseColID(
-                               subplan[j][0]->getOutputColID(left_join_col)) == 0
-                        && NO_PKEY_OVERLAP(
-                               subplan[j][0]->getPartitionStats(left_join_col),
-                               right[k][0]->getPartitionStats(right_join_col))) {
-                        continue;
-                    }
-                    right1.push_back(right[k]);
-                    if (left_join_col) {
-                        right1_i.push_back(right_i[k]);
-                    }
-                }
-
-                if (right1.empty()) {
-                    continue;
-                }
-
-                PartPlan pp;
-                for (std::size_t jj = 0; jj < subplan[j].size(); ++jj) {
-                    ca::Operator::Ptr root(
-                        buildUnion(subplan[j][jj]->node_id(),
-                                   right1));
-                    pp.push_back(
-                        boost::make_shared<ca::NBJoin>(
-                            subplan[j][jj]->node_id(),
-                            subplan[j][jj], root, q));
-
-                    if (left_join_col) {
-                        ca::Operator::Ptr root(
-                            buildUnion(subplan[j][jj]->node_id(),
-                                       right1_i));
-                        pp.push_back(
-                            boost::make_shared<ca::NLJoin>(
-                                subplan[j][jj]->node_id(),
-                                subplan[j][jj], root,
-                                q, join_cond, left_join_col));
-                    }
-                }
-                plan.push_back(pp);
-            }
-            plans.push_back(plan);
-        }
     }
 
     ca::Operator::Ptr best_plan;

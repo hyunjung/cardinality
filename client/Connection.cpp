@@ -56,10 +56,6 @@ void Connection::handle_read(const boost::system::error_code &e,
         handler = &Connection::handle_query;
         break;
 
-    case 'P':
-        handler = &Connection::handle_param_query;
-        break;
-
     case 'S':
         handler = &Connection::handle_stats;
         break;
@@ -128,93 +124,6 @@ void Connection::handle_query()
 
     // thread exits, socket waits for another request
     start();
-}
-
-void Connection::handle_param_query()
-{
-    // receive a request header
-    uint8_t header[4];
-    uint32_t size;
-    boost::asio::read(socket_, boost::asio::buffer(header));
-    google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
-        &header[0], &size);
-
-    // receive a request body (serialized query plan)
-    std::vector<char> buf(std::max(size, 128u));
-    buf.resize(size);
-    boost::asio::read(socket_, boost::asio::buffer(buf));
-
-    google::protobuf::io::CodedInputStream cis(
-        reinterpret_cast<const uint8_t *>(buf.data()), size);
-    Operator::Ptr root = Operator::parsePlan(&cis);
-
-    // execute the query plan and transfer results
-    Tuple tuple;
-
-    boost::system::error_code error;
-    bool reopen = false;
-    uint32_t left_len;
-
-    for (;;) {
-        // receive parameters (a key for index lookup)
-        boost::asio::read(socket_, boost::asio::buffer(header),
-                          boost::asio::transfer_all(), error);
-        if (error) {
-            if (error == boost::asio::error::eof) {
-                break;
-            }
-            throw boost::system::system_error(error);
-        }
-        google::protobuf::io::CodedInputStream::ReadLittleEndian32FromArray(
-            &header[0], &left_len);
-
-        buf.resize(left_len);
-        boost::asio::read(socket_, boost::asio::buffer(buf));
-        const char *left_ptr = buf.data();
-
-        if (reopen) {
-            root->ReOpen(left_ptr, left_len);
-        } else {
-            root->Open(left_ptr, left_len);
-            reopen = true;
-        }
-
-        while (!root->GetNext(tuple)) {
-            uint32_t tuple_len = 1;
-            for (std::size_t i = 0; i < tuple.size(); i++) {
-                tuple_len += tuple[i].second;
-                if (i < tuple.size() - 1) {
-                    ++tuple_len;
-                }
-            }
-
-            buf.resize(tuple_len);
-            char *pos = buf.data();
-            for (std::size_t i = 0; i < tuple.size(); i++) {
-                std::memcpy(pos, tuple[i].first, tuple[i].second);
-                pos += tuple[i].second;
-                if (i < tuple.size() - 1) {
-                    *pos++ = '|';
-                }
-            }
-            *pos++ = '\n';
-
-            boost::asio::write(socket_, boost::asio::buffer(buf));
-        }
-
-        // send a special sequence indicating the end of results
-        char delim[2] = {'|', '\n'};
-        boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2));
-
-        // flush the send buffer
-        socket_.set_option(
-            boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(0));
-        socket_.set_option(
-            boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(1));
-    }
-    root->Close();
-
-    socket_.close();
 }
 
 void Connection::handle_stats()

@@ -44,11 +44,10 @@ public:
     double estColLength(const ColID) const;
 
 protected:
-    Operator::Ptr child_;
     boost::asio::ip::address_v4 ip_address_;
+    Operator::Ptr child_;
 
     tcpsocket_ptr socket_;
-    bool socket_reusable_;
     boost::scoped_ptr<boost::asio::streambuf> buffer_;
 
 private:

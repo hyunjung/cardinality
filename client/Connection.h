@@ -24,7 +24,6 @@ private:
 
     void handle_read(const boost::system::error_code &, std::size_t);
     void handle_query();
-    void handle_param_query();
     void handle_stats();
 
     boost::asio::ip::tcp::socket socket_;
