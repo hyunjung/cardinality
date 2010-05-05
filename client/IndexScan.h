@@ -10,7 +10,7 @@ namespace cardinality {
 class IndexScan: public Scan {
 public:
     IndexScan(const NodeID, const char *, const char *,
-              const Table *, const PartitionStats *, const Query *,
+              const Table *, const PartStats *, const Query *,
               const char * = NULL);
     IndexScan();
     IndexScan(const IndexScan &);

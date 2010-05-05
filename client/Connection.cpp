@@ -6,7 +6,7 @@
 #include <boost/asio/streambuf.hpp>
 #include <google/protobuf/wire_format_lite_inl.h>
 #include "client/Operator.h"
-#include "client/PartitionStats.h"
+#include "client/PartStats.h"
 
 
 namespace cardinality {
@@ -159,11 +159,10 @@ void Connection::handle_stats()
             &cis, &fileName);
         buf.consume(size);
 
-        // construct a PartitionStats object
-        PartitionStats *stats
-            = new PartitionStats(fileName,
-                                 nbFields,
-                                 static_cast<ValueType>(fieldType));
+        // construct a PartStats object
+        PartStats *stats = new PartStats(fileName,
+                                         nbFields,
+                                         static_cast<ValueType>(fieldType));
 
         // send a response
         size = stats->ByteSize();

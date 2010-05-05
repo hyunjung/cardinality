@@ -7,7 +7,7 @@ extern cardinality::Server *g_server;  // client.cpp
 namespace cardinality {
 
 SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
-                 const Table *t, const PartitionStats *p, const Query *q)
+                 const Table *t, const PartStats *p, const Query *q)
     : Scan(n, f, a, t, p, q),
       pos_()
 {

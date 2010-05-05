@@ -7,7 +7,7 @@
 #include <boost/smart_ptr/scoped_array.hpp>
 #endif
 #include "client/Project.h"
-#include "client/PartitionStats.h"
+#include "client/PartStats.h"
 
 
 namespace cardinality {
@@ -20,7 +20,7 @@ enum CompOp {
 class Scan: public Project {
 public:
     Scan(const NodeID, const char *, const char *,
-         const Table *, const PartitionStats *, const Query *);
+         const Table *, const PartStats *, const Query *);
     Scan();
     Scan(const Scan &);
     virtual ~Scan();
@@ -32,7 +32,7 @@ public:
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
     ColID getBaseColID(const ColID) const;
-    const PartitionStats *getPartitionStats(const char *) const;
+    const PartStats *getPartStats(const char *) const;
     ValueType getColType(const char *) const;
 
     double estTupleLength() const;
@@ -51,7 +51,7 @@ protected:
 
     const std::string alias_;
     const Table *table_;
-    const PartitionStats *stats_;
+    const PartStats *stats_;
 #ifdef DISABLE_MEMORY_MAPPED_IO
     std::ifstream file_;
     boost::scoped_array<char> buffer_;

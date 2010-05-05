@@ -1,4 +1,4 @@
-#include "client/PartitionStats.h"
+#include "client/PartStats.h"
 #include <string>
 #include <boost/filesystem/operations.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
@@ -10,10 +10,10 @@ namespace cardinality {
 
 static const int PAGE_SIZE = 4096;
 
-PartitionStats::PartitionStats(const std::string filename,
-                               const int num_input_cols,
-                               const ValueType pkey_type,
-                               const int part_no)
+PartStats::PartStats(const std::string filename,
+                     const int num_input_cols,
+                     const ValueType pkey_type,
+                     const int part_no)
     : part_no_(part_no),
       num_pages_(),
       cardinality_(),
@@ -25,7 +25,7 @@ PartitionStats::PartitionStats(const std::string filename,
     init(filename, num_input_cols, pkey_type);
 }
 
-PartitionStats::PartitionStats()
+PartStats::PartStats()
     : part_no_(),
       num_pages_(),
       cardinality_(),
@@ -36,11 +36,11 @@ PartitionStats::PartitionStats()
 {
 }
 
-PartitionStats::~PartitionStats()
+PartStats::~PartStats()
 {
 }
 
-uint8_t *PartitionStats::SerializeToArray(uint8_t *target) const
+uint8_t *PartStats::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
     using google::protobuf::internal::WireFormatLite;
@@ -77,7 +77,7 @@ uint8_t *PartitionStats::SerializeToArray(uint8_t *target) const
     return target;
 }
 
-int PartitionStats::ByteSize() const
+int PartStats::ByteSize() const
 {
     using google::protobuf::internal::WireFormatLite;
 
@@ -109,7 +109,7 @@ int PartitionStats::ByteSize() const
     return total_size;
 }
 
-void PartitionStats::Deserialize(google::protobuf::io::CodedInputStream *input)
+void PartStats::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
     using google::protobuf::internal::WireFormatLite;
 
@@ -165,7 +165,7 @@ static inline void extractPrimaryKey(const char *pos,
     }
 }
 
-void PartitionStats::init(const std::string filename,
+void PartStats::init(const std::string filename,
                           const int num_input_cols,
                           const ValueType pkey_type)
 {

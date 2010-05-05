@@ -181,9 +181,9 @@ ColID Remote::getBaseColID(const ColID cid) const
     return child_->getBaseColID(cid);
 }
 
-const PartitionStats *Remote::getPartitionStats(const char *col) const
+const PartStats *Remote::getPartStats(const char *col) const
 {
-    return child_->getPartitionStats(col);
+    return child_->getPartStats(col);
 }
 
 ValueType Remote::getColType(const char *col) const

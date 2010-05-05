@@ -226,12 +226,12 @@ ColID Join::getBaseColID(const ColID cid) const
     }
 }
 
-const PartitionStats *Join::getPartitionStats(const char *col) const
+const PartStats *Join::getPartStats(const char *col) const
 {
     if (right_child_->hasCol(col)) {
-        return right_child_->getPartitionStats(col);
+        return right_child_->getPartStats(col);
     } else {
-        return left_child_->getPartitionStats(col);
+        return left_child_->getPartStats(col);
     }
 }
 

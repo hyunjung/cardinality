@@ -23,7 +23,7 @@ typedef uint32_t NodeID;
 // pointer and length for each value
 typedef std::vector<std::pair<const char *, uint32_t> > Tuple;
 
-class PartitionStats;
+class PartStats;
 
 class Operator {
 public:
@@ -48,7 +48,7 @@ public:
     virtual bool hasCol(const char *) const = 0;
     virtual ColID getInputColID(const char *) const = 0;
     virtual ColID getBaseColID(const ColID) const = 0;
-    virtual const PartitionStats *getPartitionStats(const char *) const = 0;
+    virtual const PartStats *getPartStats(const char *) const = 0;
     virtual ValueType getColType(const char *) const = 0;
     virtual ColID numOutputCols() const = 0;
     virtual ColID getOutputColID(const char *) const = 0;

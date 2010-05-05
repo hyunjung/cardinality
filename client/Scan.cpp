@@ -6,7 +6,7 @@
 namespace cardinality {
 
 Scan::Scan(const NodeID n, const char *f, const char *a,
-           const Table *t, const PartitionStats *p, const Query *q)
+           const Table *t, const PartStats *p, const Query *q)
     : Project(n),
       filename_(f),
       gteq_conds_(), join_conds_(),
@@ -353,7 +353,7 @@ ColID Scan::getBaseColID(const ColID cid) const
     return selected_input_col_ids_[cid];
 }
 
-const PartitionStats *Scan::getPartitionStats(const char *) const
+const PartStats *Scan::getPartStats(const char *) const
 {
     return stats_;
 }

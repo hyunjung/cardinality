@@ -9,7 +9,7 @@ namespace cardinality {
 class SeqScan: public Scan {
 public:
     SeqScan(const NodeID, const char *, const char *,
-            const Table *, const PartitionStats *, const Query *);
+            const Table *, const PartStats *, const Query *);
     SeqScan();
     SeqScan(const SeqScan &);
     ~SeqScan();

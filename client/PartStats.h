@@ -8,12 +8,12 @@
 
 namespace cardinality {
 
-class PartitionStats {
+class PartStats {
 public:
-    PartitionStats(const std::string, const int, const ValueType,
-                   const int = 0);
-    PartitionStats();
-    ~PartitionStats();
+    PartStats(const std::string, const int, const ValueType,
+              const int = 0);
+    PartStats();
+    ~PartStats();
 
     uint8_t *SerializeToArray(uint8_t *target) const;
     int ByteSize() const;
@@ -25,11 +25,11 @@ public:
     std::vector<double> col_lengths_;
     Value min_pkey_;
     Value max_pkey_;
-    const PartitionStats *next_;
+    const PartStats *next_;
 
 private:
-    PartitionStats(const PartitionStats &);
-    PartitionStats& operator=(const PartitionStats &);
+    PartStats(const PartStats &);
+    PartStats& operator=(const PartStats &);
 
     void init(const std::string, const int, const ValueType);
 };

@@ -6,7 +6,7 @@
 #include <boost/checked_delete.hpp>
 #include "include/client.h"
 #include "client/Server.h"
-#include "client/PartitionStats.h"
+#include "client/PartStats.h"
 #include "client/SeqScan.h"
 #include "client/IndexScan.h"
 #include "client/NLJoin.h"
@@ -31,7 +31,7 @@ static const ca::NodeID MASTER_NODE_ID = 0;
 
 static boost::asio::ip::address_v4 *g_addrs;
 static std::map<std::string, Table *> g_tables;
-static std::map<std::string, std::vector<ca::PartitionStats *> > g_stats;
+static std::map<std::string, std::vector<ca::PartStats *> > g_stats;
 static boost::mutex g_stats_mutex;
 
 // on both master and slave
@@ -59,15 +59,15 @@ static int compareValue(const Value &a, const Value &b)
     }
 }
 
-static bool NO_PKEY_OVERLAP(const ca::PartitionStats *a,
-                            const ca::PartitionStats *b)
+static bool NO_PKEY_OVERLAP(const ca::PartStats *a,
+                            const ca::PartStats *b)
 {
     return a && b && (compareValue(a->min_pkey_, b->max_pkey_) > 0
                       || compareValue(a->max_pkey_, b->min_pkey_) < 0);
 }
 
-static bool comparePartitionStats(const ca::PartitionStats *a,
-                                  const ca::PartitionStats *b)
+static bool comparePartStats(const ca::PartStats *a,
+                             const ca::PartStats *b)
 {
     return compareValue(a->min_pkey_, b->min_pkey_) < 0;
 }
@@ -80,7 +80,7 @@ static void enumerateScans(const Query *q,
         std::string table_name(q->tableNames[i]);
         Table *table = g_tables[table_name];
         Partition *part = &table->partitions[0];
-        ca::PartitionStats *stats = g_stats[table_name][0];
+        ca::PartStats *stats = g_stats[table_name][0];
 
         try {
             scans.push_back(
@@ -115,7 +115,7 @@ static void enumerateJoins(const Query *q,
             std::string table_name(q->tableNames[i]);
             Table *table = g_tables[table_name];
             Partition *part = &table->partitions[0];
-            ca::PartitionStats *stats = g_stats[table_name][0];
+            ca::PartStats *stats = g_stats[table_name][0];
             subplan = subplans[k];
 
             // add a Remote operator if needed
@@ -223,14 +223,14 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
                    part->iNode,
                    part->fileName, q->aliasNames[0],
                    table,
-                   static_cast<ca::PartitionStats *>(NULL), q);
+                   static_cast<ca::PartStats *>(NULL), q);
 
     } catch (std::runtime_error &e) {
         root = boost::make_shared<ca::SeqScan>(
                    part->iNode,
                    part->fileName, q->aliasNames[0],
                    table,
-                   static_cast<ca::PartitionStats *>(NULL), q);
+                   static_cast<ca::PartStats *>(NULL), q);
     }
 
     for (int i = 1; i < q->nbTable; ++i) {
@@ -258,7 +258,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
                                part->iNode,
                                part->fileName, q->aliasNames[i],
                                table,
-                               static_cast<ca::PartitionStats *>(NULL), q,
+                               static_cast<ca::PartStats *>(NULL), q,
                                q->joinFields1[j]),
                            q, j, q->joinFields2[j]);
                 break;
@@ -272,7 +272,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
                                part->iNode,
                                part->fileName, q->aliasNames[i],
                                table,
-                               static_cast<ca::PartitionStats *>(NULL), q,
+                               static_cast<ca::PartStats *>(NULL), q,
                                q->joinFields2[j]),
                            q, j, q->joinFields1[j]);
                 break;
@@ -286,14 +286,14 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
                             part->iNode,
                             part->fileName, q->aliasNames[i],
                             table,
-                            static_cast<ca::PartitionStats *>(NULL), q);
+                            static_cast<ca::PartStats *>(NULL), q);
 
             } catch (std::runtime_error &e) {
                 right = boost::make_shared<ca::SeqScan>(
                             part->iNode,
                             part->fileName, q->aliasNames[i],
                             table,
-                            static_cast<ca::PartitionStats *>(NULL), q);
+                            static_cast<ca::PartStats *>(NULL), q);
             }
             root = boost::make_shared<ca::NBJoin>(
                        right->node_id(), root, right, q);
@@ -311,11 +311,11 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
 #endif
 
 static void
-findPartitionStats(const Query *q,
-                   const std::string &table_name,
-                   const char *alias_name,
-                   std::vector<ca::PartitionStats *>::const_iterator &begin,
-                   std::vector<ca::PartitionStats *>::const_iterator &end)
+findPartStats(const Query *q,
+              const std::string &table_name,
+              const char *alias_name,
+              std::vector<ca::PartStats *>::const_iterator &begin,
+              std::vector<ca::PartStats *>::const_iterator &end)
 {
     Table *table = g_tables[table_name];
     int alias_len = std::strlen(alias_name);
@@ -334,9 +334,9 @@ findPartitionStats(const Query *q,
             continue;
         }
 
-        // construct a PartitionStats object
-        // in order to use comparePartitionStats()
-        ca::PartitionStats key;
+        // construct a PartStats object
+        // in order to use comparePartStats()
+        ca::PartStats key;
         key.min_pkey_.type = q->restrictionEqualValues[j].type;
         key.min_pkey_.intVal = q->restrictionEqualValues[j].intVal;
         if (key.min_pkey_.type == STRING) {
@@ -346,9 +346,8 @@ findPartitionStats(const Query *q,
         }
 
         // determine a partition to scan
-        std::vector<ca::PartitionStats *>::const_iterator it
-            = std::upper_bound(begin, end, &key,
-                               comparePartitionStats);
+        std::vector<ca::PartStats *>::const_iterator it
+            = std::upper_bound(begin, end, &key, comparePartStats);
 
         if (it == begin) {
             // no partition contains this key
@@ -370,9 +369,9 @@ findPartitionStats(const Query *q,
             continue;
         }
 
-        // construct a PartitionStats object
-        // in order to use comparePartitionStats()
-        ca::PartitionStats key;
+        // construct a PartStats object
+        // in order to use comparePartStats()
+        ca::PartStats key;
         key.min_pkey_.type = q->restrictionGreaterThanValues[j].type;
         key.min_pkey_.intVal = q->restrictionGreaterThanValues[j].intVal;
         if (key.min_pkey_.type == STRING) {
@@ -382,9 +381,8 @@ findPartitionStats(const Query *q,
         }
 
         // determine a partition to scan
-        std::vector<ca::PartitionStats *>::const_iterator it
-            = std::upper_bound(begin, end, &key,
-                               comparePartitionStats);
+        std::vector<ca::PartStats *>::const_iterator it
+            = std::upper_bound(begin, end, &key, comparePartStats);
 
         if (it != begin) {
             begin = it - 1;
@@ -398,9 +396,9 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
     std::string table_name(q->tableNames[0]);
     Table *table = g_tables[table_name];
 
-    std::vector<ca::PartitionStats *>::const_iterator it;
-    std::vector<ca::PartitionStats *>::const_iterator end;
-    findPartitionStats(q, table_name, q->aliasNames[0], it, end);
+    std::vector<ca::PartStats *>::const_iterator it;
+    std::vector<ca::PartStats *>::const_iterator end;
+    findPartStats(q, table_name, q->aliasNames[0], it, end);
 
     ca::Operator::Ptr root;
 
@@ -413,7 +411,7 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
         root = boost::make_shared<ca::IndexScan>(
                    part->iNode,
                    part->fileName, q->aliasNames[0],
-                   table, static_cast<ca::PartitionStats *>(NULL), q);
+                   table, static_cast<ca::PartStats *>(NULL), q);
 
         // add a Remote operator if needed
         if (root->node_id() != MASTER_NODE_ID) {
@@ -436,9 +434,9 @@ static void buildScans(const Query *q,
 {
     Table *table = g_tables[table_name];
 
-    std::vector<ca::PartitionStats *>::const_iterator it;
-    std::vector<ca::PartitionStats *>::const_iterator end;
-    findPartitionStats(q, table_name, alias_name, it, end);
+    std::vector<ca::PartStats *>::const_iterator it;
+    std::vector<ca::PartStats *>::const_iterator end;
+    findPartStats(q, table_name, alias_name, it, end);
 
     right.clear();
 
@@ -447,7 +445,7 @@ static void buildScans(const Query *q,
         PartPlan pp;
 
         // for each replica
-        for (const ca::PartitionStats *stats = *it;
+        for (const ca::PartStats *stats = *it;
              stats != NULL; stats = stats->next_) {
             Partition *part = &table->partitions[stats->part_no_];
             ca::Operator::Ptr root;
@@ -477,9 +475,9 @@ static void buildIndexScans(const Query *q,
 {
     Table *table = g_tables[table_name];
 
-    std::vector<ca::PartitionStats *>::const_iterator it;
-    std::vector<ca::PartitionStats *>::const_iterator end;
-    findPartitionStats(q, table_name, alias_name, it, end);
+    std::vector<ca::PartStats *>::const_iterator it;
+    std::vector<ca::PartStats *>::const_iterator end;
+    findPartStats(q, table_name, alias_name, it, end);
 
     right.clear();
 
@@ -488,7 +486,7 @@ static void buildIndexScans(const Query *q,
         PartPlan pp;
 
         // for each replica
-        for (const ca::PartitionStats *stats = *it;
+        for (const ca::PartStats *stats = *it;
              stats != NULL; stats = stats->next_) {
             Partition *part = &table->partitions[stats->part_no_];
 
@@ -614,8 +612,8 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                         && subplan[j][0]->getBaseColID(
                                subplan[j][0]->getOutputColID(left_join_col)) == 0
                         && NO_PKEY_OVERLAP(
-                               subplan[j][0]->getPartitionStats(left_join_col),
-                               right[k][0]->getPartitionStats(right_join_col))) {
+                               subplan[j][0]->getPartStats(left_join_col),
+                               right[k][0]->getPartStats(right_join_col))) {
                         continue;
                     }
 
@@ -677,8 +675,8 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                         && subplan[j][0]->getBaseColID(
                                subplan[j][0]->getOutputColID(left_join_col)) == 0
                         && NO_PKEY_OVERLAP(
-                               subplan[j][0]->getPartitionStats(left_join_col),
-                               right[k][0]->getPartitionStats(right_join_col))) {
+                               subplan[j][0]->getPartStats(left_join_col),
+                               right[k][0]->getPartStats(right_join_col))) {
                         continue;
                     }
                     left.push_back(subplan[j]);
@@ -799,7 +797,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             CodedInputStream cis(
                 boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
-            ca::PartitionStats *stats = new ca::PartitionStats();
+            ca::PartStats *stats = new ca::PartStats();
             stats->Deserialize(&cis);
             stats->part_no_ = j;
 
@@ -849,11 +847,11 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                 != MASTER_NODE_ID) {
                 continue;
             }
-            ca::PartitionStats *stats
-                = new ca::PartitionStats(table->partitions[j].fileName,
-                                         table->nbFields,
-                                         table->fieldsType[0],
-                                         j);
+            ca::PartStats *stats
+                = new ca::PartStats(table->partitions[j].fileName,
+                                    table->nbFields,
+                                    table->fieldsType[0],
+                                    j);
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[table_name].push_back(stats);
@@ -865,7 +863,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
     threads.join_all();
 
     // for each table with 2 or more partitions
-    std::map<std::string, std::vector<ca::PartitionStats *> >::iterator table_it;
+    std::map<std::string, std::vector<ca::PartStats *> >::iterator table_it;
     for (table_it = g_stats.begin(); table_it != g_stats.end(); ++table_it) {
         if (table_it->second.size() == 1) {
             continue;
@@ -873,12 +871,12 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
         // sort all partitions based on the minimum primary keys
         std::sort(table_it->second.begin(), table_it->second.end(),
-                  comparePartitionStats);
+                  comparePartStats);
 
         // chain replicas
-        std::vector<ca::PartitionStats *>::iterator part_it
+        std::vector<ca::PartStats *>::iterator part_it
             = table_it->second.begin();
-        std::vector<ca::PartitionStats *>::iterator unique_part_it
+        std::vector<ca::PartStats *>::iterator unique_part_it
             = table_it->second.begin();
 
         while (++part_it != table_it->second.end()) {
@@ -1012,11 +1010,11 @@ ErrCode fetchRow(Connection *conn, Value *values)
 
 void closeProcess()
 {
-    // free PartitionStats objects
-    std::map<std::string, std::vector<ca::PartitionStats *> >::iterator table_it;
+    // free PartStats objects
+    std::map<std::string, std::vector<ca::PartStats *> >::iterator table_it;
     for (table_it = g_stats.begin(); table_it != g_stats.end(); ++table_it) {
         std::for_each(table_it->second.begin(), table_it->second.end(),
-                      boost::checked_delete<ca::PartitionStats>);
+                      boost::checked_delete<ca::PartStats>);
     }
 
     g_stats.clear();

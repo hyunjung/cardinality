@@ -76,7 +76,7 @@ ColID Dummy::getBaseColID(const ColID) const
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
-const PartitionStats *Dummy::getPartitionStats(const char *) const
+const PartStats *Dummy::getPartStats(const char *) const
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }

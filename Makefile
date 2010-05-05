@@ -15,7 +15,7 @@ MYOBJS = objs/Operator.o \
 		 objs/Remote.o \
 		 objs/Union.o \
 		 objs/Dummy.o \
-		 objs/PartitionStats.o \
+		 objs/PartStats.o \
 		 objs/Server.o \
 		 objs/Connection.o \
 		 objs/client.o

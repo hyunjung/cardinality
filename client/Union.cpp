@@ -159,7 +159,7 @@ ColID Union::getBaseColID(const ColID cid) const
     return children_[0]->getBaseColID(cid);
 }
 
-const PartitionStats *Union::getPartitionStats(const char *) const
+const PartStats *Union::getPartStats(const char *) const
 {
     return NULL;
 }

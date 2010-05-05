@@ -9,7 +9,7 @@ extern cardinality::Server *g_server;  // client.cpp
 namespace cardinality {
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
-                     const Table *t, const PartitionStats *p, const Query *q,
+                     const Table *t, const PartStats *p, const Query *q,
                      const char *col)
     : Scan(n, f, a, t, p, q),
       index_col_(), index_col_type_(),
