@@ -1,5 +1,5 @@
-#ifndef CLIENT_SERVER_H_
-#define CLIENT_SERVER_H_
+#ifndef CLIENT_IOMANAGER_H_
+#define CLIENT_IOMANAGER_H_
 
 #include <tr1/unordered_map>
 #include <boost/thread/mutex.hpp>
@@ -13,10 +13,10 @@ typedef uint32_t NodeID;  // Operator.h
 typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 typedef boost::shared_ptr<boost::iostreams::mapped_file_source> mapped_file_ptr;
 
-class Server {
+class IOManager {
 public:
-    explicit Server(const int);
-    ~Server();
+    explicit IOManager(const NodeID);
+    ~IOManager();
 
     void run();
 
@@ -27,8 +27,8 @@ public:
     std::pair<const char *, const char *> openFile(const std::string &);
 
 private:
-    Server(const Server &);
-    Server& operator=(const Server &);
+    IOManager(const IOManager &);
+    IOManager& operator=(const IOManager &);
 
     void handle_accept(const boost::system::error_code &);
 
@@ -44,4 +44,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_SERVER_H_
+#endif  // CLIENT_IOMANAGER_H_

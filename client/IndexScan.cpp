@@ -1,10 +1,10 @@
 #include "client/IndexScan.h"
 #include <cstring>
 #include <google/protobuf/wire_format_lite_inl.h>
-#include "client/Server.h"
+#include "client/IOManager.h"
 
 
-extern cardinality::Server *g_server;  // client.cpp
+extern cardinality::IOManager *g_io_mgr;  // client.cpp
 
 namespace cardinality {
 
@@ -81,7 +81,7 @@ void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
     buffer_.reset(new char[4096]);
     file_.open(filename_.c_str(), std::ifstream::in | std::ifstream::binary);
 #else
-    file_ = g_server->openFile(filename_);
+    file_ = g_io_mgr->openFile(filename_);
 #endif
     input_tuple_.reserve(num_input_cols_);
     openIndex(index_col_.c_str(), &index_);

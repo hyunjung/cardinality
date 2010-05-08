@@ -5,7 +5,7 @@
 #include <boost/asio/write.hpp>
 #include <boost/checked_delete.hpp>
 #include "include/client.h"
-#include "client/Server.h"
+#include "client/IOManager.h"
 #include "client/PartStats.h"
 #include "client/SeqScan.h"
 #include "client/IndexScan.h"
@@ -35,7 +35,7 @@ static std::map<std::string, std::vector<ca::PartStats *> > g_stats;
 static boost::mutex g_stats_mutex;
 
 // on both master and slave
-ca::Server *g_server;
+ca::IOManager *g_io_mgr;
 
 
 static inline bool HASIDXCOL(const char *col, const char *alias)
@@ -742,7 +742,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     ca::tcpsocket_ptr socket;
     for (int attempt = 0; attempt < 20; ++attempt) {
         try {
-            socket = g_server->connectSocket(n, g_addrs[n]);
+            socket = g_io_mgr->connectSocket(n, g_addrs[n]);
             break;
         } catch (...) {}
 
@@ -815,7 +815,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     buf.commit(4);
     boost::asio::write(*socket, buf);
 
-    g_server->closeSocket(n, socket);
+    g_io_mgr->closeSocket(n, socket);
 }
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
@@ -830,7 +830,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
     usleep(50000);  // 0.05s
 
-    g_server = new ca::Server(17000);
+    g_io_mgr = new ca::IOManager(MASTER_NODE_ID);
 
     boost::thread_group threads;
     for (int n = 1; n < nodes->nbNodes; ++n) {
@@ -858,7 +858,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
         }
     }
 
-    boost::thread t(boost::bind(&ca::Server::run, g_server));
+    boost::thread t(boost::bind(&ca::IOManager::run, g_io_mgr));
 
     threads.join_all();
 
@@ -895,8 +895,8 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
 void startSlave(const Node *masterNode, const Node *currentNode)
 {
-    g_server = new ca::Server(17000 + currentNode->iNode);
-    boost::thread t(boost::bind(&ca::Server::run, g_server));
+    g_io_mgr = new ca::IOManager(currentNode->iNode);
+    boost::thread t(boost::bind(&ca::IOManager::run, g_io_mgr));
 }
 
 Connection *createConnection()

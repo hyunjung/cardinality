@@ -1,34 +1,34 @@
-#include "client/Server.h"
+#include "client/IOManager.h"
 #include <boost/bind/bind.hpp>
 #include <boost/asio/placeholders.hpp>
 
 
 namespace cardinality {
 
-Server::Server(const int port)
+IOManager::IOManager(const NodeID n)
     : io_service_(),
       acceptor_(io_service_,
                 boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),
-                                               port)),
+                                               17000 + n)),
       new_connection_(new Connection(io_service_)),
       connection_pool_(), connpool_mutex_(),
       files_(), files_mutex_()
 {
     acceptor_.async_accept(new_connection_->socket(),
-                           boost::bind(&Server::handle_accept, this,
+                           boost::bind(&IOManager::handle_accept, this,
                                        boost::asio::placeholders::error));
 }
 
-Server::~Server()
+IOManager::~IOManager()
 {
 }
 
-void Server::run()
+void IOManager::run()
 {
     io_service_.run();
 }
 
-void Server::handle_accept(const boost::system::error_code &e)
+void IOManager::handle_accept(const boost::system::error_code &e)
 {
     if (e) {
         throw boost::system::system_error(e);
@@ -37,12 +37,12 @@ void Server::handle_accept(const boost::system::error_code &e)
     new_connection_->start();
     new_connection_.reset(new Connection(io_service_));
     acceptor_.async_accept(new_connection_->socket(),
-                           boost::bind(&Server::handle_accept, this,
+                           boost::bind(&IOManager::handle_accept, this,
                                        boost::asio::placeholders::error));
 }
 
-tcpsocket_ptr Server::connectSocket(const NodeID node_id,
-                                    const boost::asio::ip::address_v4 &addr)
+tcpsocket_ptr IOManager::connectSocket(const NodeID node_id,
+                                       const boost::asio::ip::address_v4 &addr)
 {
     tcpsocket_ptr socket;
 
@@ -71,7 +71,7 @@ tcpsocket_ptr Server::connectSocket(const NodeID node_id,
     return socket;
 }
 
-void Server::closeSocket(const NodeID node_id, tcpsocket_ptr sock)
+void IOManager::closeSocket(const NodeID node_id, tcpsocket_ptr sock)
 {
     connpool_mutex_.lock();
     connection_pool_.insert(std::pair<NodeID, tcpsocket_ptr>(node_id, sock));
@@ -79,7 +79,7 @@ void Server::closeSocket(const NodeID node_id, tcpsocket_ptr sock)
 }
 
 std::pair<const char *, const char *>
-Server::openFile(const std::string &filename)
+IOManager::openFile(const std::string &filename)
 {
     mapped_file_ptr file;
 

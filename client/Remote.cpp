@@ -1,10 +1,10 @@
 #include "client/Remote.h"
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
-#include "client/Server.h"
+#include "client/IOManager.h"
 
 
-extern cardinality::Server *g_server;  // client.cpp
+extern cardinality::IOManager *g_io_mgr;  // client.cpp
 
 namespace cardinality {
 
@@ -47,7 +47,7 @@ Operator::Ptr Remote::clone() const
 
 void Remote::Open(const char *, const uint32_t)
 {
-    socket_ = g_server->connectSocket(child_->node_id(), ip_address_);
+    socket_ = g_io_mgr->connectSocket(child_->node_id(), ip_address_);
     buffer_.reset(new boost::asio::streambuf());
 
     ReOpen();
@@ -113,7 +113,7 @@ bool Remote::GetNext(Tuple &tuple)
 void Remote::Close()
 {
     buffer_.reset();
-    g_server->closeSocket(child_->node_id(), socket_);
+    g_io_mgr->closeSocket(child_->node_id(), socket_);
     socket_.reset();
 }
 

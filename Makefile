@@ -16,7 +16,7 @@ MYOBJS = objs/Operator.o \
 		 objs/Union.o \
 		 objs/Dummy.o \
 		 objs/PartStats.o \
-		 objs/Server.o \
+		 objs/IOManager.o \
 		 objs/Connection.o \
 		 objs/client.o
 MYLIBS = lib/thirdparty/libboost_system.a \
