@@ -23,7 +23,7 @@ public:
          const Table *, const PartStats *, const Query *);
     Scan();
     Scan(const Scan &);
-    virtual ~Scan();
+    ~Scan();
 
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;

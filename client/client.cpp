@@ -12,6 +12,7 @@
 #include "client/NLJoin.h"
 #include "client/NBJoin.h"
 #include "client/Remote.h"
+#include "client/FastRemote.h"
 #include "client/Union.h"
 #include "client/Dummy.h"
 
@@ -415,7 +416,7 @@ static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
 
         // add a Remote operator if needed
         if (root->node_id() != MASTER_NODE_ID) {
-            root = boost::make_shared<ca::Remote>(
+            root = boost::make_shared<ca::FastRemote>(
                        MASTER_NODE_ID, root,
                        g_addrs[root->node_id()]);
         }
@@ -752,7 +753,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     boost::asio::streambuf buf;
 
     uint8_t *target = boost::asio::buffer_cast<uint8_t *>(buf.prepare(1));
-    target = CodedOutputStream::WriteRawToArray("S", 1, target);
+    *target++ = 'S';
     buf.commit(1);
 
     for (int i = 0; i < data->nbTables; ++i) {

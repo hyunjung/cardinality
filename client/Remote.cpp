@@ -63,7 +63,7 @@ void Remote::ReOpen(const char *, const uint32_t)
     uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
                           buffer_->prepare(total_size));
 
-    target = CodedOutputStream::WriteRawToArray("Q", 1, target);
+    *target++ = 'Q';
     target = CodedOutputStream::WriteLittleEndian32ToArray(plan_size, target);
     target = child_->SerializeToArray(target);
 

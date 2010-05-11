@@ -13,7 +13,7 @@ public:
          const Query *, const int = -1);
     Join();
     Join(const Join &);
-    virtual ~Join();
+    ~Join();
 
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;

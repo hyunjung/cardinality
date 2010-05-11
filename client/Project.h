@@ -11,7 +11,7 @@ public:
     explicit Project(const NodeID);
     Project();
     Project(const Project &);
-    virtual ~Project();
+    ~Project();
 
     ColID numOutputCols() const;
     ColID getOutputColID(const char *) const;
