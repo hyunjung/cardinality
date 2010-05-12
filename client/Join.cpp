@@ -1,5 +1,6 @@
 #include "client/Join.h"
 #include <cstring>
+#include "client/PartStats.h"
 
 
 namespace cardinality {
@@ -166,12 +167,10 @@ void Join::execProject(const Tuple &left_tuple,
 
     for (ColID i = 0; i < numOutputCols(); ++i) {
         if (selected_input_col_ids_[i] < left_child_->numOutputCols()) {
-            output_tuple.push_back(
-                left_tuple[selected_input_col_ids_[i]]);
+            output_tuple.push_back(left_tuple[selected_input_col_ids_[i]]);
         } else {
-            output_tuple.push_back(
-                right_tuple[selected_input_col_ids_[i]
-                            - left_child_->numOutputCols()]);
+            output_tuple.push_back(right_tuple[selected_input_col_ids_[i]
+                                   - left_child_->numOutputCols()]);
         }
     }
 }
@@ -184,29 +183,19 @@ bool Join::hasCol(const char *col) const
 ColID Join::getInputColID(const char *col) const
 {
     if (right_child_->hasCol(col)) {
-        return right_child_->getOutputColID(col)
-               + left_child_->numOutputCols();
+        return right_child_->getOutputColID(col) + left_child_->numOutputCols();
     } else {
         return left_child_->getOutputColID(col);
     }
 }
 
-ColID Join::getBaseColID(const ColID cid) const
+std::pair<const PartStats *, ColID> Join::getPartStats(const ColID cid) const
 {
     if (selected_input_col_ids_[cid] > left_child_->numOutputCols()) {
-        return right_child_->getBaseColID(selected_input_col_ids_[cid]
+        return right_child_->getPartStats(selected_input_col_ids_[cid]
                                           - left_child_->numOutputCols());
     } else {
-        return left_child_->getBaseColID(selected_input_col_ids_[cid]);
-    }
-}
-
-const PartStats *Join::getPartStats(const char *col) const
-{
-    if (right_child_->hasCol(col)) {
-        return right_child_->getPartStats(col);
-    } else {
-        return left_child_->getPartStats(col);
+        return left_child_->getPartStats(selected_input_col_ids_[cid]);
     }
 }
 
@@ -221,34 +210,21 @@ ValueType Join::getColType(const char *col) const
 
 double Join::estCardinality() const
 {
-    bool left_pkey = false;
-    bool right_pkey = false;
+    double card = left_child_->estCardinality()
+                  * right_child_->estCardinality();
+
+    std::pair<const PartStats *, ColID> left_stats;
+    std::pair<const PartStats *, ColID> right_stats;
 
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
-        if (!left_pkey
-            && left_child_->getBaseColID(join_conds_[i].get<0>()) == 0) {
-            left_pkey = true;
-        }
-        if (!right_pkey
-            && right_child_->getBaseColID(join_conds_[i].get<1>()) == 0) {
-            right_pkey = true;
-        }
+        left_stats = left_child_->getPartStats(join_conds_[i].get<0>());
+        right_stats = right_child_->getPartStats(join_conds_[i].get<1>());
+
+        card /= std::max(left_stats.first->num_distinct_values_[left_stats.second],
+                         right_stats.first->num_distinct_values_[right_stats.second]);
     }
 
-    if (left_pkey && right_pkey) {
-        return std::min(left_child_->estCardinality(),
-                        right_child_->estCardinality());
-    }
-    if (left_pkey) {
-        return right_child_->estCardinality();
-    }
-    if (right_pkey) {
-        return left_child_->estCardinality();
-    }
-
-    return ((join_conds_.empty()) ? 1.0 : SELECTIVITY_EQ)
-           * left_child_->estCardinality()
-           * right_child_->estCardinality();
+    return card;
 }
 
 double Join::estTupleLength() const

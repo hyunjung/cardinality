@@ -61,12 +61,7 @@ ColID Dummy::getInputColID(const char *col) const
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
-ColID Dummy::getBaseColID(const ColID) const
-{
-    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
-}
-
-const PartStats *Dummy::getPartStats(const char *) const
+std::pair<const PartStats *, ColID> Dummy::getPartStats(const ColID) const
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }

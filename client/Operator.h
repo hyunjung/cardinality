@@ -8,12 +8,6 @@
 #include <google/protobuf/io/coded_stream.h>
 #include "include/client.h"
 
-#define COST_DISK_READ_PAGE 1.0
-#define COST_DISK_SEEK_PAGE 0.3
-#define COST_NET_XFER_BYTE 0.0025
-#define SELECTIVITY_EQ 0.05
-#define SELECTIVITY_GT 0.4
-
 
 namespace cardinality {
 
@@ -47,8 +41,7 @@ public:
     virtual void print(std::ostream &, const int = 0) const = 0;
     virtual bool hasCol(const char *) const = 0;
     virtual ColID getInputColID(const char *) const = 0;
-    virtual ColID getBaseColID(const ColID) const = 0;
-    virtual const PartStats *getPartStats(const char *) const = 0;
+    virtual std::pair<const PartStats *, ColID> getPartStats(const ColID) const = 0;
     virtual ValueType getColType(const char *) const = 0;
     virtual ColID numOutputCols() const = 0;
     virtual ColID getOutputColID(const char *) const = 0;

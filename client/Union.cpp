@@ -151,14 +151,9 @@ ColID Union::getInputColID(const char *col) const
     return children_[0]->getOutputColID(col);
 }
 
-ColID Union::getBaseColID(const ColID cid) const
+std::pair<const PartStats *, ColID> Union::getPartStats(const ColID cid) const
 {
-    return children_[0]->getBaseColID(cid);
-}
-
-const PartStats *Union::getPartStats(const char *) const
-{
-    return NULL;
+    return children_[0]->getPartStats(cid);
 }
 
 ValueType Union::getColType(const char *col) const

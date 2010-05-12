@@ -151,7 +151,7 @@ void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
         throw std::runtime_error("get() failed");
     }
 
-    while ((ec = getNext(index_, txn, &record)) == SUCCESS) {
+    while (getNext(index_, txn, &record) == SUCCESS) {
         if (check_index_cond) {
             if (index_col_type_ == INT) {
                 if (comp_op_ == EQ) {
@@ -357,15 +357,19 @@ double IndexScan::estCost(const double left_cardinality) const
     double random_pages = 0.0;
 
     if (!value_) {  // NLIJ
+        double num_dups = stats_->num_distinct_values_[0]
+                          / stats_->num_distinct_values_[index_col_id_];
         random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                      (index_col_id_ == 0) ? 1.0 : 3.0, left_cardinality)
+                                      num_dups, left_cardinality)
                        / left_cardinality;
     } else {
         if (comp_op_ == EQ) {
             if (index_col_id_ == 0) {
                 seq_pages = MACKERT_LOHMAN(stats_->num_pages_, 1.0);
             } else {
-                random_pages = MACKERT_LOHMAN(stats_->num_pages_, 3.0);
+                double num_dups = stats_->num_distinct_values_[0]
+                                  / stats_->num_distinct_values_[index_col_id_];
+                random_pages = MACKERT_LOHMAN(stats_->num_pages_, num_dups);
             }
         } else {  // GT
             if (index_col_id_ == 0) {

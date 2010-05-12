@@ -4,7 +4,7 @@
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/spirit/include/qi.hpp>
 #include <google/protobuf/wire_format_lite_inl.h>
-
+#include "lib/index/include/server.h"
 
 namespace cardinality {
 
@@ -23,6 +23,21 @@ PartStats::PartStats(const std::string filename,
       next_(NULL)
 {
     init(filename, num_input_cols, pkey_type);
+}
+
+PartStats::PartStats(const Table *table, const int part_no)
+    : part_no_(part_no),
+      num_pages_(),
+      num_distinct_values_(table->nbFields, 20.0),
+      col_lengths_(table->nbFields),
+      min_pkey_(),
+      max_pkey_(),
+      next_(NULL)
+{
+    init(table->partitions[part_no].fileName,
+         table->nbFields,
+         table->fieldsType[0]);
+    init2(table);
 }
 
 PartStats::PartStats(google::protobuf::io::CodedInputStream *input)
@@ -178,8 +193,8 @@ static inline void extractPrimaryKey(const char *pos,
 }
 
 void PartStats::init(const std::string filename,
-                          const int num_input_cols,
-                          const ValueType pkey_type)
+                     const int num_input_cols,
+                     const ValueType pkey_type)
 {
     std::size_t file_size = boost::filesystem::file_size(filename);
     num_pages_ = (file_size + PAGE_SIZE - 1) / PAGE_SIZE;
@@ -235,6 +250,52 @@ void PartStats::init(const std::string filename,
         tuple_length += col_lengths_[j];
     }
     num_distinct_values_[0] = file_size / tuple_length;
+}
+
+void PartStats::init2(const Table *table)
+{
+    std::string index_col;
+    Index *index;
+    TxnState *txn;
+    Record record;
+    Value value;
+
+    for (int i = 1; i < table->nbFields; ++i) {
+        if (table->fieldsName[i][0] != '_') {
+            continue;
+        }
+
+        index_col = table->tableName;
+        index_col += '.';
+        index_col += table->fieldsName[i];
+
+        std::size_t num_values = 0;
+        std::size_t num_distinct_values = 0;
+
+        openIndex(index_col.c_str(), &index);
+        beginTransaction(&txn);
+
+        while (getNext(index, txn, &record) == SUCCESS) {
+            ++num_values;
+            if (table->fieldsType[i] == INT) {
+                if (record.val.intVal != value.intVal) {
+                    value.intVal = record.val.intVal;
+                    ++num_distinct_values;
+                }
+            } else {  // STRING
+                if (std::strcmp(record.val.charVal, value.charVal)) {
+                    std::strcpy(value.charVal, record.val.charVal);
+                    ++num_distinct_values;
+                }
+            }
+        }
+
+        commitTransaction(txn);
+        closeIndex(index);
+
+        num_distinct_values_[i] = num_distinct_values;
+        num_distinct_values_[0] = num_values;
+    }
 }
 
 }  // namespace cardinality

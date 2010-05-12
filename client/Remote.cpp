@@ -173,14 +173,9 @@ ColID Remote::getInputColID(const char *col) const
     return child_->getOutputColID(col);
 }
 
-ColID Remote::getBaseColID(const ColID cid) const
+std::pair<const PartStats *, ColID> Remote::getPartStats(const ColID cid) const
 {
-    return child_->getBaseColID(cid);
-}
-
-const PartStats *Remote::getPartStats(const char *col) const
-{
-    return child_->getPartStats(col);
+    return child_->getPartStats(cid);
 }
 
 ValueType Remote::getColType(const char *col) const

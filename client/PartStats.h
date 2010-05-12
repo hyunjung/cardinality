@@ -12,6 +12,7 @@ class PartStats {
 public:
     PartStats(const std::string, const int, const ValueType,
               const int = 0);
+    PartStats(const Table *, const int);
     PartStats(google::protobuf::io::CodedInputStream *);
     PartStats();
     ~PartStats();
@@ -33,6 +34,7 @@ private:
     PartStats& operator=(const PartStats &);
 
     void init(const std::string, const int, const ValueType);
+    void init2(const Table *);
 };
 
 }  // namespace cardinality

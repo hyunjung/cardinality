@@ -23,8 +23,7 @@ public:
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
-    ColID getBaseColID(const ColID) const;
-    const PartStats *getPartStats(const char *) const;
+    std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
     ValueType getColType(const char *) const;
     ColID numOutputCols() const;
     ColID getOutputColID(const char *) const;

@@ -607,15 +607,17 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                     // if both operands of the join condition are primary
                     // keys and two partition ranges do not overlap, skip
                     // this combination.
-                    if (left_join_col
-                        && right[k][0]->getBaseColID(
-                               right[k][0]->getOutputColID(right_join_col)) == 0
-                        && subplan[j][0]->getBaseColID(
-                               subplan[j][0]->getOutputColID(left_join_col)) == 0
-                        && NO_PKEY_OVERLAP(
-                               subplan[j][0]->getPartStats(left_join_col),
-                               right[k][0]->getPartStats(right_join_col))) {
-                        continue;
+                    if (left_join_col) {
+                        std::pair<const ca::PartStats *, ca::ColID> r
+                            = right[k][0]->getPartStats(
+                                  right[k][0]->getOutputColID(right_join_col));
+                        std::pair<const ca::PartStats *, ca::ColID> l
+                            = subplan[j][0]->getPartStats(
+                                  subplan[j][0]->getOutputColID(left_join_col));
+                        if (r.second == 0 && l.second == 0
+                            && NO_PKEY_OVERLAP(l.first, r.first)) {
+                            continue;
+                        }
                     }
 
                     for (std::size_t kk = 0; kk < right[k].size(); ++kk) {
@@ -670,15 +672,17 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
                     // if both operands of the join condition are primary
                     // keys and two partition ranges do not overlap, skip
                     // this combination.
-                    if (left_join_col
-                        && right[k][0]->getBaseColID(
-                               right[k][0]->getOutputColID(right_join_col)) == 0
-                        && subplan[j][0]->getBaseColID(
-                               subplan[j][0]->getOutputColID(left_join_col)) == 0
-                        && NO_PKEY_OVERLAP(
-                               subplan[j][0]->getPartStats(left_join_col),
-                               right[k][0]->getPartStats(right_join_col))) {
-                        continue;
+                    if (left_join_col) {
+                        std::pair<const ca::PartStats *, ca::ColID> r
+                            = right[k][0]->getPartStats(
+                                  right[k][0]->getOutputColID(right_join_col));
+                        std::pair<const ca::PartStats *, ca::ColID> l
+                            = subplan[j][0]->getPartStats(
+                                  subplan[j][0]->getOutputColID(left_join_col));
+                        if (r.second == 0 && l.second == 0
+                            && NO_PKEY_OVERLAP(l.first, r.first)) {
+                            continue;
+                        }
                     }
                     left.push_back(subplan[j]);
                 }
@@ -847,11 +851,8 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                 != MASTER_NODE_ID) {
                 continue;
             }
-            ca::PartStats *stats
-                = new ca::PartStats(table->partitions[j].fileName,
-                                    table->nbFields,
-                                    table->fieldsType[0],
-                                    j);
+
+            ca::PartStats *stats = new ca::PartStats(table, j);
 
             boost::mutex::scoped_lock lock(g_stats_mutex);
             g_stats[table_name].push_back(stats);

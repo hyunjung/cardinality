@@ -329,14 +329,9 @@ ColID Scan::getInputColID(const char *col) const
     throw std::runtime_error("column name not found");
 }
 
-ColID Scan::getBaseColID(const ColID cid) const
+std::pair<const PartStats *, ColID> Scan::getPartStats(const ColID cid) const
 {
-    return selected_input_col_ids_[cid];
-}
-
-const PartStats *Scan::getPartStats(const char *) const
-{
-    return stats_;
+    return std::make_pair(stats_, selected_input_col_ids_[cid]);
 }
 
 ValueType Scan::getColType(const char *col) const

@@ -32,8 +32,7 @@ public:
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
-    ColID getBaseColID(const ColID) const;
-    const PartStats *getPartStats(const char *) const;
+    std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
     ValueType getColType(const char *) const;
     ColID numOutputCols() const;
     ColID getOutputColID(const char *) const;
@@ -49,6 +48,8 @@ protected:
 
     tcpsocket_ptr socket_;
     boost::scoped_ptr<boost::asio::streambuf> buffer_;
+
+    static const double COST_NET_XFER_BYTE = 0.0025;
 
 private:
     Remote& operator=(const Remote &);

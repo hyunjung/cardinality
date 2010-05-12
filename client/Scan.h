@@ -31,8 +31,7 @@ public:
 
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
-    ColID getBaseColID(const ColID) const;
-    const PartStats *getPartStats(const char *) const;
+    std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
     ValueType getColType(const char *) const;
 
     double estTupleLength() const;
@@ -59,6 +58,11 @@ protected:
     std::pair<const char *, const char *> file_;
 #endif
     Tuple input_tuple_;
+
+    static const double COST_DISK_READ_PAGE = 1.0;
+    static const double COST_DISK_SEEK_PAGE = 0.3;
+    static const double SELECTIVITY_EQ = 0.05;
+    static const double SELECTIVITY_GT = 0.4;
 
 private:
     Scan& operator=(const Scan &);
