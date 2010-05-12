@@ -36,7 +36,7 @@ protected:
     ValueType index_col_type_;
     CompOp comp_op_;
     Value *value_;
-    bool unique_;
+    ColID index_col_id_;
 
     Index *index_;
     std::vector<uint64_t> addrs_;

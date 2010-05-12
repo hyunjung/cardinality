@@ -16,7 +16,7 @@ PartStats::PartStats(const std::string filename,
                      const int part_no)
     : part_no_(part_no),
       num_pages_(),
-      cardinality_(),
+      num_distinct_values_(num_input_cols, 20.0),
       col_lengths_(num_input_cols),
       min_pkey_(),
       max_pkey_(),
@@ -28,7 +28,7 @@ PartStats::PartStats(const std::string filename,
 PartStats::PartStats()
     : part_no_(),
       num_pages_(),
-      cardinality_(),
+      num_distinct_values_(),
       col_lengths_(),
       min_pkey_(),
       max_pkey_(),
@@ -47,11 +47,11 @@ uint8_t *PartStats::SerializeToArray(uint8_t *target) const
 
     target = CodedOutputStream::WriteVarint64ToArray(num_pages_, target);
 
-    target = WireFormatLite::WriteDoubleNoTagToArray(cardinality_, target);
-
     target = CodedOutputStream::WriteVarint32ToArray(
                  col_lengths_.size(), target);
     for (std::size_t i = 0; i < col_lengths_.size(); ++i) {
+        target = WireFormatLite::WriteDoubleNoTagToArray(
+                     num_distinct_values_[i], target);
         target = WireFormatLite::WriteDoubleNoTagToArray(
                      col_lengths_[i], target);
     }
@@ -85,9 +85,8 @@ int PartStats::ByteSize() const
 
     total_size += WireFormatLite::UInt64Size(num_pages_);
 
-    total_size += 8;
-
     total_size += WireFormatLite::UInt32Size(col_lengths_.size());
+    total_size += 8 * num_distinct_values_.size();
     total_size += 8 * col_lengths_.size();
 
     total_size += 1;
@@ -115,17 +114,18 @@ void PartStats::Deserialize(google::protobuf::io::CodedInputStream *input)
 
     input->ReadVarint64(&num_pages_);
 
-    WireFormatLite::ReadPrimitive<double, WireFormatLite::TYPE_DOUBLE>(
-        input, &cardinality_);
-
     uint32_t size;
     input->ReadVarint32(&size);
+    num_distinct_values_.reserve(size);
     col_lengths_.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {
-        double col_length;
+        double temp;
         WireFormatLite::ReadPrimitive<double, WireFormatLite::TYPE_DOUBLE>(
-            input, &col_length);
-        col_lengths_.push_back(col_length);
+            input, &temp);
+        num_distinct_values_.push_back(temp);
+        WireFormatLite::ReadPrimitive<double, WireFormatLite::TYPE_DOUBLE>(
+            input, &temp);
+        col_lengths_.push_back(temp);
     }
 
     uint32_t temp;
@@ -222,7 +222,7 @@ void PartStats::init(const std::string filename,
         col_lengths_[j] /= (j < i) ? (num_tuples + 1) : num_tuples;
         tuple_length += col_lengths_[j];
     }
-    cardinality_ = file_size / tuple_length;
+    num_distinct_values_[0] = file_size / tuple_length;
 }
 
 }  // namespace cardinality

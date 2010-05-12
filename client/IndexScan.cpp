@@ -13,7 +13,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const char *col)
     : Scan(n, f, a, t, p, q),
       index_col_(), index_col_type_(),
-      comp_op_(EQ), value_(NULL), unique_(),
+      comp_op_(EQ), value_(NULL), index_col_id_(),
       index_(), addrs_(), i_()
 {
     if (col) {  // NLIJ
@@ -25,9 +25,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         index_col_ += '.';
         index_col_ += dot + 1;
         index_col_type_ = getColType(col);
-
-        // equivalent to unique_ = getInputColID(t->fieldsName[0]) == 0
-        unique_ = std::strcmp(t->fieldsName[0], dot + 1) == 0;
+        index_col_id_ = getInputColID(col);
     } else {
         for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
             const char *col = table_->fieldsName[gteq_conds_[i].get<1>()];
@@ -38,7 +36,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                 comp_op_ = gteq_conds_[i].get<2>();
                 value_ = gteq_conds_[i].get<0>();
                 index_col_type_ = value_->type;
-                unique_ = gteq_conds_[i].get<1>() == 0;
+                index_col_id_ = gteq_conds_[i].get<1>();
                 gteq_conds_.erase(gteq_conds_.begin() + i);
                 break;
             }
@@ -53,7 +51,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
 IndexScan::IndexScan()
     : Scan(),
       index_col_(), index_col_type_(),
-      comp_op_(), value_(), unique_(),
+      comp_op_(), value_(), index_col_id_(),
       index_(), addrs_(), i_()
 {
 }
@@ -61,7 +59,7 @@ IndexScan::IndexScan()
 IndexScan::IndexScan(const IndexScan &x)
     : Scan(x),
       index_col_(x.index_col_), index_col_type_(x.index_col_type_),
-      comp_op_(x.comp_op_), value_(x.value_), unique_(x.unique_),
+      comp_op_(x.comp_op_), value_(x.value_), index_col_id_(x.index_col_id_),
       index_(), addrs_(), i_()
 {
 }
@@ -129,7 +127,7 @@ void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
         if (comp_op_ == EQ) {
             addrs_.push_back(record.address);
 
-            if (unique_) {
+            if (index_col_id_ == 0) {
                 goto commit;
             }
         }
@@ -230,7 +228,7 @@ uint8_t *IndexScan::SerializeToArray(uint8_t *target) const
 
     target = CodedOutputStream::WriteVarint32ToArray(index_col_type_, target);
     target = CodedOutputStream::WriteVarint32ToArray(comp_op_, target);
-    target = CodedOutputStream::WriteVarint32ToArray(unique_, target);
+    target = CodedOutputStream::WriteVarint32ToArray(index_col_id_, target);
 
     target = CodedOutputStream::WriteVarint32ToArray(!value_, target);
     if (value_) {
@@ -260,7 +258,8 @@ int IndexScan::ByteSize() const
     total_size += CodedOutputStream::VarintSize32(index_col_.size());
     total_size += index_col_.size();
 
-    total_size += 3;
+    total_size += 2;
+    total_size += CodedOutputStream::VarintSize32(index_col_id_);
 
     total_size += 1;
     if (value_) {
@@ -288,7 +287,7 @@ void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
     input->ReadVarint32(&temp);
     comp_op_ = static_cast<CompOp>(temp);
     input->ReadVarint32(&temp);
-    unique_ = static_cast<bool>(temp);
+    index_col_id_ = static_cast<ColID>(temp);
 
     input->ReadVarint32(&temp);
     if (!temp) {
@@ -308,7 +307,7 @@ void IndexScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
     os << "IndexScan@" << node_id() << " " << filename_ << " ";
-    if (unique_) {
+    if (index_col_id_ == 0) {
         os << "unique ";
     }
     os << index_col_ << ((comp_op_ == EQ) ? "=" : ">");
@@ -357,22 +356,22 @@ double IndexScan::estCost(const double left_cardinality) const
 
     if (!value_) {  // NLIJ
         random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                      (unique_) ? 1.0 : 3.0, left_cardinality)
+                                      (index_col_id_ == 0) ? 1.0 : 3.0, left_cardinality)
                        / left_cardinality;
     } else {
         if (comp_op_ == EQ) {
-            if (unique_) {
+            if (index_col_id_ == 0) {
                 seq_pages = MACKERT_LOHMAN(stats_->num_pages_, 1.0);
             } else {
                 random_pages = MACKERT_LOHMAN(stats_->num_pages_, 3.0);
             }
         } else {  // GT
-            if (unique_) {
+            if (index_col_id_ == 0) {
                 seq_pages = stats_->num_pages_ * SELECTIVITY_GT;
             } else {
-                random_pages
-                    = MACKERT_LOHMAN(stats_->num_pages_,
-                                     stats_->cardinality_ * SELECTIVITY_GT);
+                random_pages = MACKERT_LOHMAN(stats_->num_pages_,
+                                              stats_->num_distinct_values_[0]
+                                              * SELECTIVITY_GT);
             }
         }
     }
@@ -383,15 +382,11 @@ double IndexScan::estCost(const double left_cardinality) const
 
 double IndexScan::estCardinality() const
 {
-    double card = stats_->cardinality_;
+    double card = stats_->num_distinct_values_[0];
 
     if (value_) {
         if (comp_op_ == EQ) {
-            if (unique_) {
-                card = 1.0;
-            } else {
-                card *= SELECTIVITY_EQ;
-            }
+            card /= stats_->num_distinct_values_[index_col_id_];
         } else {  // GT
             card *= SELECTIVITY_GT;
         }
@@ -399,11 +394,7 @@ double IndexScan::estCardinality() const
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<2>() == EQ) {
-            if (gteq_conds_[i].get<1>() == 0) {
-                card /= stats_->cardinality_;
-            } else {
-                card *= SELECTIVITY_EQ;
-            }
+            card /= stats_->num_distinct_values_[gteq_conds_[i].get<1>()];
         } else {  // GT
             card *= SELECTIVITY_GT;
         }

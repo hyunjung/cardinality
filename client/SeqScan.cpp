@@ -130,15 +130,11 @@ double SeqScan::estCost(const double) const
 
 double SeqScan::estCardinality() const
 {
-    double card = stats_->cardinality_;
+    double card = stats_->num_distinct_values_[0];
 
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<2>() == EQ) {
-            if (gteq_conds_[i].get<1>() == 0) {
-                card /= stats_->cardinality_;
-            } else {
-                card *= SELECTIVITY_EQ;
-            }
+            card /= stats_->num_distinct_values_[gteq_conds_[i].get<1>()];
         } else {  // GT
             card *= SELECTIVITY_GT;
         }

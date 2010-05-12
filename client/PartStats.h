@@ -21,7 +21,7 @@ public:
 
     int part_no_;
     std::size_t num_pages_;
-    double cardinality_;
+    std::vector<double> num_distinct_values_;
     std::vector<double> col_lengths_;
     Value min_pkey_;
     Value max_pkey_;
