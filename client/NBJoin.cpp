@@ -18,8 +18,8 @@ NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 {
 }
 
-NBJoin::NBJoin()
-    : Join(),
+NBJoin::NBJoin(google::protobuf::io::CodedInputStream *input)
+    : Join(input),
       state_(), left_done_(),
       left_tuples_(),
       left_tuples_it_(),
@@ -27,6 +27,7 @@ NBJoin::NBJoin()
       right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
+    Deserialize(input);
 }
 
 NBJoin::NBJoin(const NBJoin &x)
@@ -205,16 +206,13 @@ uint8_t *NBJoin::SerializeToArray(uint8_t *target) const
 
 int NBJoin::ByteSize() const
 {
-    int total_size = 1;
-
-    total_size += Join::ByteSize();
+    int total_size = 1 + Join::ByteSize();
 
     return total_size;
 }
 
 void NBJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    Join::Deserialize(input);
 }
 
 void NBJoin::print(std::ostream &os, const int tab) const

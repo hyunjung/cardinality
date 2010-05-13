@@ -18,13 +18,14 @@ Remote::Remote(const NodeID n, Operator::Ptr c,
 {
 }
 
-Remote::Remote()
-    : Operator(),
+Remote::Remote(google::protobuf::io::CodedInputStream *input)
+    : Operator(input),
       ip_address_(),
       child_(),
       socket_(),
       buffer_()
 {
+    Deserialize(input);
 }
 
 Remote::Remote(const Remote &x)
@@ -136,9 +137,7 @@ int Remote::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 1;
-
-    total_size += CodedOutputStream::VarintSize32(node_id_);
+    int total_size = 1 + CodedOutputStream::VarintSize32(node_id_);
 
     total_size += 8;
     total_size += child_->ByteSize();
@@ -148,8 +147,6 @@ int Remote::ByteSize() const
 
 void Remote::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    input->ReadVarint32(&node_id_);
-
     unsigned long addr;
     input->ReadLittleEndian64(&addr);
     ip_address_ = boost::asio::ip::address_v4(addr);

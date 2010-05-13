@@ -8,11 +8,6 @@ Dummy::Dummy(const NodeID n)
 {
 }
 
-Dummy::Dummy()
-    : Operator()
-{
-}
-
 Dummy::~Dummy()
 {
 }
@@ -45,11 +40,6 @@ uint8_t *Dummy::SerializeToArray(uint8_t *target) const
 }
 
 int Dummy::ByteSize() const
-{
-    throw std::runtime_error(BOOST_CURRENT_FUNCTION);
-}
-
-void Dummy::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }

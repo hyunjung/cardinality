@@ -21,7 +21,7 @@ class Scan: public Project {
 public:
     Scan(const NodeID, const char *, const char *,
          const Table *, const PartStats *, const Query *);
-    Scan();
+    explicit Scan(google::protobuf::io::CodedInputStream *);
     Scan(const Scan &);
     ~Scan();
 

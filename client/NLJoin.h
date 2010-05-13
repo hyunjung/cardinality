@@ -10,7 +10,7 @@ class NLJoin: public Join {
 public:
     NLJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *, const int = -1, const char * = NULL);
-    NLJoin();
+    explicit NLJoin(google::protobuf::io::CodedInputStream *);
     NLJoin(const NLJoin &);
     ~NLJoin();
     Operator::Ptr clone() const;

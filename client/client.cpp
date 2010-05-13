@@ -798,8 +798,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             CodedInputStream cis(
                 boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
-            ca::PartStats *stats = new ca::PartStats();
-            stats->Deserialize(&cis);
+            ca::PartStats *stats = new ca::PartStats(&cis);
             stats->part_no_ = j;
 
             buf.consume(size);

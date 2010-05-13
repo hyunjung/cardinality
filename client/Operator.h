@@ -30,7 +30,7 @@ public:
     typedef boost::shared_ptr<Operator> Ptr;
 
     explicit Operator(const NodeID);
-    Operator();
+    explicit Operator(google::protobuf::io::CodedInputStream *);
     Operator(const Operator &);
     virtual ~Operator();
     virtual Operator::Ptr clone() const = 0;
@@ -42,7 +42,7 @@ public:
 
     virtual uint8_t *SerializeToArray(uint8_t *) const = 0;
     virtual int ByteSize() const = 0;
-    virtual void Deserialize(google::protobuf::io::CodedInputStream *) = 0;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     virtual void print(std::ostream &, const int = 0) const = 0;
     virtual bool hasCol(const char *) const = 0;

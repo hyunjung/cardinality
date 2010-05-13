@@ -10,7 +10,7 @@ class SeqScan: public Scan {
 public:
     SeqScan(const NodeID, const char *, const char *,
             const Table *, const PartStats *, const Query *);
-    SeqScan();
+    explicit SeqScan(google::protobuf::io::CodedInputStream *);
     SeqScan(const SeqScan &);
     ~SeqScan();
     Operator::Ptr clone() const;

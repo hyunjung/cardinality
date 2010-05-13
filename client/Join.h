@@ -11,7 +11,7 @@ class Join: public Project {
 public:
     Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
-    Join();
+    explicit Join(google::protobuf::io::CodedInputStream *);
     Join(const Join &);
     ~Join();
 

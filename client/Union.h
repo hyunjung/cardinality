@@ -9,7 +9,7 @@ namespace cardinality {
 class Union: public Operator {
 public:
     Union(const NodeID, std::vector<Operator::Ptr>);
-    Union();
+    explicit Union(google::protobuf::io::CodedInputStream *);
     Union(const Union &);
     ~Union();
     Operator::Ptr clone() const;

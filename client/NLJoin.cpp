@@ -15,12 +15,13 @@ NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
     }
 }
 
-NLJoin::NLJoin()
-    : Join(),
+NLJoin::NLJoin(google::protobuf::io::CodedInputStream *input)
+    : Join(input),
       index_join_col_id_(),
       state_(),
       left_tuple_(), right_tuple_()
 {
+    Deserialize(input);
 }
 
 NLJoin::NLJoin(const NLJoin &x)
@@ -115,9 +116,7 @@ uint8_t *NLJoin::SerializeToArray(uint8_t *target) const
 
 int NLJoin::ByteSize() const
 {
-    int total_size = 1;
-
-    total_size += Join::ByteSize();
+    int total_size = 1 + Join::ByteSize();
 
     total_size += 4;
 
@@ -126,8 +125,6 @@ int NLJoin::ByteSize() const
 
 void NLJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    Join::Deserialize(input);
-
     uint32_t col_id;
     input->ReadLittleEndian32(&col_id);
     index_join_col_id_ = static_cast<ColID>(col_id);

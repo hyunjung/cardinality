@@ -15,12 +15,13 @@ Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
     initFilter(q, x);
 }
 
-Join::Join()
-    : Project(),
+Join::Join(google::protobuf::io::CodedInputStream *input)
+    : Project(input),
       left_child_(),
       right_child_(),
       join_conds_()
 {
+    Deserialize(input);
 }
 
 Join::Join(const Join &x)
@@ -39,14 +40,7 @@ uint8_t *Join::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
-
-    target = CodedOutputStream::WriteVarint32ToArray(
-                 selected_input_col_ids_.size(), target);
-    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        target = CodedOutputStream::WriteVarint32ToArray(
-                     selected_input_col_ids_[i], target);
-    }
+    target = Project::SerializeToArray(target);
 
     target = CodedOutputStream::WriteVarint32ToArray(
                  join_conds_.size(), target);
@@ -71,16 +65,7 @@ int Join::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 0;
-
-    total_size += CodedOutputStream::VarintSize32(node_id_);
-
-    total_size += CodedOutputStream::VarintSize32(
-                      selected_input_col_ids_.size());
-    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        total_size += CodedOutputStream::VarintSize32(
-                          selected_input_col_ids_[i]);
-    }
+    int total_size = Project::ByteSize();
 
     total_size += CodedOutputStream::VarintSize32(join_conds_.size());
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
@@ -97,17 +82,7 @@ int Join::ByteSize() const
 
 void Join::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    input->ReadVarint32(&node_id_);
-
     uint32_t size;
-    input->ReadVarint32(&size);
-    selected_input_col_ids_.reserve(size);
-    for (std::size_t i = 0; i < size; ++i) {
-        uint32_t col_id;
-        input->ReadVarint32(&col_id);
-        selected_input_col_ids_.push_back(col_id);
-    }
-
     input->ReadVarint32(&size);
     join_conds_.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {

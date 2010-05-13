@@ -13,7 +13,7 @@ class NBJoin: public Join {
 public:
     NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
-    NBJoin();
+    explicit NBJoin(google::protobuf::io::CodedInputStream *);
     NBJoin(const NBJoin &);
     ~NBJoin();
     Operator::Ptr clone() const;

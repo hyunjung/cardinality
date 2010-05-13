@@ -25,6 +25,18 @@ PartStats::PartStats(const std::string filename,
     init(filename, num_input_cols, pkey_type);
 }
 
+PartStats::PartStats(google::protobuf::io::CodedInputStream *input)
+    : part_no_(),
+      num_pages_(),
+      num_distinct_values_(),
+      col_lengths_(),
+      min_pkey_(),
+      max_pkey_(),
+      next_(NULL)
+{
+    Deserialize(input);
+}
+
 PartStats::PartStats()
     : part_no_(),
       num_pages_(),

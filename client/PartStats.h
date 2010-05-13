@@ -12,6 +12,7 @@ class PartStats {
 public:
     PartStats(const std::string, const int, const ValueType,
               const int = 0);
+    PartStats(google::protobuf::io::CodedInputStream *);
     PartStats();
     ~PartStats();
 

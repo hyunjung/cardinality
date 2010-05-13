@@ -22,8 +22,8 @@ Scan::Scan(const NodeID n, const char *f, const char *a,
     initFilter(q);
 }
 
-Scan::Scan()
-    : Project(),
+Scan::Scan(google::protobuf::io::CodedInputStream *input)
+    : Project(input),
       filename_(),
       gteq_conds_(), join_conds_(),
       num_input_cols_(),
@@ -34,6 +34,7 @@ Scan::Scan()
 #endif
       input_tuple_()
 {
+    Deserialize(input);
 }
 
 Scan::Scan(const Scan &x)
@@ -64,14 +65,7 @@ uint8_t *Scan::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
-
-    target = CodedOutputStream::WriteVarint32ToArray(
-                 selected_input_col_ids_.size(), target);
-    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        target = CodedOutputStream::WriteVarint32ToArray(
-                     selected_input_col_ids_[i], target);
-    }
+    target = Project::SerializeToArray(target);
 
     target = CodedOutputStream::WriteVarint32ToArray(filename_.size(), target);
     target = CodedOutputStream::WriteStringToArray(filename_, target);
@@ -116,16 +110,7 @@ int Scan::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 0;
-
-    total_size += CodedOutputStream::VarintSize32(node_id_);
-
-    total_size += CodedOutputStream::VarintSize32(
-                      selected_input_col_ids_.size());
-    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
-        total_size += CodedOutputStream::VarintSize32(
-                          selected_input_col_ids_[i]);
-    }
+    int total_size = Project::ByteSize();
 
     total_size += CodedOutputStream::VarintSize32(filename_.size());
     total_size += filename_.size();
@@ -159,19 +144,9 @@ int Scan::ByteSize() const
 
 void Scan::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    input->ReadVarint32(&node_id_);
-
-    uint32_t size;
-    input->ReadVarint32(&size);
-    selected_input_col_ids_.reserve(size);
-    for (std::size_t i = 0; i < size; ++i) {
-        uint32_t col_id;
-        input->ReadVarint32(&col_id);
-        selected_input_col_ids_.push_back(col_id);
-    }
-
     google::protobuf::internal::WireFormatLite::ReadString(input, &filename_);
 
+    uint32_t size;
     input->ReadVarint32(&size);
     gteq_conds_.reserve(size);
     for (std::size_t i = 0; i < size; ++i) {

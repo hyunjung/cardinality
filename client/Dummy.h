@@ -9,7 +9,6 @@ namespace cardinality {
 class Dummy: public Operator {
 public:
     explicit Dummy(const NodeID);
-    Dummy();
     ~Dummy();
     Operator::Ptr clone() const;
 
@@ -20,7 +19,6 @@ public:
 
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
-    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     void print(std::ostream &, const int) const;
     bool hasCol(const char *) const;

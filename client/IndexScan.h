@@ -12,7 +12,7 @@ public:
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartStats *, const Query *,
               const char * = NULL);
-    IndexScan();
+    explicit IndexScan(google::protobuf::io::CodedInputStream *);
     IndexScan(const IndexScan &);
     ~IndexScan();
     Operator::Ptr clone() const;

@@ -9,10 +9,11 @@ Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
 {
 }
 
-Union::Union()
-    : Operator(),
+Union::Union(google::protobuf::io::CodedInputStream *input)
+    : Operator(input),
       children_(), it_(), done_()
 {
+    Deserialize(input);
 }
 
 Union::Union(const Union &x)
@@ -108,9 +109,7 @@ int Union::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 1;
-
-    total_size += CodedOutputStream::VarintSize32(node_id_);
+    int total_size = 1 + CodedOutputStream::VarintSize32(node_id_);
 
     total_size += CodedOutputStream::VarintSize32(children_.size());
     for (std::size_t i = 0; i < children_.size(); ++i) {
@@ -122,8 +121,6 @@ int Union::ByteSize() const
 
 void Union::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    input->ReadVarint32(&node_id_);
-
     uint32_t size;
     input->ReadVarint32(&size);
     children_.reserve(size);

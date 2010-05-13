@@ -13,10 +13,11 @@ SeqScan::SeqScan(const NodeID n, const char *f, const char *a,
 {
 }
 
-SeqScan::SeqScan()
-    : Scan(),
+SeqScan::SeqScan(google::protobuf::io::CodedInputStream *input)
+    : Scan(input),
       pos_()
 {
+    Deserialize(input);
 }
 
 SeqScan::SeqScan(const SeqScan &x)
@@ -100,16 +101,13 @@ uint8_t *SeqScan::SerializeToArray(uint8_t *target) const
 
 int SeqScan::ByteSize() const
 {
-    int total_size = 1;
-
-    total_size += Scan::ByteSize();
+    int total_size = 1 + Scan::ByteSize();
 
     return total_size;
 }
 
 void SeqScan::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    Scan::Deserialize(input);
 }
 
 void SeqScan::print(std::ostream &os, const int tab) const

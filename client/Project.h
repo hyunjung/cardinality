@@ -9,9 +9,13 @@ namespace cardinality {
 class Project: public Operator {
 public:
     explicit Project(const NodeID);
-    Project();
+    explicit Project(google::protobuf::io::CodedInputStream *);
     Project(const Project &);
     ~Project();
+
+    uint8_t *SerializeToArray(uint8_t *) const;
+    int ByteSize() const;
+    void Deserialize(google::protobuf::io::CodedInputStream *);
 
     ColID numOutputCols() const;
     ColID getOutputColID(const char *) const;

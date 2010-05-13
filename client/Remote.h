@@ -15,7 +15,7 @@ class Remote: public Operator {
 public:
     Remote(const NodeID, Operator::Ptr,
            const boost::asio::ip::address_v4 &);
-    Remote();
+    explicit Remote(google::protobuf::io::CodedInputStream *);
     Remote(const Remote &);
     ~Remote();
     Operator::Ptr clone() const;

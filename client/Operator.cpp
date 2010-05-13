@@ -15,9 +15,10 @@ Operator::Operator(const NodeID n)
 {
 }
 
-Operator::Operator()
+Operator::Operator(google::protobuf::io::CodedInputStream *input)
     : node_id_()
 {
+    Deserialize(input);
 }
 
 Operator::Operator(const Operator &x)
@@ -27,6 +28,11 @@ Operator::Operator(const Operator &x)
 
 Operator::~Operator()
 {
+}
+
+void Operator::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    input->ReadVarint32(&node_id_);
 }
 
 NodeID Operator::node_id() const
@@ -50,31 +56,29 @@ Operator::Ptr Operator::parsePlan(google::protobuf::io::CodedInputStream *input)
 
     switch (operator_type) {
     case 1:  // SeqScan
-        plan = boost::make_shared<SeqScan>();
+        plan = boost::make_shared<SeqScan>(input);
         break;
 
     case 2:  // IndexScan
-        plan = boost::make_shared<IndexScan>();
+        plan = boost::make_shared<IndexScan>(input);
         break;
 
     case 3:  // NLJoin
-        plan = boost::make_shared<NLJoin>();
+        plan = boost::make_shared<NLJoin>(input);
         break;
 
     case 4:  // NBJoin
-        plan = boost::make_shared<NBJoin>();
+        plan = boost::make_shared<NBJoin>(input);
         break;
 
     case 5:  // Remote
-        plan = boost::make_shared<Remote>();
+        plan = boost::make_shared<Remote>(input);
         break;
 
     case 6:  // Union
-        plan = boost::make_shared<Union>();
+        plan = boost::make_shared<Union>(input);
         break;
     }
-
-    plan->Deserialize(input);
 
     return plan;
 }

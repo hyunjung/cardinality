@@ -11,10 +11,11 @@ Project::Project(const NodeID n)
 {
 }
 
-Project::Project()
-    : Operator(),
+Project::Project(google::protobuf::io::CodedInputStream *input)
+    : Operator(input),
       selected_input_col_ids_()
 {
+    Deserialize(input);
 }
 
 Project::Project(const Project &x)
@@ -25,6 +26,50 @@ Project::Project(const Project &x)
 
 Project::~Project()
 {
+}
+
+uint8_t *Project::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+
+    target = CodedOutputStream::WriteVarint32ToArray(
+                 selected_input_col_ids_.size(), target);
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     selected_input_col_ids_[i], target);
+    }
+
+    return target;
+}
+
+int Project::ByteSize() const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    int total_size = CodedOutputStream::VarintSize32(node_id_);
+
+    total_size += CodedOutputStream::VarintSize32(
+                      selected_input_col_ids_.size());
+    for (std::size_t i = 0; i < selected_input_col_ids_.size(); ++i) {
+        total_size += CodedOutputStream::VarintSize32(
+                          selected_input_col_ids_[i]);
+    }
+
+    return total_size;
+}
+
+void Project::Deserialize(google::protobuf::io::CodedInputStream *input)
+{
+    uint32_t size;
+    input->ReadVarint32(&size);
+    selected_input_col_ids_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        uint32_t col_id;
+        input->ReadVarint32(&col_id);
+        selected_input_col_ids_.push_back(col_id);
+    }
 }
 
 ColID Project::numOutputCols() const

@@ -49,12 +49,13 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
     }
 }
 
-IndexScan::IndexScan()
-    : Scan(),
+IndexScan::IndexScan(google::protobuf::io::CodedInputStream *input)
+    : Scan(input),
       index_col_(), index_col_type_(),
       comp_op_(), value_(NULL), index_col_id_(),
       index_(), addrs_(), i_()
 {
+    Deserialize(input);
 }
 
 IndexScan::IndexScan(const IndexScan &x)
@@ -256,9 +257,7 @@ int IndexScan::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 1;
-
-    total_size += Scan::ByteSize();
+    int total_size = 1 + Scan::ByteSize();
 
     total_size += CodedOutputStream::VarintSize32(index_col_.size());
     total_size += index_col_.size();
@@ -282,8 +281,6 @@ int IndexScan::ByteSize() const
 
 void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
-    Scan::Deserialize(input);
-
     google::protobuf::internal::WireFormatLite::ReadString(input, &index_col_);
 
     uint32_t temp;
