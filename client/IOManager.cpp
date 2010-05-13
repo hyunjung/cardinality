@@ -7,13 +7,16 @@ namespace cardinality {
 
 IOManager::IOManager(const NodeID n)
     : io_service_(),
-      acceptor_(io_service_,
-                boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(),
-                                               17000 + n)),
+      acceptor_(io_service_),
       new_connection_(new Connection(io_service_)),
       connection_pool_(), connpool_mutex_(),
       files_(), files_mutex_()
 {
+    boost::asio::ip::tcp::endpoint port(boost::asio::ip::tcp::v4(), 17000 + n);
+    acceptor_.open(port.protocol());
+    acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+    acceptor_.bind(port);
+    acceptor_.listen(1024);
     acceptor_.async_accept(new_connection_->socket(),
                            boost::bind(&IOManager::handle_accept, this,
                                        boost::asio::placeholders::error));
