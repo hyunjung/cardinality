@@ -52,6 +52,12 @@ Scan::Scan(const Scan &x)
 
 Scan::~Scan()
 {
+    // free objects allocated by Deserialize()
+    if (alias_.empty()) {
+        for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
+            delete gteq_conds_[i].get<0>();
+        }
+    }
 }
 
 uint8_t *Scan::SerializeToArray(uint8_t *target) const

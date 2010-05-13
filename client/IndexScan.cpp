@@ -13,7 +13,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const char *col)
     : Scan(n, f, a, t, p, q),
       index_col_(), index_col_type_(),
-      comp_op_(EQ), value_(NULL), index_col_id_(),
+      comp_op_(), value_(NULL), index_col_id_(),
       index_(), addrs_(), i_()
 {
     if (col) {  // NLIJ
@@ -24,6 +24,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         index_col_ = table_->tableName;
         index_col_ += '.';
         index_col_ += dot + 1;
+        comp_op_ = EQ;
         index_col_type_ = getColType(col);
         index_col_id_ = getInputColID(col);
     } else {
@@ -51,7 +52,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
 IndexScan::IndexScan()
     : Scan(),
       index_col_(), index_col_type_(),
-      comp_op_(), value_(), index_col_id_(),
+      comp_op_(), value_(NULL), index_col_id_(),
       index_(), addrs_(), i_()
 {
 }
@@ -66,6 +67,10 @@ IndexScan::IndexScan(const IndexScan &x)
 
 IndexScan::~IndexScan()
 {
+    // free objects allocated by Deserialize()
+    if (alias_.empty()) {
+        delete value_;
+    }
 }
 
 Operator::Ptr IndexScan::clone() const
