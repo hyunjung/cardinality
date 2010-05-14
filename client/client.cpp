@@ -767,24 +767,57 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
             }
 
             // compute a request body size
-            int len = std::strlen(data->tables[i].partitions[j].fileName);
-            uint32_t size = CodedOutputStream::VarintSize32(
-                                data->tables[i].nbFields)
-                            + 1 + CodedOutputStream::VarintSize32(len) + len;
+            uint32_t size = 0;
+            int len;
+            len = std::strlen(data->tables[i].tableName);
+            size += CodedOutputStream::VarintSize32(len) + len;
+            len = std::strlen(data->tables[i].partitions[j].fileName);
+            size += CodedOutputStream::VarintSize32(len) + len;
+            size += 1;  // fieldsType[0]
+            size += CodedOutputStream::VarintSize32(data->tables[i].nbFields);
+            for (int k = 0; k < data->tables[i].nbFields; ++k) {
+                if (data->tables[i].fieldsName[k][0] == '_') {
+                    len = std::strlen(data->tables[i].fieldsName[k]);
+                } else {
+                    len = 0;
+                }
+                size += CodedOutputStream::VarintSize32(len) + len;
+            }
 
             // send a request
             uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
                                   buf.prepare(4 + size));
+
             target = CodedOutputStream::WriteLittleEndian32ToArray(
                          size, target);  // header
+            len = std::strlen(data->tables[i].tableName);
             target = CodedOutputStream::WriteVarint32ToArray(
-                         data->tables[i].nbFields, target);
-            target = CodedOutputStream::WriteVarint32ToArray(
-                         data->tables[i].fieldsType[0], target);
+                         len, target);
+            target = CodedOutputStream::WriteRawToArray(
+                         data->tables[i].tableName, len, target);
+            len = std::strlen(data->tables[i].partitions[j].fileName);
             target = CodedOutputStream::WriteVarint32ToArray(
                          len, target);
             target = CodedOutputStream::WriteRawToArray(
                          data->tables[i].partitions[j].fileName, len, target);
+            target = CodedOutputStream::WriteVarint32ToArray(
+                         data->tables[i].fieldsType[0], target);
+            target = CodedOutputStream::WriteVarint32ToArray(
+                         data->tables[i].nbFields, target);
+            for (int k = 0; k < data->tables[i].nbFields; ++k) {
+                if (data->tables[i].fieldsName[k][0] == '_') {
+                    len = std::strlen(data->tables[i].fieldsName[k]);
+                    target = CodedOutputStream::WriteVarint32ToArray(
+                                 len, target);
+                    target = CodedOutputStream::WriteRawToArray(
+                                 data->tables[i].fieldsName[k], len, target);
+                } else {
+                    len = 0;
+                    target = CodedOutputStream::WriteVarint32ToArray(
+                                 len, target);
+                }
+            }
+
             buf.commit(size + 4);
 
             boost::asio::write(*socket, buf);

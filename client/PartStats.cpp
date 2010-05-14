@@ -10,22 +10,25 @@ namespace cardinality {
 
 static const int PAGE_SIZE = 4096;
 
-PartStats::PartStats(const std::string filename,
-                     const int num_input_cols,
+PartStats::PartStats(const std::string &tablename,
+                     const std::string &filename,
                      const ValueType pkey_type,
+                     const std::vector<std::string> &fieldnames,
                      const int part_no)
     : part_no_(part_no),
       num_pages_(),
-      num_distinct_values_(num_input_cols, 20.0),
-      col_lengths_(num_input_cols),
+      num_distinct_values_(fieldnames.size(), 20.0),
+      col_lengths_(fieldnames.size()),
       min_pkey_(),
       max_pkey_(),
       next_(NULL)
 {
-    init(filename, num_input_cols, pkey_type);
+    init(filename, fieldnames.size(), pkey_type);
+//  init2(tablename, fieldnames);
 }
 
-PartStats::PartStats(const Table *table, const int part_no)
+PartStats::PartStats(const Table *table,
+                     const int part_no)
     : part_no_(part_no),
       num_pages_(),
       num_distinct_values_(table->nbFields, 20.0),
@@ -37,7 +40,13 @@ PartStats::PartStats(const Table *table, const int part_no)
     init(table->partitions[part_no].fileName,
          table->nbFields,
          table->fieldsType[0]);
-    init2(table);
+
+    std::vector<std::string> fieldnames;
+    fieldnames.reserve(table->nbFields);
+    for (int i = 0; i < table->nbFields; ++i) {
+        fieldnames.push_back(table->fieldsName[i]);
+    }
+//  init2(table->tableName, fieldnames);
 }
 
 PartStats::PartStats(google::protobuf::io::CodedInputStream *input)
@@ -252,22 +261,20 @@ void PartStats::init(const std::string filename,
     num_distinct_values_[0] = file_size / tuple_length;
 }
 
-void PartStats::init2(const Table *table)
+void PartStats::init2(const std::string tablename,
+                      const std::vector<std::string> &fieldnames)
 {
-    std::string index_col;
     Index *index;
     TxnState *txn;
     Record record;
     Value value;
 
-    for (int i = 1; i < table->nbFields; ++i) {
-        if (table->fieldsName[i][0] != '_') {
+    for (std::size_t i = 1; i < fieldnames.size(); ++i) {
+        if (fieldnames[i].empty() || fieldnames[i][0] != '_') {
             continue;
         }
 
-        index_col = table->tableName;
-        index_col += '.';
-        index_col += table->fieldsName[i];
+        std::string index_col = tablename + "." + fieldnames[i];
 
         std::size_t num_values = 0;
         std::size_t num_distinct_values = 0;
@@ -277,7 +284,7 @@ void PartStats::init2(const Table *table)
 
         while (getNext(index, txn, &record) == SUCCESS) {
             ++num_values;
-            if (table->fieldsType[i] == INT) {
+            if (record.val.type == INT) {
                 if (record.val.intVal != value.intVal) {
                     value.intVal = record.val.intVal;
                     ++num_distinct_values;

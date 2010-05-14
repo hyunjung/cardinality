@@ -154,19 +154,32 @@ void Connection::handle_stats()
         CodedInputStream cis(
             boost::asio::buffer_cast<const uint8_t *>(buf.data()), size);
 
-        uint32_t nbFields;
-        cis.ReadVarint32(&nbFields);
-        uint32_t fieldType;
-        cis.ReadVarint32(&fieldType);
+        std::string tableName;
+        google::protobuf::internal::WireFormatLite::ReadString(
+            &cis, &tableName);
         std::string fileName;
         google::protobuf::internal::WireFormatLite::ReadString(
             &cis, &fileName);
+        uint32_t fieldType;
+        cis.ReadVarint32(&fieldType);
+        uint32_t nbFields;
+        cis.ReadVarint32(&nbFields);
+        std::vector<std::string> fieldNames;
+        fieldNames.reserve(nbFields);
+        for (int k = 0; k < nbFields; ++k) {
+            std::string fieldName;
+            google::protobuf::internal::WireFormatLite::ReadString(
+                &cis, &fieldName);
+            fieldNames.push_back(fieldName);
+        }
+
         buf.consume(size);
 
         // construct a PartStats object
-        PartStats *stats = new PartStats(fileName,
-                                         nbFields,
-                                         static_cast<ValueType>(fieldType));
+        PartStats *stats = new PartStats(tableName,
+                                         fileName,
+                                         static_cast<ValueType>(fieldType),
+                                         fieldNames);
 
         // send a response
         size = stats->ByteSize();

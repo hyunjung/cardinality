@@ -10,8 +10,8 @@ namespace cardinality {
 
 class PartStats {
 public:
-    PartStats(const std::string, const int, const ValueType,
-              const int = 0);
+    PartStats(const std::string &, const std::string &,
+              const ValueType, const std::vector<std::string> &, const int = 0);
     PartStats(const Table *, const int);
     PartStats(google::protobuf::io::CodedInputStream *);
     PartStats();
@@ -34,7 +34,7 @@ private:
     PartStats& operator=(const PartStats &);
 
     void init(const std::string, const int, const ValueType);
-    void init2(const Table *);
+    void init2(const std::string, const std::vector<std::string> &);
 };
 
 }  // namespace cardinality
