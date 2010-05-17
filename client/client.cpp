@@ -21,6 +21,11 @@
 #include "client/FastRemote.h"
 #include "client/Union.h"
 #include "client/Dummy.h"
+#ifndef DISABLE_MATERIAL
+#include <tr1/unordered_map>
+#include <sys/time.h>  // gettimeofday
+#include "client/Material.h"
+#endif
 
 
 namespace ca = cardinality;
@@ -40,6 +45,10 @@ static boost::asio::ip::address_v4 *g_addrs;
 static std::map<std::string, Table *> g_tables;
 static std::map<std::string, std::vector<ca::PartStats *> > g_stats;
 static boost::mutex g_stats_mutex;
+#ifndef DISABLE_MATERIAL
+static std::tr1::unordered_map<const Query *, ca::Operator::Ptr,
+                               ca::HashQuery, ca::EqualToQuery> g_materials;
+#endif
 
 // on both master and slave
 ca::IOManager *g_io_mgr;
@@ -102,6 +111,108 @@ static void enumerateScans(const Query *q,
                     part->iNode,
                     part->fileName, q->aliasNames[i],
                     table, stats, q));
+        }
+    }
+}
+
+static void enumerate2wayJoins(const Query *q,
+                               const std::vector<ca::Operator::Ptr> &scans,
+                               std::vector<ca::Operator::Ptr> &plans)
+{
+    for (int i = 0; i < q->nbTable; ++i) {
+        Table *table1 = g_tables[std::string(q->tableNames[i])];
+        Partition *part1 = &table1->partitions[0];
+        ca::PartStats *stats1 = g_stats[std::string(q->tableNames[i])][0];
+
+        for (int j = i + 1; j < q->nbTable; ++j) {
+            Table *table2 = g_tables[std::string(q->tableNames[j])];
+            Partition *part2 = &table2->partitions[0];
+            ca::PartStats *stats2 = g_stats[std::string(q->tableNames[j])][0];
+
+            std::size_t plans_size = plans.size();
+            ca::Operator::Ptr scan1 = scans[i];
+            ca::Operator::Ptr scan2 = scans[j];
+
+            // add a Remote operator if needed
+            if (part1->iNode != part2->iNode) {
+                scan1 = boost::make_shared<ca::Remote>(
+                            part2->iNode, scan1, g_addrs[scan1->node_id()]);
+                scan2 = boost::make_shared<ca::Remote>(
+                            part1->iNode, scan2, g_addrs[scan2->node_id()]);
+            }
+
+            // Nested Loop Index Join
+            for (int k = 0; k < q->nbJoins; ++k) {
+                if (HASIDXCOL(q->joinFields1[k], q->aliasNames[j])
+                    && scan1->hasCol(q->joinFields2[k])) {
+                    plans.push_back(
+                        boost::make_shared<ca::NLJoin>(
+                            part2->iNode,
+                            scan1,
+                            boost::make_shared<ca::IndexScan>(
+                                part2->iNode,
+                                part2->fileName, q->aliasNames[j],
+                                table2, stats2, q,
+                                q->joinFields1[k]),
+                            q, k, q->joinFields2[k]));
+                    break;
+                }
+                if (HASIDXCOL(q->joinFields2[k], q->aliasNames[j])
+                    && scan1->hasCol(q->joinFields1[k])) {
+                    plans.push_back(
+                        boost::make_shared<ca::NLJoin>(
+                            part2->iNode,
+                            scan1,
+                            boost::make_shared<ca::IndexScan>(
+                                part2->iNode,
+                                part2->fileName, q->aliasNames[j],
+                                table2, stats2, q,
+                                q->joinFields2[k]),
+                            q, k, q->joinFields1[k]));
+                    break;
+                }
+            }
+
+            for (int k = 0; k < q->nbJoins; ++k) {
+                if (HASIDXCOL(q->joinFields1[k], q->aliasNames[i])
+                    && scan2->hasCol(q->joinFields2[k])) {
+                    plans.push_back(
+                        boost::make_shared<ca::NLJoin>(
+                            part1->iNode,
+                            scan2,
+                            boost::make_shared<ca::IndexScan>(
+                                part1->iNode,
+                                part1->fileName, q->aliasNames[i],
+                                table1, stats1, q,
+                                q->joinFields1[k]),
+                            q, k, q->joinFields2[k]));
+                    break;
+                }
+                if (HASIDXCOL(q->joinFields2[k], q->aliasNames[i])
+                    && scan2->hasCol(q->joinFields1[k])) {
+                    plans.push_back(
+                        boost::make_shared<ca::NLJoin>(
+                            part1->iNode,
+                            scan2,
+                            boost::make_shared<ca::IndexScan>(
+                                part1->iNode,
+                                part1->fileName, q->aliasNames[i],
+                                table1, stats1, q,
+                                q->joinFields2[k]),
+                            q, k, q->joinFields1[k]));
+                    break;
+                }
+            }
+
+            // Nested Block Join
+            if (plans_size == plans.size()) {
+                plans.push_back(
+                    boost::make_shared<ca::NBJoin>(
+                        scans[j]->node_id(), scan1, scans[j], q));
+                plans.push_back(
+                    boost::make_shared<ca::NBJoin>(
+                        scans[i]->node_id(), scan2, scans[i], q));
+            }
         }
     }
 }
@@ -172,7 +283,7 @@ static void enumerateJoins(const Query *q,
     }
 }
 
-static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
+static ca::Operator::Ptr buildQueryPlanNoPartition(const Query *q)
 {
     std::vector<ca::Operator::Ptr> scans;
     enumerateScans(q, scans);
@@ -181,11 +292,23 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
         return scans[0];
     }
 
-    std::vector<ca::Operator::Ptr> plans(scans);
+    std::vector<ca::Operator::Ptr> plans;
     std::vector<ca::Operator::Ptr> subplans;
 
-    // enumerate equivalent execution trees
-    for (int i = 1; i < q->nbTable; ++i) {
+    if (q->nbTable > 1) {
+        enumerate2wayJoins(q, scans, plans);
+#ifndef DISABLE_MATERIAL
+        std::tr1::unordered_map<const Query *, ca::Operator::Ptr>::iterator it
+            = g_materials.find(q);
+        if (it != g_materials.end()) {
+            plans.push_back(it->second);
+        }
+#endif
+    } else {
+        plans = scans;
+    }
+
+    for (int i = 2; i < q->nbTable; ++i) {
         subplans.clear();
         plans.swap(subplans);
         enumerateJoins(q, scans, subplans, plans);
@@ -216,7 +339,7 @@ static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
     return best_plan;
 }
 #else  // DISABLE_QUERY_OPTIMIZER
-static ca::Operator::Ptr buildQueryPlanOnePartPerTable(const Query *q)
+static ca::Operator::Ptr buildQueryPlanNoPartition(const Query *q)
 {
     ca::Operator::Ptr root;
     ca::Operator::Ptr right;
@@ -398,7 +521,7 @@ findPartStats(const Query *q,
     }
 }
 
-static ca::Operator::Ptr buildQueryPlanSingleTable(const Query *q)
+static ca::Operator::Ptr buildQueryPlanScan(const Query *q)
 {
     std::string table_name(q->tableNames[0]);
     Table *table = g_tables[table_name];
@@ -543,8 +666,8 @@ static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan)
     }
 }
 
-static ca::Operator::Ptr buildQueryPlan(const Query *q,
-                                        const std::vector<int> &table_order)
+static ca::Operator::Ptr buildQueryPlanJoin(const Query *q,
+                                            const std::vector<int> &table_order)
 {
     std::vector<Plan> plans;
     std::vector<Plan> subplans;
@@ -745,6 +868,46 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q,
     return best_plan->clone();
 }
 
+static ca::Operator::Ptr buildQueryPlan(const Query *q)
+{
+    bool partitioned = false;
+    for (int i = 0; i < q->nbTable; ++i) {
+        if (g_tables[std::string(q->tableNames[i])]->nbPartitions != 1) {
+            partitioned = true;
+            break;
+        }
+    }
+
+    ca::Operator::Ptr root;
+
+    if (!partitioned) {
+        root = buildQueryPlanNoPartition(q);
+    } else {
+        if (q->nbTable == 1) {
+            root = buildQueryPlanScan(q);
+        }
+        if (!root.get()) {
+            std::vector<int> join_order;
+            for (int i = 0; i < q->nbTable; ++i) {
+                join_order.push_back(i);
+            }
+
+            double cost = 0.0;
+            do {
+                ca::Operator::Ptr new_root(buildQueryPlanJoin(q, join_order));
+                double new_cost = new_root->estCost();
+                if (!root.get() || cost > new_cost) {
+                    root = new_root;
+                    cost = new_cost;
+                }
+            } while (std::next_permutation(join_order.begin(),
+                                           join_order.end()));
+        }
+    }
+
+    return root;
+}
+
 static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 {
     using google::protobuf::io::CodedInputStream;
@@ -864,6 +1027,11 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                              const Data *data, const Queries *preset)
 {
+#ifndef DISABLE_MATERIAL
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+#endif
+
     g_addrs = new boost::asio::ip::address_v4[nodes->nbNodes];
 
     for (int n = 0; n < nodes->nbNodes; ++n) {
@@ -931,6 +1099,44 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
         table_it->second.resize(++unique_part_it - table_it->second.begin());
     }
+
+#ifndef DISABLE_MATERIAL
+    // precompute queries without any constants
+    for (int i = 0; i < preset->nbQueries; ++i) {
+        Query *q = &preset->queries[i];
+        if (q->nbTable != 2
+            || q->nbRestrictionsEqual != 0
+            || q->nbRestrictionsGreaterThan != 0) {
+            continue;
+        }
+
+        bool partitioned = false;
+        for (int j = 0; j < q->nbTable; ++j) {
+            if (g_tables[std::string(q->tableNames[j])]->nbPartitions != 1) {
+                partitioned = true;
+                break;
+            }
+        }
+        if (partitioned) {
+            continue;
+        }
+
+        gettimeofday(&end, NULL);
+        if (end.tv_sec > start.tv_sec + nbSeconds
+            || (end.tv_sec == start.tv_sec + nbSeconds
+                && end.tv_usec > start.tv_usec)) {
+            break;
+        }
+
+        ca::Operator::Ptr root = buildQueryPlanNoPartition(q);
+
+        try {
+            g_materials.insert(
+                std::make_pair(q, boost::make_shared<ca::Material>(
+                                      MASTER_NODE_ID, root)));
+        } catch (std::runtime_error &e) {}
+    }
+#endif
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)
@@ -969,38 +1175,8 @@ void performQuery(Connection *conn, const Query *q)
         }
     }
 
-    // choose an optimal query plan and open an iterator
+    conn->root = buildQueryPlan(q);
     conn->q = q;
-
-    int maxNumParts = 0;
-    for (int i = 0; i < q->nbTable; ++i) {
-        maxNumParts = std::max(maxNumParts,
-                               g_tables[std::string(q->tableNames[i])]->nbPartitions);
-    }
-
-    if (maxNumParts == 1) {
-        conn->root = buildQueryPlanOnePartPerTable(q);
-    } else {
-        conn->root.reset();
-        if (q->nbTable == 1) {
-            conn->root = buildQueryPlanSingleTable(q);
-        }
-        if (!conn->root.get()) {
-            std::vector<int> join_order;
-            for (int i = 0; i < q->nbTable; ++i) {
-                join_order.push_back(i);
-            }
-            do {
-                ca::Operator::Ptr root(
-                    buildQueryPlan(q, join_order));
-
-                if (!conn->root.get() || conn->root->estCost() > root->estCost()) {
-                    conn->root = root;
-                }
-            } while (std::next_permutation(join_order.begin(), join_order.end()));
-        }
-    }
-
     conn->output_col_ids.clear();
     conn->value_types.clear();
 

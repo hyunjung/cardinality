@@ -6,7 +6,7 @@
 
 namespace cardinality {
 
-static const int NBJOIN_BUFSIZE = 65536;
+static const int NBJOIN_BUFSIZE = 262144;
 
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)

@@ -15,6 +15,7 @@ MYOBJS = objs/Operator.o \
 		 objs/Remote.o \
 		 objs/FastRemote.o \
 		 objs/Union.o \
+		 objs/Material.o \
 		 objs/Dummy.o \
 		 objs/PartStats.o \
 		 objs/IOManager.o \
