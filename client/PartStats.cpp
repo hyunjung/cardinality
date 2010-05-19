@@ -1,5 +1,7 @@
 #include "client/PartStats.h"
 #include <string>
+#include <cstring>
+#include <algorithm>  // std::min
 #include <boost/filesystem/operations.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
 #include <boost/spirit/include/qi.hpp>

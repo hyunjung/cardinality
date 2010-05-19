@@ -1,6 +1,7 @@
 #ifndef CLIENT_UNION_H_
 #define CLIENT_UNION_H_
 
+#include <vector>
 #include "client/Operator.h"
 
 
@@ -23,7 +24,9 @@ public:
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+#ifdef PRINT_PLAN
     void print(std::ostream &, const int) const;
+#endif
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;

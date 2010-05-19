@@ -27,7 +27,9 @@ public:
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+#ifdef PRINT_PLAN
     void print(std::ostream &, const int) const;
+#endif
 
     double estCost(const double = 0.0) const;
 

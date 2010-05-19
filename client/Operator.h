@@ -1,9 +1,9 @@
 #ifndef CLIENT_OPERATOR_H_
 #define CLIENT_OPERATOR_H_
 
-#include <iostream>
 #include <vector>
-#include <stdexcept>
+#include <utility>  // std::pair
+#include <iostream>  // std::ostream
 #include <boost/smart_ptr/make_shared.hpp>
 #include <google/protobuf/io/coded_stream.h>
 #include "include/client.h"
@@ -38,7 +38,9 @@ public:
     virtual int ByteSize() const = 0;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+#ifdef PRINT_PLAN
     virtual void print(std::ostream &, const int = 0) const = 0;
+#endif
     virtual bool hasCol(const char *) const = 0;
     virtual ColID getInputColID(const char *) const = 0;
     virtual std::pair<const PartStats *, ColID> getPartStats(const ColID) const = 0;

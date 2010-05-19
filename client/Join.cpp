@@ -1,5 +1,6 @@
 #include "client/Join.h"
 #include <cstring>
+#include <algorithm>  // std::max
 #include "client/PartStats.h"
 
 

@@ -1,3 +1,9 @@
+#include <vector>
+#include <map>
+#include <string>
+#include <cstring>
+#include <stdexcept>  // std::runtime_error
+#include <algorithm>  // std::sort, std::min
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/asio/ip/tcp.hpp>

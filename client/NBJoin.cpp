@@ -1,5 +1,7 @@
 #include "client/NBJoin.h"
 #include <cstring>
+#include <stdexcept>  // std::runtime_error
+#include <algorithm>  // std::max, std::min
 
 
 namespace cardinality {
@@ -215,6 +217,7 @@ void NBJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
 }
 
+#ifdef PRINT_PLAN
 void NBJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
@@ -228,6 +231,7 @@ void NBJoin::print(std::ostream &os, const int tab) const
     left_child_->print(os, tab + 1);
     right_child_->print(os, tab + 1);
 }
+#endif
 
 double NBJoin::estCost(const double) const
 {

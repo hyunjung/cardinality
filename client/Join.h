@@ -1,6 +1,7 @@
 #ifndef CLIENT_JOIN_H_
 #define CLIENT_JOIN_H_
 
+#include <vector>
 #include <boost/tuple/tuple.hpp>
 #include "client/Project.h"
 

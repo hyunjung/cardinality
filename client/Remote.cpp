@@ -1,4 +1,5 @@
 #include "client/Remote.h"
+#include <cstring>
 #include <boost/asio/write.hpp>
 #include <boost/asio/read_until.hpp>
 #include "client/IOManager.h"
@@ -153,6 +154,7 @@ void Remote::Deserialize(google::protobuf::io::CodedInputStream *input)
     child_ = parsePlan(input);
 }
 
+#ifdef PRINT_PLAN
 void Remote::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
@@ -162,6 +164,7 @@ void Remote::print(std::ostream &os, const int tab) const
 
     child_->print(os, tab + 1);
 }
+#endif
 
 bool Remote::hasCol(const char *col) const
 {

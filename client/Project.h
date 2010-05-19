@@ -1,6 +1,7 @@
 #ifndef CLIENT_PROJECT_H_
 #define CLIENT_PROJECT_H_
 
+#include <vector>
 #include "client/Operator.h"
 
 

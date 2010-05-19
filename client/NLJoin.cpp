@@ -1,4 +1,5 @@
 #include "client/NLJoin.h"
+#include <stdexcept>  // std::runtime_error
 
 
 namespace cardinality {
@@ -130,6 +131,7 @@ void NLJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
     index_join_col_id_ = static_cast<ColID>(col_id);
 }
 
+#ifdef PRINT_PLAN
 void NLJoin::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
@@ -143,6 +145,7 @@ void NLJoin::print(std::ostream &os, const int tab) const
     left_child_->print(os, tab + 1);
     right_child_->print(os, tab + 1);
 }
+#endif
 
 double NLJoin::estCost(const double) const
 {

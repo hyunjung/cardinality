@@ -2,6 +2,7 @@
 #define CLIENT_PARTITIONSTATS_H_
 
 #include <vector>
+#include <string>
 #include <google/protobuf/io/coded_stream.h>
 #include "include/client.h"
 

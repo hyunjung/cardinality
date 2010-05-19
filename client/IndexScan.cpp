@@ -1,5 +1,7 @@
 #include "client/IndexScan.h"
 #include <cstring>
+#include <stdexcept>  // std::runtime_error
+#include <algorithm>  // std::sort, std::min
 #include <google/protobuf/wire_format_lite_inl.h>
 #include "client/IOManager.h"
 
@@ -305,6 +307,7 @@ void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
     }
 }
 
+#ifdef PRINT_PLAN
 void IndexScan::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
@@ -326,6 +329,7 @@ void IndexScan::print(std::ostream &os, const int tab) const
     os << " cost=" << estCost();
     os << std::endl;
 }
+#endif
 
 // Mackert and Lohman,
 // Index Scans Using a Finite LRU Buffer: A Validated I/O Model,

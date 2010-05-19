@@ -20,7 +20,9 @@ public:
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
 
+#ifdef PRINT_PLAN
     void print(std::ostream &, const int) const;
+#endif
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;

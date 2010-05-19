@@ -1,10 +1,14 @@
 #ifndef CLIENT_SCAN_H_
 #define CLIENT_SCAN_H_
 
+#include <string>
+#include <vector>
 #include <boost/tuple/tuple.hpp>
 #ifdef DISABLE_MEMORY_MAPPED_IO
 #include <fstream>
 #include <boost/smart_ptr/scoped_array.hpp>
+#else
+#include <utility>  // std::pair
 #endif
 #include "client/Project.h"
 #include "client/PartStats.h"

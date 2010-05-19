@@ -1,6 +1,8 @@
 #ifndef CLIENT_INDEXSCAN_H_
 #define CLIENT_INDEXSCAN_H_
 
+#include <string>
+#include <vector>
 #include "client/Scan.h"
 #include "lib/index/include/server.h"
 
@@ -26,7 +28,9 @@ public:
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+#ifdef PRINT_PLAN
     void print(std::ostream &, const int) const;
+#endif
 
     double estCost(const double = 0.0) const;
     double estCardinality() const;

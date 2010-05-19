@@ -1,4 +1,5 @@
 #include "client/Union.h"
+#include <string>
 
 
 namespace cardinality {
@@ -129,6 +130,7 @@ void Union::Deserialize(google::protobuf::io::CodedInputStream *input)
     }
 }
 
+#ifdef PRINT_PLAN
 void Union::print(std::ostream &os, const int tab) const
 {
     os << std::string(4 * tab, ' ');
@@ -140,6 +142,7 @@ void Union::print(std::ostream &os, const int tab) const
         children_[i]->print(os, tab + 1);
     }
 }
+#endif
 
 bool Union::hasCol(const char *col) const
 {

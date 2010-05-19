@@ -1,5 +1,7 @@
 #include "client/Scan.h"
 #include <cstring>
+#include <stdexcept>  // std::runtime_error
+#include <algorithm>  // std::min
 #include <google/protobuf/wire_format_lite_inl.h>
 
 

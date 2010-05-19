@@ -1,9 +1,14 @@
 #ifndef CLIENT_IOMANAGER_H_
 #define CLIENT_IOMANAGER_H_
 
+#include <string>
+#include <utility>  // std::pair
 #include <tr1/unordered_map>
-#include <boost/thread/mutex.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/iostreams/device/mapped_file.hpp>
+#include <boost/asio/io_service.hpp>
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/thread/mutex.hpp>
 #include "client/Connection.h"
 
 

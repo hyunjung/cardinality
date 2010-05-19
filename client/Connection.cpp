@@ -1,4 +1,9 @@
 #include "client/Connection.h"
+#include <stdexcept>  // std::runtime_error
+#include <vector>
+#include <string>
+#include <cstring>
+#include <algorithm>  // std::max
 #include <boost/thread/thread.hpp>
 #include <boost/asio/placeholders.hpp>
 #include <boost/asio/read.hpp>

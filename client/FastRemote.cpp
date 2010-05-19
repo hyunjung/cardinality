@@ -1,4 +1,5 @@
 #include "client/FastRemote.h"
+#include <stdexcept>  // std::runtime_error
 #include <boost/asio/write.hpp>
 #include "client/IOManager.h"
 
