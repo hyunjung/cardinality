@@ -15,7 +15,6 @@ NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
       left_tuples_(),
       left_tuples_it_(),
       left_tuples_end_(),
-      right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
@@ -26,7 +25,6 @@ NBJoin::NBJoin(google::protobuf::io::CodedInputStream *input)
       left_tuples_(),
       left_tuples_it_(),
       left_tuples_end_(),
-      right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
     Deserialize(input);
@@ -38,7 +36,6 @@ NBJoin::NBJoin(const NBJoin &x)
       left_tuples_(),
       left_tuples_it_(),
       left_tuples_end_(),
-      right_tuple_(),
       main_buffer_(), overflow_buffer_()
 {
 }
@@ -56,7 +53,9 @@ void NBJoin::Open(const char *, const uint32_t)
 {
     main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
     left_tuples_.reset(new multimap());
+
     state_ = RIGHT_OPEN;
+    left_tuple_.reserve(left_child_->numOutputCols());
     right_tuple_.reserve(right_child_->numOutputCols());
     left_child_->Open();
 }
@@ -72,31 +71,29 @@ bool NBJoin::GetNext(Tuple &tuple)
         switch (state_) {
         case RIGHT_OPEN:
         case RIGHT_REOPEN: {
-            Tuple left_tuple;
-            left_tuple.reserve(left_child_->numOutputCols());
             for (char *pos = main_buffer_.get();
                  pos - main_buffer_.get() < NBJOIN_BUFSIZE - 512
-                 && !(left_done_ = left_child_->GetNext(left_tuple)); ) {
-                for (std::size_t i = 0; i < left_tuple.size(); ++i) {
-                    uint32_t len = left_tuple[i].second;
+                 && !(left_done_ = left_child_->GetNext(left_tuple_)); ) {
+                for (std::size_t i = 0; i < left_tuple_.size(); ++i) {
+                    uint32_t len = left_tuple_[i].second;
                     if (pos + len < main_buffer_.get() + NBJOIN_BUFSIZE) {
-                        std::memcpy(pos, left_tuple[i].first, len);
+                        std::memcpy(pos, left_tuple_[i].first, len);
                         pos[len] = '\0';
-                        left_tuple[i].first = pos;
+                        left_tuple_[i].first = pos;
                         pos += len + 1;
                     } else {  // main_buffer_ doesn't have enough space
                         int overflow_len = len + 1;
                         for (std::size_t j = i + 1;
-                             j < left_tuple.size(); ++j) {
-                            overflow_len += left_tuple[j].second + 1;
+                             j < left_tuple_.size(); ++j) {
+                            overflow_len += left_tuple_[j].second + 1;
                         }
                         overflow_buffer_.reset(new char[overflow_len]);
                         pos = overflow_buffer_.get();
-                        for (; i < left_tuple.size(); ++i) {
-                            uint32_t len = left_tuple[i].second;
-                            std::memcpy(pos, left_tuple[i].first, len);
+                        for (; i < left_tuple_.size(); ++i) {
+                            uint32_t len = left_tuple_[i].second;
+                            std::memcpy(pos, left_tuple_[i].first, len);
                             pos[len] = '\0';
-                            left_tuple[i].first = pos;
+                            left_tuple_[i].first = pos;
                             pos += len + 1;
                         }
                         pos = main_buffer_.get() + NBJOIN_BUFSIZE;
@@ -105,26 +102,23 @@ bool NBJoin::GetNext(Tuple &tuple)
 
                 if (join_conds_.empty()) {  // cross product
                     left_tuples_->insert(std::pair<uint64_t, Tuple>(
-                        0, left_tuple));
+                        0, left_tuple_));
                 } else if (join_conds_[0].get<2>()) {  // STRING
                     ColID cid = join_conds_[0].get<0>();
                     left_tuples_->insert(std::pair<uint64_t, Tuple>(
-                        hashString(left_tuple[cid].first,
-                                   left_tuple[cid].second),
-                        left_tuple));
+                        hashString(left_tuple_[cid].first,
+                                   left_tuple_[cid].second),
+                        left_tuple_));
                 } else {  // INT
                     ColID cid = join_conds_[0].get<0>();
                     left_tuples_->insert(std::pair<uint64_t, Tuple>(
-                        parseInt(left_tuple[cid].first,
-                                 left_tuple[cid].second),
-                        left_tuple));
+                        parseInt(left_tuple_[cid].first,
+                                 left_tuple_[cid].second),
+                        left_tuple_));
                 }
             }
 
             if (left_tuples_->empty()) {
-                if (state_ == RIGHT_REOPEN) {
-                    right_child_->Close();
-                }
                 return true;
             }
 
@@ -140,7 +134,6 @@ bool NBJoin::GetNext(Tuple &tuple)
             if (right_child_->GetNext(right_tuple_)) {
                 left_tuples_->clear();
                 if (left_done_) {
-                    right_child_->Close();
                     return true;
                 }
                 state_ = RIGHT_REOPEN;
@@ -192,6 +185,10 @@ void NBJoin::Close()
     left_tuples_.reset();
     main_buffer_.reset();
     overflow_buffer_.reset();
+
+    if (state_ != RIGHT_OPEN) {
+        right_child_->Close();
+    }
     left_child_->Close();
 }
 

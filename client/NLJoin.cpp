@@ -8,8 +8,7 @@ NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q, const int x, const char *idxJoinCol)
     : Join(n, l, r, q, x),
       index_join_col_id_(NOT_INDEX_JOIN),
-      state_(),
-      left_tuple_(), right_tuple_()
+      state_()
 {
     if (idxJoinCol) {
         index_join_col_id_ = getInputColID(idxJoinCol);
@@ -19,8 +18,7 @@ NLJoin::NLJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
 NLJoin::NLJoin(google::protobuf::io::CodedInputStream *input)
     : Join(input),
       index_join_col_id_(),
-      state_(),
-      left_tuple_(), right_tuple_()
+      state_()
 {
     Deserialize(input);
 }
@@ -28,8 +26,7 @@ NLJoin::NLJoin(google::protobuf::io::CodedInputStream *input)
 NLJoin::NLJoin(const NLJoin &x)
     : Join(x),
       index_join_col_id_(x.index_join_col_id_),
-      state_(),
-      left_tuple_(), right_tuple_()
+      state_()
 {
 }
 
@@ -71,7 +68,6 @@ bool NLJoin::GetNext(Tuple &tuple)
             }
         } else if (state_ == RIGHT_REOPEN) {
             if (left_child_->GetNext(left_tuple_)) {
-                right_child_->Close();
                 return true;
             }
             state_ = RIGHT_GETNEXT;
@@ -98,6 +94,9 @@ bool NLJoin::GetNext(Tuple &tuple)
 
 void NLJoin::Close()
 {
+    if (state_ != RIGHT_OPEN) {
+        right_child_->Close();
+    }
     left_child_->Close();
 }
 

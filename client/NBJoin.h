@@ -42,7 +42,6 @@ protected:
     boost::scoped_ptr<multimap> left_tuples_;
     multimap::const_iterator left_tuples_it_;
     multimap::const_iterator left_tuples_end_;
-    Tuple right_tuple_;
     boost::scoped_array<char> main_buffer_;
     boost::scoped_array<char> overflow_buffer_;
 

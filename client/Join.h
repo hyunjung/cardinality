@@ -38,6 +38,9 @@ protected:
     Operator::Ptr right_child_;
     std::vector<boost::tuple<ColID, ColID, bool, bool> > join_conds_;
 
+    Tuple left_tuple_;
+    Tuple right_tuple_;
+
 private:
     Join& operator=(const Join &);
 };

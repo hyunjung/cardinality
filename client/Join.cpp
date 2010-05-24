@@ -11,7 +11,8 @@ Join::Join(const NodeID n, Operator::Ptr l, Operator::Ptr r,
     : Project(n),
       left_child_(l),
       right_child_(r),
-      join_conds_()
+      join_conds_(),
+      left_tuple_(), right_tuple_()
 {
     initProject(q);
     initFilter(q, x);
@@ -21,7 +22,8 @@ Join::Join(google::protobuf::io::CodedInputStream *input)
     : Project(input),
       left_child_(),
       right_child_(),
-      join_conds_()
+      join_conds_(),
+      left_tuple_(), right_tuple_()
 {
     Deserialize(input);
 }
@@ -30,7 +32,8 @@ Join::Join(const Join &x)
     : Project(x),
       left_child_(x.left_child_->clone()),
       right_child_(x.right_child_->clone()),
-      join_conds_(x.join_conds_)
+      join_conds_(x.join_conds_),
+      left_tuple_(), right_tuple_()
 {
 }
 
