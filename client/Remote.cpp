@@ -50,15 +50,15 @@ Operator::Ptr Remote::clone() const
     return boost::make_shared<Remote>(*this);
 }
 
-void Remote::Open(const char *, const uint32_t)
+void Remote::Open(const char *left_ptr, const uint32_t left_len)
 {
     socket_ = g_io_mgr->connectSocket(child_->node_id(), ip_address_);
     buffer_.reset(new boost::asio::streambuf());
 
-    ReOpen();
+    ReOpen(left_ptr, left_len);
 }
 
-void Remote::ReOpen(const char *, const uint32_t)
+void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     using google::protobuf::io::CodedOutputStream;
 
@@ -66,13 +66,24 @@ void Remote::ReOpen(const char *, const uint32_t)
 
     uint32_t plan_size = child_->ByteSize();
     int total_size = 5 + plan_size;
+    if (left_ptr) {
+        total_size += 4 + left_len;
+    }
 
     uint8_t *target = boost::asio::buffer_cast<uint8_t *>(
                           buffer_->prepare(total_size));
 
-    *target++ = 'Q';
+    *target++ = (!left_ptr) ? 'Q' : 'P';
+
     target = CodedOutputStream::WriteLittleEndian32ToArray(plan_size, target);
     target = child_->SerializeToArray(target);
+
+    if (left_ptr) {
+        target = CodedOutputStream::WriteLittleEndian32ToArray(
+                     left_len, target);
+        target = CodedOutputStream::WriteRawToArray(
+                     left_ptr, left_len, target);
+    }
 
     buffer_->commit(total_size);
 
@@ -207,9 +218,9 @@ ColID Remote::getOutputColID(const char *col) const
     return child_->getOutputColID(col);
 }
 
-double Remote::estCost(const double) const
+double Remote::estCost(const double left_cardinality) const
 {
-    return child_->estCost()
+    return child_->estCost(left_cardinality)
            + COST_NET_XFER_BYTE * estTupleLength() * estCardinality();
 }
 

@@ -65,6 +65,10 @@ void Connection::handle_read(const boost::system::error_code &e,
         handler = &Connection::handle_query;
         break;
 
+    case 'P':
+        handler = &Connection::handle_param_query;
+        break;
+
     case 'S':
         handler = &Connection::handle_stats;
         break;
@@ -100,6 +104,91 @@ void Connection::handle_query()
     Tuple tuple;
 
     root->Open();
+    while (!root->GetNext(tuple)) {
+        uint32_t tuple_len = 1;
+        for (std::size_t i = 0; i < tuple.size(); i++) {
+            tuple_len += tuple[i].second;
+            if (i < tuple.size() - 1) {
+                ++tuple_len;
+            }
+        }
+
+        buf.resize(tuple_len);
+        char *pos = buf.data();
+        for (std::size_t i = 0; i < tuple.size(); i++) {
+            std::memcpy(pos, tuple[i].first, tuple[i].second);
+            pos += tuple[i].second;
+            if (i < tuple.size() - 1) {
+                *pos++ = '|';
+            }
+        }
+        *pos = '\n';
+
+        boost::asio::write(socket_, boost::asio::buffer(buf),
+                           boost::asio::transfer_all(), error);
+        if (error) {
+            if (error == boost::asio::error::connection_reset) {
+                root->Close();
+                socket_.close();
+                return;
+            }
+            throw boost::system::system_error(error);
+        }
+    }
+    root->Close();
+
+    // send a special sequence indicating the end of results
+    char delim[2] = {'|', '\n'};
+    boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2),
+                       boost::asio::transfer_all(), error);
+    if (error) {
+        if (error == boost::asio::error::connection_reset) {
+            socket_.close();
+            return;
+        }
+        throw boost::system::system_error(error);
+    }
+
+    // flush the send buffer
+    socket_.set_option(
+        boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_CORK>(0));
+
+    // thread exits, socket waits for another request
+    start();
+}
+
+void Connection::handle_param_query()
+{
+    using google::protobuf::io::CodedInputStream;
+
+    // receive a request header
+    uint8_t header[4];
+    uint32_t size;
+    boost::asio::read(socket_, boost::asio::buffer(header));
+    CodedInputStream::ReadLittleEndian32FromArray(&header[0], &size);
+
+    // receive a request body (serialized query plan)
+    std::vector<char> buf(std::max(size, 128u));
+    buf.resize(size);
+    boost::asio::read(socket_, boost::asio::buffer(buf));
+
+    CodedInputStream cis(reinterpret_cast<const uint8_t *>(buf.data()), size);
+    Operator::Ptr root = Operator::parsePlan(&cis);
+
+    // receive parameters (a key for index lookup)
+    boost::asio::read(socket_, boost::asio::buffer(header));
+    uint32_t left_len;
+    CodedInputStream::ReadLittleEndian32FromArray(&header[0], &left_len);
+
+    buf.resize(left_len);
+    boost::asio::read(socket_, boost::asio::buffer(buf));
+    const char *left_ptr = buf.data();
+
+    // execute the query plan and transfer results
+    boost::system::error_code error;
+    Tuple tuple;
+
+    root->Open(left_ptr, left_len);
     while (!root->GetNext(tuple)) {
         uint32_t tuple_len = 1;
         for (std::size_t i = 0; i < tuple.size(); i++) {
