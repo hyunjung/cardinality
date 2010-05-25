@@ -12,8 +12,9 @@ namespace cardinality {
 Remote::Remote(const NodeID n, Operator::Ptr c,
                const boost::asio::ip::address_v4 &i)
     : Operator(n),
-      ip_address_(i),
       child_(c),
+      ip_address_(i),
+      state_(),
       socket_(),
       buffer_()
 {
@@ -21,8 +22,9 @@ Remote::Remote(const NodeID n, Operator::Ptr c,
 
 Remote::Remote(google::protobuf::io::CodedInputStream *input)
     : Operator(input),
-      ip_address_(),
       child_(),
+      ip_address_(),
+      state_(),
       socket_(),
       buffer_()
 {
@@ -31,8 +33,9 @@ Remote::Remote(google::protobuf::io::CodedInputStream *input)
 
 Remote::Remote(const Remote &x)
     : Operator(x),
-      ip_address_(x.ip_address_),
       child_(x.child_->clone()),
+      ip_address_(x.ip_address_),
+      state_(),
       socket_(),
       buffer_()
 {
@@ -58,6 +61,8 @@ void Remote::Open(const char *, const uint32_t)
 void Remote::ReOpen(const char *, const uint32_t)
 {
     using google::protobuf::io::CodedOutputStream;
+
+    state_ = SOCKET_CLOSE;
 
     uint32_t plan_size = child_->ByteSize();
     int total_size = 5 + plan_size;
@@ -97,6 +102,7 @@ bool Remote::GetNext(Tuple &tuple)
     const char *pos = boost::asio::buffer_cast<const char *>(line_buffer);
 
     if (*pos == '|') {
+        state_ = SOCKET_REUSE;
         return true;
     }
 
@@ -115,7 +121,12 @@ bool Remote::GetNext(Tuple &tuple)
 void Remote::Close()
 {
     buffer_.reset();
-    g_io_mgr->closeSocket(child_->node_id(), socket_);
+
+    if (state_ == SOCKET_REUSE) {
+        g_io_mgr->closeSocket(child_->node_id(), socket_);
+    } else {  // SOCKET_CLOSE
+        socket_->close();
+    }
     socket_.reset();
 }
 

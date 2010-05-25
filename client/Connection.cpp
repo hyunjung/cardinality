@@ -96,6 +96,7 @@ void Connection::handle_query()
     Operator::Ptr root = Operator::parsePlan(&cis);
 
     // execute the query plan and transfer results
+    boost::system::error_code error;
     Tuple tuple;
 
     root->Open();
@@ -119,13 +120,30 @@ void Connection::handle_query()
         }
         *pos = '\n';
 
-        boost::asio::write(socket_, boost::asio::buffer(buf));
+        boost::asio::write(socket_, boost::asio::buffer(buf),
+                           boost::asio::transfer_all(), error);
+        if (error) {
+            if (error == boost::asio::error::connection_reset) {
+                root->Close();
+                socket_.close();
+                return;
+            }
+            throw boost::system::system_error(error);
+        }
     }
     root->Close();
 
     // send a special sequence indicating the end of results
     char delim[2] = {'|', '\n'};
-    boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2));
+    boost::asio::write(socket_, boost::asio::buffer(&delim[0], 2),
+                       boost::asio::transfer_all(), error);
+    if (error) {
+        if (error == boost::asio::error::connection_reset) {
+            socket_.close();
+            return;
+        }
+        throw boost::system::system_error(error);
+    }
 
     // flush the send buffer
     socket_.set_option(
