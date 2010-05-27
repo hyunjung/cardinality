@@ -21,6 +21,7 @@
 #include "client/FastRemote.h"
 #include "client/Union.h"
 #include "client/Dummy.h"
+#include "client/util.h"
 #ifndef DISABLE_MATERIAL
 #include <tr1/unordered_map>
 #include <sys/time.h>  // gettimeofday
@@ -61,31 +62,17 @@ static inline bool HASIDXCOL(const char *col, const char *alias)
            && !std::memcmp(col, alias, aliasLen);
 }
 
-static int compareValue(const Value &a, const Value &b)
-{
-    if (a.type == INT) {
-        return a.intVal - b.intVal;
-    } else {  // STRING
-        int cmp = std::memcmp(a.charVal, b.charVal,
-                              std::min(a.intVal, b.intVal));
-        if (cmp == 0) {
-            cmp = a.intVal - b.intVal;
-        }
-        return cmp;
-    }
-}
-
 static bool NO_PKEY_OVERLAP(const ca::PartStats *a,
                             const ca::PartStats *b)
 {
-    return a && b && (compareValue(a->min_pkey_, b->max_pkey_) > 0
-                      || compareValue(a->max_pkey_, b->min_pkey_) < 0);
+    return a && b && (ca::compareValue(&a->min_pkey_, &b->max_pkey_) > 0
+                      || ca::compareValue(&a->max_pkey_, &b->min_pkey_) < 0);
 }
 
-static bool comparePartStats(const ca::PartStats *a,
-                             const ca::PartStats *b)
+static bool lessPartStats(const ca::PartStats *a,
+                          const ca::PartStats *b)
 {
-    return compareValue(a->min_pkey_, b->min_pkey_) < 0;
+    return ca::compareValue(&a->min_pkey_, &b->min_pkey_) < 0;
 }
 
 #ifndef DISABLE_QUERY_OPTIMIZER
@@ -465,7 +452,7 @@ findPartStats(const Query *q,
         }
 
         // construct a PartStats object
-        // in order to use comparePartStats()
+        // in order to use lessPartStats()
         ca::PartStats key;
         key.min_pkey_.type = q->restrictionEqualValues[j].type;
         key.min_pkey_.intVal = q->restrictionEqualValues[j].intVal;
@@ -477,7 +464,7 @@ findPartStats(const Query *q,
 
         // determine a partition to scan
         std::vector<ca::PartStats *>::const_iterator it
-            = std::upper_bound(begin, end, &key, comparePartStats);
+            = std::upper_bound(begin, end, &key, lessPartStats);
 
         if (it == begin) {
             // no partition contains this key
@@ -500,7 +487,7 @@ findPartStats(const Query *q,
         }
 
         // construct a PartStats object
-        // in order to use comparePartStats()
+        // in order to use lessPartStats()
         ca::PartStats key;
         key.min_pkey_.type = q->restrictionGreaterThanValues[j].type;
         key.min_pkey_.intVal = q->restrictionGreaterThanValues[j].intVal;
@@ -512,7 +499,7 @@ findPartStats(const Query *q,
 
         // determine a partition to scan
         std::vector<ca::PartStats *>::const_iterator it
-            = std::upper_bound(begin, end, &key, comparePartStats);
+            = std::upper_bound(begin, end, &key, lessPartStats);
 
         if (it != begin) {
             begin = it - 1;
@@ -1079,7 +1066,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
         // sort all partitions based on the minimum primary keys
         std::sort(table_it->second.begin(), table_it->second.end(),
-                  comparePartStats);
+                  lessPartStats);
 
         // chain replicas
         std::vector<ca::PartStats *>::iterator part_it
@@ -1088,8 +1075,8 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
             = table_it->second.begin();
 
         while (++part_it != table_it->second.end()) {
-            if (!compareValue((*unique_part_it)->min_pkey_,
-                              (*part_it)->min_pkey_)) {
+            if (!ca::compareValue(&(*unique_part_it)->min_pkey_,
+                                  &(*part_it)->min_pkey_)) {
                 (*part_it)->next_ = (*unique_part_it)->next_;
                 (*unique_part_it)->next_ = *part_it;
             } else {
