@@ -30,7 +30,7 @@ public:
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
 #ifdef PRINT_PLAN
-    void print(std::ostream &, const int) const;
+    void print(std::ostream &, const int, const double) const;
 #endif
     bool hasCol(const char *) const;
     ColID getInputColID(const char *) const;
@@ -40,7 +40,7 @@ public:
     ColID getOutputColID(const char *) const;
 
     double estCost(const double = 0.0) const;
-    double estCardinality() const;
+    double estCardinality(const bool = false) const;
     double estTupleLength() const;
     double estColLength(const ColID) const;
 

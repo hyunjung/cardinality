@@ -1,25 +1,60 @@
 #include "client/Union.h"
 #include <string>
+#include <cstring>
+#include <algorithm>  // std::min
+#include "client/PartStats.h"
+#include "client/util.h"
 
 
 namespace cardinality {
 
-Union::Union(const NodeID n, std::vector<Operator::Ptr> c)
-    : Operator(n),
-      children_(c), it_(), done_()
+static bool lessPivot(const std::pair<const Value *, uint32_t> &a,
+                      const std::pair<const Value *, uint32_t> &b)
 {
+    return compareValue(a.first, b.first) < 0;
+}
+
+Union::Union(const NodeID n, std::vector<Operator::Ptr> c, const char *col)
+    : Operator(n),
+      children_(c),
+      pivots_(),
+      it_(),
+      deserialized_(false),
+      done_()
+{
+    if (col) {
+        for (std::size_t i = 0; i < children_.size(); ++i) {
+            std::pair<const PartStats *, ColID> x
+                = children_[i]->getPartStats(getOutputColID(col));
+            if (x.second != 0) {
+                break;
+            }
+            // IndexScans with an equality condition on primary key
+            pivots_.push_back(std::make_pair(&x.first->min_pkey_, i));
+        }
+
+        std::sort(pivots_.begin(), pivots_.end(), lessPivot);
+    }
 }
 
 Union::Union(google::protobuf::io::CodedInputStream *input)
     : Operator(input),
-      children_(), it_(), done_()
+      children_(),
+      pivots_(),
+      it_(),
+      deserialized_(true),
+      done_()
 {
     Deserialize(input);
 }
 
 Union::Union(const Union &x)
     : Operator(x),
-      children_(), it_(), done_()
+      children_(),
+      pivots_(x.pivots_),
+      it_(),
+      deserialized_(false),
+      done_()
 {
     children_.reserve(x.children_.size());
     for (std::vector<Operator::Ptr>::const_iterator it = x.children_.begin();
@@ -30,6 +65,11 @@ Union::Union(const Union &x)
 
 Union::~Union()
 {
+    if (deserialized_) {
+        for (std::size_t i = 0; i < pivots_.size(); ++i) {
+            delete pivots_[i].first;
+        }
+    }
 }
 
 Operator::Ptr Union::clone() const
@@ -39,25 +79,56 @@ Operator::Ptr Union::clone() const
 
 void Union::Open(const char *left_ptr, const uint32_t left_len)
 {
-    done_.resize(children_.size());
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->Open(left_ptr, left_len);
-        done_[i] = false;
+    if (pivots_.empty()) {
+        done_.resize(children_.size());
+        for (std::size_t i = 0; i < children_.size(); ++i) {
+            children_[i]->Open(left_ptr, left_len);
+            done_[i] = false;
+        }
+        it_ = 0;
+
+    } else {
+        Value val;
+        if (pivots_[0].first->type == INT) {
+            val.type = INT;
+            val.intVal = Operator::parseInt(left_ptr, left_len);
+        } else {  // STRING
+            val.type = STRING;
+            val.intVal = left_len;
+            std::memcpy(val.charVal, left_ptr, left_len);
+            val.charVal[left_len] = '\0';
+        }
+
+        std::pair<const Value *, uint32_t> x = std::make_pair(&val, 0);
+        std::vector<std::pair<const Value *, uint32_t> >::const_iterator it
+            = std::upper_bound(pivots_.begin(), pivots_.end(), x, lessPivot);
+        it_ = (it != pivots_.begin()) ? (it - 1)->second : 1;
+
+        children_[it_]->Open(left_ptr, left_len);
     }
-    it_ = 0;
 }
 
 void Union::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->ReOpen(left_ptr, left_len);
-        done_[i] = false;
+    if (pivots_.empty()) {
+        for (std::size_t i = 0; i < children_.size(); ++i) {
+            children_[i]->ReOpen(left_ptr, left_len);
+            done_[i] = false;
+        }
+        it_ = 0;
+
+    } else {
+        Close();
+        Open(left_ptr, left_len);
     }
-    it_ = 0;
 }
 
 bool Union::GetNext(Tuple &tuple)
 {
+    if (!pivots_.empty()) {
+        return children_[it_]->GetNext(tuple);
+    }
+
     for (; it_ < children_.size(); ++it_) {
         if (!done_[it_]) {
             if (children_[it_]->GetNext(tuple)) {
@@ -85,8 +156,13 @@ bool Union::GetNext(Tuple &tuple)
 
 void Union::Close()
 {
-    for (std::size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->Close();
+    if (pivots_.empty()) {
+        for (std::size_t i = 0; i < children_.size(); ++i) {
+            children_[i]->Close();
+        }
+
+    } else {
+        children_[it_]->Close();
     }
 }
 
@@ -103,6 +179,23 @@ uint8_t *Union::SerializeToArray(uint8_t *target) const
         target = children_[i]->SerializeToArray(target);
     }
 
+    target = CodedOutputStream::WriteVarint32ToArray(pivots_.size(), target);
+    for (std::size_t i = 0; i < pivots_.size(); ++i) {
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     pivots_[i].first->type, target);
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     pivots_[i].first->intVal, target);
+        if (pivots_[i].first->type == STRING) {
+            int len = std::strlen(pivots_[i].first->charVal);
+            target = CodedOutputStream::WriteVarint32ToArray(len, target);
+            target = CodedOutputStream::WriteRawToArray(
+                         pivots_[i].first->charVal, len, target);
+        }
+
+        target = CodedOutputStream::WriteVarint32ToArray(
+                     pivots_[i].second, target);
+    }
+
     return target;
 }
 
@@ -117,6 +210,19 @@ int Union::ByteSize() const
         total_size += children_[i]->ByteSize();
     }
 
+    total_size += CodedOutputStream::VarintSize32(pivots_.size());
+    for (std::size_t i = 0; i < pivots_.size(); ++i) {
+        total_size += 1;
+        total_size += CodedOutputStream::VarintSize32(pivots_[i].first->intVal);
+        if (pivots_[i].first->type == STRING) {
+            int len = std::strlen(pivots_[i].first->charVal);
+            total_size += CodedOutputStream::VarintSize32(len);
+            total_size += len;
+        }
+
+        total_size += CodedOutputStream::VarintSize32(pivots_[i].second);
+    }
+
     return total_size;
 }
 
@@ -128,18 +234,36 @@ void Union::Deserialize(google::protobuf::io::CodedInputStream *input)
     for (std::size_t i = 0; i < size; ++i) {
         children_.push_back(parsePlan(input));
     }
+
+    input->ReadVarint32(&size);
+    pivots_.reserve(size);
+    for (std::size_t i = 0; i < size; ++i) {
+        Value *value = new Value();
+        uint32_t temp;
+        input->ReadVarint32(&temp);
+        value->type = static_cast<ValueType>(temp);
+        input->ReadVarint32(&value->intVal);
+        if (value->type == STRING) {
+            input->ReadVarint32(&temp);
+            input->ReadRaw(value->charVal, temp);
+            value->charVal[temp] = '\0';
+        }
+        input->ReadVarint32(&temp);
+        pivots_.push_back(std::make_pair(value, temp));
+    }
 }
 
 #ifdef PRINT_PLAN
-void Union::print(std::ostream &os, const int tab) const
+void Union::print(std::ostream &os, const int tab, const double lcard) const
 {
     os << std::string(4 * tab, ' ');
     os << "Union@" << node_id();
-    os << " cost=" << estCost();
+    os << " card=" << estCardinality();
+    os << " cost=" << estCost(lcard);
     os << std::endl;
 
     for (std::size_t i = 0; i < children_.size(); ++i) {
-        children_[i]->print(os, tab + 1);
+        children_[i]->print(os, tab + 1, lcard);
     }
 }
 #endif
@@ -174,23 +298,29 @@ ColID Union::getOutputColID(const char *col) const
     return children_[0]->getOutputColID(col);
 }
 
-double Union::estCost(const double left_cardinality) const
+double Union::estCost(const double lcard) const
 {
     double cost = 0.0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
-        cost += children_[i]->estCost(left_cardinality);
+        cost += children_[i]->estCost(lcard);
     }
 
+    if (!pivots_.empty()) {
+        cost /= children_.size();
+    }
     return cost;
 }
 
-double Union::estCardinality() const
+double Union::estCardinality(const bool) const
 {
     double card = 0.0;
     for (std::size_t i = 0; i < children_.size(); ++i) {
         card += children_[i]->estCardinality();
     }
 
+    if (!pivots_.empty()) {
+        card /= children_.size();
+    }
     return card;
 }
 

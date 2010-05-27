@@ -111,7 +111,7 @@ void SeqScan::Deserialize(google::protobuf::io::CodedInputStream *input)
 }
 
 #ifdef PRINT_PLAN
-void SeqScan::print(std::ostream &os, const int tab) const
+void SeqScan::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "SeqScan@" << node_id() << " " << filename_;
@@ -128,7 +128,7 @@ double SeqScan::estCost(const double) const
     return stats_->num_pages_ * COST_DISK_READ_PAGE;
 }
 
-double SeqScan::estCardinality() const
+double SeqScan::estCardinality(const bool) const
 {
     double card = stats_->num_distinct_values_[0];
 

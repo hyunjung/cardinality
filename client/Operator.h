@@ -39,7 +39,7 @@ public:
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
 #ifdef PRINT_PLAN
-    virtual void print(std::ostream &, const int = 0) const = 0;
+    virtual void print(std::ostream &, const int = 0, const double = 0.0) const = 0;
 #endif
     virtual bool hasCol(const char *) const = 0;
     virtual ColID getInputColID(const char *) const = 0;
@@ -49,7 +49,7 @@ public:
     virtual ColID getOutputColID(const char *) const = 0;
 
     virtual double estCost(const double = 0.0) const = 0;
-    virtual double estCardinality() const = 0;
+    virtual double estCardinality(const bool = false) const = 0;
     virtual double estTupleLength() const = 0;
     virtual double estColLength(const ColID) const = 0;
 

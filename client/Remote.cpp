@@ -177,14 +177,14 @@ void Remote::Deserialize(google::protobuf::io::CodedInputStream *input)
 }
 
 #ifdef PRINT_PLAN
-void Remote::print(std::ostream &os, const int tab) const
+void Remote::print(std::ostream &os, const int tab, const double lcard) const
 {
     os << std::string(4 * tab, ' ');
     os << "Remote@" << node_id();
-    os << " cost=" << estCost();
+    os << " cost=" << estCost(lcard);
     os << std::endl;
 
-    child_->print(os, tab + 1);
+    child_->print(os, tab + 1, lcard);
 }
 #endif
 
@@ -218,13 +218,15 @@ ColID Remote::getOutputColID(const char *col) const
     return child_->getOutputColID(col);
 }
 
-double Remote::estCost(const double left_cardinality) const
+double Remote::estCost(const double lcard) const
 {
-    return child_->estCost(left_cardinality)
-           + COST_NET_XFER_BYTE * estTupleLength() * estCardinality();
+    return child_->estCost(lcard)
+           + COST_NET_XFER_BYTE
+             * child_->estTupleLength()
+             * child_->estCardinality(lcard > 0.0);
 }
 
-double Remote::estCardinality() const
+double Remote::estCardinality(const bool) const
 {
     return child_->estCardinality();
 }

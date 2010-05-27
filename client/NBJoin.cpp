@@ -215,7 +215,7 @@ void NBJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
 }
 
 #ifdef PRINT_PLAN
-void NBJoin::print(std::ostream &os, const int tab) const
+void NBJoin::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "NBJoin@" << node_id();

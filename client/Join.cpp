@@ -212,7 +212,7 @@ ValueType Join::getColType(const char *col) const
     }
 }
 
-double Join::estCardinality() const
+double Join::estCardinality(const bool) const
 {
     double card = left_child_->estCardinality()
                   * right_child_->estCardinality();

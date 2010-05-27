@@ -131,7 +131,7 @@ void NLJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
 }
 
 #ifdef PRINT_PLAN
-void NLJoin::print(std::ostream &os, const int tab) const
+void NLJoin::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "NLJoin@" << node_id();
@@ -142,15 +142,14 @@ void NLJoin::print(std::ostream &os, const int tab) const
     os << std::endl;
 
     left_child_->print(os, tab + 1);
-    right_child_->print(os, tab + 1);
+    right_child_->print(os, tab + 1, left_child_->estCardinality());
 }
 #endif
 
 double NLJoin::estCost(const double) const
 {
-    double left_cardinality = left_child_->estCardinality();
-    return left_child_->estCost()
-           + left_cardinality * right_child_->estCost(left_cardinality);
+    double lcard = left_child_->estCardinality();
+    return left_child_->estCost() + lcard * right_child_->estCost(lcard);
 }
 
 }  // namespace cardinality

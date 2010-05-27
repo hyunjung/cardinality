@@ -308,7 +308,7 @@ void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
 }
 
 #ifdef PRINT_PLAN
-void IndexScan::print(std::ostream &os, const int tab) const
+void IndexScan::print(std::ostream &os, const int tab, const double lcard) const
 {
     os << std::string(4 * tab, ' ');
     os << "IndexScan@" << node_id() << " " << filename_ << " ";
@@ -325,8 +325,8 @@ void IndexScan::print(std::ostream &os, const int tab) const
     }
     os << " #cols=" << numOutputCols();
     os << " len=" << estTupleLength();
-    os << " card=" << estCardinality();
-    os << " cost=" << estCost();
+    os << " card=" << estCardinality(lcard > 0.0);
+    os << " cost=" << estCost(lcard);
     os << std::endl;
 }
 #endif
@@ -355,7 +355,7 @@ static double MACKERT_LOHMAN(double T, double D, double x = 1.0)
     return Y;
 }
 
-double IndexScan::estCost(const double left_cardinality) const
+double IndexScan::estCost(const double lcard) const
 {
     double seq_pages = 0.0;
     double random_pages = 0.0;
@@ -363,9 +363,8 @@ double IndexScan::estCost(const double left_cardinality) const
     if (!value_) {  // NLIJ
         double num_dups = stats_->num_distinct_values_[0]
                           / stats_->num_distinct_values_[index_col_id_];
-        random_pages = MACKERT_LOHMAN(stats_->num_pages_,
-                                      num_dups, left_cardinality)
-                       / left_cardinality;
+        random_pages = MACKERT_LOHMAN(stats_->num_pages_, num_dups, lcard)
+                       / lcard;
     } else {
         if (comp_op_ == EQ) {
             if (index_col_id_ == 0) {
@@ -390,7 +389,7 @@ double IndexScan::estCost(const double left_cardinality) const
            + random_pages * COST_DISK_SEEK_PAGE;
 }
 
-double IndexScan::estCardinality() const
+double IndexScan::estCardinality(const bool nlij) const
 {
     double card = stats_->num_distinct_values_[0];
 
@@ -412,6 +411,10 @@ double IndexScan::estCardinality() const
 
     if (!join_conds_.empty()) {
         card *= SELECTIVITY_EQ;
+    }
+
+    if (nlij) {
+        card /= stats_->num_distinct_values_[index_col_id_];
     }
 
     return card;

@@ -28,7 +28,7 @@ public:
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
 #ifdef PRINT_PLAN
-    void print(std::ostream &, const int) const;
+    void print(std::ostream &, const int, const double) const;
 #endif
 
     double estCost(const double = 0.0) const;

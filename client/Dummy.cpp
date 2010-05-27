@@ -46,7 +46,7 @@ int Dummy::ByteSize() const
 }
 
 #ifdef PRINT_PLAN
-void Dummy::print(std::ostream &os, const int tab) const
+void Dummy::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "Dummy@" << node_id();
@@ -89,7 +89,7 @@ double Dummy::estCost(const double) const
     return 0.0;
 }
 
-double Dummy::estCardinality() const
+double Dummy::estCardinality(const bool) const
 {
     return 0.0;
 }

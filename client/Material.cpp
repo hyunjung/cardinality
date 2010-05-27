@@ -91,7 +91,7 @@ void Material::Deserialize(google::protobuf::io::CodedInputStream *input)
 }
 
 #ifdef PRINT_PLAN
-void Material::print(std::ostream &os, const int tab) const
+void Material::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "Material@" << node_id();
@@ -137,7 +137,7 @@ double Material::estCost(const double) const
     return 0.0;
 }
 
-double Material::estCardinality() const
+double Material::estCardinality(const bool) const
 {
     return static_cast<double>(tuples_->size());
 }

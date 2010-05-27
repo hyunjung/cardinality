@@ -25,7 +25,7 @@ public:
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
     ValueType getColType(const char *) const;
 
-    double estCardinality() const;
+    double estCardinality(const bool = false) const;
     double estTupleLength() const;
     double estColLength(const ColID) const;
 

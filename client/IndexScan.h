@@ -29,11 +29,11 @@ public:
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
 #ifdef PRINT_PLAN
-    void print(std::ostream &, const int) const;
+    void print(std::ostream &, const int, const double) const;
 #endif
 
     double estCost(const double = 0.0) const;
-    double estCardinality() const;
+    double estCardinality(const bool = false) const;
 
 protected:
     std::string index_col_;
