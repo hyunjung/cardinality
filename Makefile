@@ -48,10 +48,10 @@ $(MYOBJS): objs/%.o:
 
 zip: objs/Client.so
 	strip objs/Client.so -o submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.so
-	zip -r submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.zip Makefile client
+	zip -r submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.zip Makefile client google $(MYLIBS)
 
-buildLib:objs/SimpleClient.so objs/TrivialClient.so $(OBJS) 
-buildBench: objs/mainSimpleClient objs/mainSlaveSimpleClient objs/mainTrivialClient objs/mainSlaveTrivialClient
+buildLib: objs/Client.so $(OBJS)
+buildBench: objs/mainClient objs/mainSlaveClient
  
 test:objs/TestBench objs/TestTools runUnitTest
 
