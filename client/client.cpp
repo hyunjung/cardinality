@@ -564,7 +564,6 @@ static void buildScans(const Query *q,
             pp.push_back(root);
         }
         std::random_shuffle(pp.begin(), pp.end());
-        if (pp.size() > 2) pp.resize(2);
         right.push_back(pp);
     }
 }
