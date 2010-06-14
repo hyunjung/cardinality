@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_OPERATOR_H_
-#define CLIENT_OPERATOR_H_
+#ifndef CARDINALITY_OPERATOR_H_
+#define CARDINALITY_OPERATOR_H_
 
 #include <vector>
 #include <utility>  // std::pair
@@ -98,4 +98,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_OPERATOR_H_
+#endif  // CARDINALITY_OPERATOR_H_

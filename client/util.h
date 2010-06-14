@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_UTIL_H_
-#define CLIENT_UTIL_H_
+#ifndef CARDINALITY_UTIL_H_
+#define CARDINALITY_UTIL_H_
 
 #include <cstring>
 #include "include/client.h"
@@ -52,4 +52,4 @@ static int compareValue(const Value *a, const Value *b)
 
 }  // namespace cardinality
 
-#endif  // CLIENT_UTIL_H_
+#endif  // CARDINALITY_UTIL_H_

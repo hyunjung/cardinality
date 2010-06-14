@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_REMOTE_H_
-#define CLIENT_REMOTE_H_
+#ifndef CARDINALITY_REMOTE_H_
+#define CARDINALITY_REMOTE_H_
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
@@ -89,4 +89,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_REMOTE_H_
+#endif  // CARDINALITY_REMOTE_H_

@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_JOIN_H_
-#define CLIENT_JOIN_H_
+#ifndef CARDINALITY_JOIN_H_
+#define CARDINALITY_JOIN_H_
 
 #include <vector>
 #include <boost/tuple/tuple.hpp>
@@ -76,4 +76,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_JOIN_H_
+#endif  // CARDINALITY_JOIN_H_

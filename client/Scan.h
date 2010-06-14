@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_SCAN_H_
-#define CLIENT_SCAN_H_
+#ifndef CARDINALITY_SCAN_H_
+#define CARDINALITY_SCAN_H_
 
 #include <string>
 #include <vector>
@@ -103,4 +103,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_SCAN_H_
+#endif  // CARDINALITY_SCAN_H_

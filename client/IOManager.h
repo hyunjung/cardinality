@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_IOMANAGER_H_
-#define CLIENT_IOMANAGER_H_
+#ifndef CARDINALITY_IOMANAGER_H_
+#define CARDINALITY_IOMANAGER_H_
 
 #include <string>
 #include <utility>  // std::pair
@@ -78,4 +78,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_IOMANAGER_H_
+#endif  // CARDINALITY_IOMANAGER_H_

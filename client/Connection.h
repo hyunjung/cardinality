@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_CONNECTION_H_
-#define CLIENT_CONNECTION_H_
+#ifndef CARDINALITY_CONNECTION_H_
+#define CARDINALITY_CONNECTION_H_
 
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 #include <boost/asio/io_service.hpp>
@@ -62,4 +62,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_CONNECTION_H_
+#endif  // CARDINALITY_CONNECTION_H_

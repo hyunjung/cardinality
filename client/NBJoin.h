@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_NBJOIN_H_
-#define CLIENT_NBJOIN_H_
+#ifndef CARDINALITY_NBJOIN_H_
+#define CARDINALITY_NBJOIN_H_
 
 #include <tr1/unordered_map>
 #include <boost/smart_ptr/scoped_ptr.hpp>
@@ -80,4 +80,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_NBJOIN_H_
+#endif  // CARDINALITY_NBJOIN_H_

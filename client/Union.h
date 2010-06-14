@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_UNION_H_
-#define CLIENT_UNION_H_
+#ifndef CARDINALITY_UNION_H_
+#define CARDINALITY_UNION_H_
 
 #include <vector>
 #include "client/Operator.h"
@@ -82,4 +82,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_UNION_H_
+#endif  // CARDINALITY_UNION_H_

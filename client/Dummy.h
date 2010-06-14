@@ -27,8 +27,8 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef CLIENT_DUMMY_H_
-#define CLIENT_DUMMY_H_
+#ifndef CARDINALITY_DUMMY_H_
+#define CARDINALITY_DUMMY_H_
 
 #include "client/Operator.h"
 
@@ -70,4 +70,4 @@ private:
 
 }  // namespace cardinality
 
-#endif  // CLIENT_DUMMY_H_
+#endif  // CARDINALITY_DUMMY_H_
