@@ -170,7 +170,7 @@ uint8_t *Union::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteTagToArray(6, target);
+    target = CodedOutputStream::WriteTagToArray(TAG_UNION, target);
 
     target = Operator::SerializeToArray(target);
 

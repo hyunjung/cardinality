@@ -41,7 +41,7 @@ Operator::Ptr NLJoin::clone() const
 
 void NLJoin::Open(const char *, const uint32_t)
 {
-    state_ = RIGHT_OPEN;
+    state_ = STATE_OPEN;
     left_tuple_.reserve(left_child_->numOutputCols());
     right_tuple_.reserve(right_child_->numOutputCols());
     left_child_->Open();
@@ -55,22 +55,22 @@ void NLJoin::ReOpen(const char *, const uint32_t)
 bool NLJoin::GetNext(Tuple &tuple)
 {
     for (;;) {
-        if (state_ == RIGHT_OPEN) {
+        if (state_ == STATE_OPEN) {
             if (left_child_->GetNext(left_tuple_)) {
                 return true;
             }
-            state_ = RIGHT_GETNEXT;
+            state_ = STATE_GETNEXT;
             if (index_join_col_id_ == NOT_INDEX_JOIN) {
                 right_child_->Open();
             } else {
                 right_child_->Open(left_tuple_[index_join_col_id_].first,
                                    left_tuple_[index_join_col_id_].second);
             }
-        } else if (state_ == RIGHT_REOPEN) {
+        } else if (state_ == STATE_REOPEN) {
             if (left_child_->GetNext(left_tuple_)) {
                 return true;
             }
-            state_ = RIGHT_GETNEXT;
+            state_ = STATE_GETNEXT;
             if (index_join_col_id_ == NOT_INDEX_JOIN) {
                 right_child_->ReOpen();
             } else {
@@ -86,7 +86,7 @@ bool NLJoin::GetNext(Tuple &tuple)
             }
         }
 
-        state_ = RIGHT_REOPEN;
+        state_ = STATE_REOPEN;
     }
 
     return false;
@@ -94,7 +94,7 @@ bool NLJoin::GetNext(Tuple &tuple)
 
 void NLJoin::Close()
 {
-    if (state_ != RIGHT_OPEN) {
+    if (state_ != STATE_OPEN) {
         right_child_->Close();
     }
     left_child_->Close();
@@ -104,7 +104,7 @@ uint8_t *NLJoin::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteTagToArray(3, target);
+    target = CodedOutputStream::WriteTagToArray(TAG_NLJOIN, target);
 
     target = Join::SerializeToArray(target);
 

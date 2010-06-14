@@ -92,7 +92,7 @@ uint8_t *SeqScan::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteTagToArray(1, target);
+    target = CodedOutputStream::WriteTagToArray(TAG_SEQSCAN, target);
 
     target = Scan::SerializeToArray(target);
 

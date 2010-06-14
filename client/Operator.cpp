@@ -73,27 +73,27 @@ Operator::Ptr Operator::parsePlan(google::protobuf::io::CodedInputStream *input)
     Operator::Ptr plan;
 
     switch (operator_type) {
-    case 1:  // SeqScan
+    case TAG_SEQSCAN:
         plan = boost::make_shared<SeqScan>(input);
         break;
 
-    case 2:  // IndexScan
+    case TAG_INDEXSCAN:
         plan = boost::make_shared<IndexScan>(input);
         break;
 
-    case 3:  // NLJoin
+    case TAG_NLJOIN:
         plan = boost::make_shared<NLJoin>(input);
         break;
 
-    case 4:  // NBJoin
+    case TAG_NBJOIN:
         plan = boost::make_shared<NBJoin>(input);
         break;
 
-    case 5:  // Remote
+    case TAG_REMOTE:
         plan = boost::make_shared<Remote>(input);
         break;
 
-    case 6:  // Union
+    case TAG_UNION:
         plan = boost::make_shared<Union>(input);
         break;
     }

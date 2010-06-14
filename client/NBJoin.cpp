@@ -54,7 +54,7 @@ void NBJoin::Open(const char *, const uint32_t)
     main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
     left_tuples_.reset(new multimap());
 
-    state_ = RIGHT_OPEN;
+    state_ = STATE_OPEN;
     left_tuple_.reserve(left_child_->numOutputCols());
     right_tuple_.reserve(right_child_->numOutputCols());
     left_child_->Open();
@@ -69,8 +69,8 @@ bool NBJoin::GetNext(Tuple &tuple)
 {
     for (;;) {
         switch (state_) {
-        case RIGHT_OPEN:
-        case RIGHT_REOPEN: {
+        case STATE_OPEN:
+        case STATE_REOPEN: {
             for (char *pos = main_buffer_.get();
                  pos - main_buffer_.get() < NBJOIN_BUFSIZE - 512
                  && !(left_done_ = left_child_->GetNext(left_tuple_)); ) {
@@ -122,21 +122,21 @@ bool NBJoin::GetNext(Tuple &tuple)
                 return true;
             }
 
-            if (state_ == RIGHT_OPEN) {
+            if (state_ == STATE_OPEN) {
                 right_child_->Open();
-            } else {  // RIGHT_REOPEN
+            } else {  // STATE_REOPEN
                 right_child_->ReOpen();
             }
-            state_ = RIGHT_GETNEXT;
+            state_ = STATE_GETNEXT;
         }
 
-        case RIGHT_GETNEXT:
+        case STATE_GETNEXT:
             if (right_child_->GetNext(right_tuple_)) {
                 left_tuples_->clear();
                 if (left_done_) {
                     return true;
                 }
-                state_ = RIGHT_REOPEN;
+                state_ = STATE_REOPEN;
                 break;
             }
 
@@ -162,9 +162,9 @@ bool NBJoin::GetNext(Tuple &tuple)
                 left_tuples_it_ = range.first;
                 left_tuples_end_ = range.second;
             }
-            state_ = RIGHT_SWEEPBUFFER;
+            state_ = STATE_SWEEPBUFFER;
 
-        case RIGHT_SWEEPBUFFER:
+        case STATE_SWEEPBUFFER:
             for (; left_tuples_it_ != left_tuples_end_; ++left_tuples_it_) {
                 if (execFilter(left_tuples_it_->second, right_tuple_)) {
                     execProject((left_tuples_it_++)->second,
@@ -172,7 +172,7 @@ bool NBJoin::GetNext(Tuple &tuple)
                     return false;
                 }
             }
-            state_ = RIGHT_GETNEXT;
+            state_ = STATE_GETNEXT;
             break;
         }
     }
@@ -186,7 +186,7 @@ void NBJoin::Close()
     main_buffer_.reset();
     overflow_buffer_.reset();
 
-    if (state_ != RIGHT_OPEN) {
+    if (state_ != STATE_OPEN) {
         right_child_->Close();
     }
     left_child_->Close();
@@ -196,7 +196,7 @@ uint8_t *NBJoin::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteTagToArray(4, target);
+    target = CodedOutputStream::WriteTagToArray(TAG_NBJOIN, target);
 
     target = Join::SerializeToArray(target);
 

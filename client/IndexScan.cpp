@@ -227,7 +227,7 @@ uint8_t *IndexScan::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteTagToArray(2, target);
+    target = CodedOutputStream::WriteTagToArray(TAG_INDEXSCAN, target);
 
     target = Scan::SerializeToArray(target);
 

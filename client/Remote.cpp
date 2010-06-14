@@ -14,7 +14,7 @@ Remote::Remote(const NodeID n, Operator::Ptr c,
     : Operator(n),
       child_(c),
       ip_address_(i),
-      state_(),
+      socket_reuse_(),
       socket_(),
       buffer_()
 {
@@ -24,7 +24,7 @@ Remote::Remote(google::protobuf::io::CodedInputStream *input)
     : Operator(input),
       child_(),
       ip_address_(),
-      state_(),
+      socket_reuse_(),
       socket_(),
       buffer_()
 {
@@ -35,7 +35,7 @@ Remote::Remote(const Remote &x)
     : Operator(x),
       child_(x.child_->clone()),
       ip_address_(x.ip_address_),
-      state_(),
+      socket_reuse_(),
       socket_(),
       buffer_()
 {
@@ -62,7 +62,7 @@ void Remote::ReOpen(const char *left_ptr, const uint32_t left_len)
 {
     using google::protobuf::io::CodedOutputStream;
 
-    state_ = SOCKET_CLOSE;
+    socket_reuse_ = false;
 
     uint32_t plan_size = child_->ByteSize();
     int total_size = 5 + plan_size;
@@ -113,7 +113,7 @@ bool Remote::GetNext(Tuple &tuple)
     const char *pos = boost::asio::buffer_cast<const char *>(line_buffer);
 
     if (*pos == '|') {
-        state_ = SOCKET_REUSE;
+        socket_reuse_ = true;
         return true;
     }
 
@@ -133,9 +133,9 @@ void Remote::Close()
 {
     buffer_.reset();
 
-    if (state_ == SOCKET_REUSE) {
+    if (socket_reuse_) {
         g_io_mgr->closeSocket(child_->node_id(), socket_);
-    } else {  // SOCKET_CLOSE
+    } else {
         socket_->close();
     }
     socket_.reset();
@@ -145,7 +145,7 @@ uint8_t *Remote::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteTagToArray(5, target);
+    target = CodedOutputStream::WriteTagToArray(TAG_REMOTE, target);
 
     target = Operator::SerializeToArray(target);
 

@@ -34,7 +34,7 @@ protected:
     ColID index_join_col_id_;
     static const ColID NOT_INDEX_JOIN = 0xffff;
 
-    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT } state_;
+    enum { STATE_OPEN, STATE_REOPEN, STATE_GETNEXT } state_;
 
 private:
     NLJoin& operator=(const NLJoin &);

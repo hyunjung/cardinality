@@ -36,7 +36,7 @@ public:
 protected:
     static uint64_t hashString(const char *, const uint32_t);
 
-    enum { RIGHT_OPEN, RIGHT_REOPEN, RIGHT_GETNEXT, RIGHT_SWEEPBUFFER } state_;
+    enum { STATE_OPEN, STATE_REOPEN, STATE_GETNEXT, STATE_SWEEPBUFFER } state_;
     bool left_done_;
     typedef std::tr1::unordered_multimap<uint64_t, Tuple> multimap;
     boost::scoped_ptr<multimap> left_tuples_;

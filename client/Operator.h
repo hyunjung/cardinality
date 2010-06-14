@@ -59,6 +59,8 @@ public:
     static Operator::Ptr parsePlan(google::protobuf::io::CodedInputStream *);
 
 protected:
+    enum { TAG_SEQSCAN, TAG_INDEXSCAN, TAG_NLJOIN, TAG_NBJOIN, TAG_REMOTE, TAG_UNION };
+
     NodeID node_id_;
 
 private:
