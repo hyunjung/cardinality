@@ -57,10 +57,6 @@ void Connection::handle_read(const boost::system::error_code &e,
     void (Connection::*handler)();
 
     switch (buffer_[0]) {
-    case 'F':
-        handle_query();
-        return;
-
     case 'Q':
         handler = &Connection::handle_query;
         break;

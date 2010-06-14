@@ -13,7 +13,6 @@ MYOBJS = objs/Operator.o \
 		 objs/NLJoin.o \
 		 objs/NBJoin.o \
 		 objs/Remote.o \
-		 objs/FastRemote.o \
 		 objs/Union.o \
 		 objs/Material.o \
 		 objs/Dummy.o \

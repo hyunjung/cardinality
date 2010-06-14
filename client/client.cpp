@@ -18,7 +18,6 @@
 #include "client/NLJoin.h"
 #include "client/NBJoin.h"
 #include "client/Remote.h"
-#include "client/FastRemote.h"
 #include "client/Union.h"
 #include "client/Dummy.h"
 #include "client/util.h"
@@ -532,7 +531,7 @@ static ca::Operator::Ptr buildQueryPlanScan(const Query *q)
 
         // add a Remote operator if needed
         if (root->node_id() != MASTER_NODE_ID) {
-            root = boost::make_shared<ca::FastRemote>(
+            root = boost::make_shared<ca::Remote>(
                        MASTER_NODE_ID, root,
                        g_addrs[root->node_id()]);
         }
