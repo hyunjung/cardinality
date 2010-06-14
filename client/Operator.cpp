@@ -30,6 +30,24 @@ Operator::~Operator()
 {
 }
 
+uint8_t *Operator::SerializeToArray(uint8_t *target) const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+
+    return target;
+}
+
+int Operator::ByteSize() const
+{
+    using google::protobuf::io::CodedOutputStream;
+
+    int total_size = CodedOutputStream::VarintSize32(node_id_);
+
+    return total_size;
+}
+
 void Operator::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
     input->ReadVarint32(&node_id_);

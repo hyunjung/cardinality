@@ -172,7 +172,7 @@ uint8_t *Union::SerializeToArray(uint8_t *target) const
 
     target = CodedOutputStream::WriteTagToArray(6, target);
 
-    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+    target = Operator::SerializeToArray(target);
 
     target = CodedOutputStream::WriteVarint32ToArray(children_.size(), target);
     for (std::size_t i = 0; i < children_.size(); ++i) {
@@ -203,7 +203,7 @@ int Union::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 1 + CodedOutputStream::VarintSize32(node_id_);
+    int total_size = 1 + Operator::ByteSize();
 
     total_size += CodedOutputStream::VarintSize32(children_.size());
     for (std::size_t i = 0; i < children_.size(); ++i) {

@@ -32,7 +32,7 @@ uint8_t *Project::SerializeToArray(uint8_t *target) const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+    target = Operator::SerializeToArray(target);
 
     target = CodedOutputStream::WriteVarint32ToArray(
                  selected_input_col_ids_.size(), target);
@@ -48,7 +48,7 @@ int Project::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = CodedOutputStream::VarintSize32(node_id_);
+    int total_size = Operator::ByteSize();
 
     total_size += CodedOutputStream::VarintSize32(
                       selected_input_col_ids_.size());

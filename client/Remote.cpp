@@ -147,7 +147,7 @@ uint8_t *Remote::SerializeToArray(uint8_t *target) const
 
     target = CodedOutputStream::WriteTagToArray(5, target);
 
-    target = CodedOutputStream::WriteVarint32ToArray(node_id_, target);
+    target = Operator::SerializeToArray(target);
 
     target = CodedOutputStream::WriteLittleEndian64ToArray(
                  ip_address_.to_ulong(), target);
@@ -160,7 +160,7 @@ int Remote::ByteSize() const
 {
     using google::protobuf::io::CodedOutputStream;
 
-    int total_size = 1 + CodedOutputStream::VarintSize32(node_id_);
+    int total_size = 1 + Operator::ByteSize();
 
     total_size += 8;
     total_size += child_->ByteSize();
