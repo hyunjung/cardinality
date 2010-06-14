@@ -21,11 +21,6 @@
 #include "client/Union.h"
 #include "client/Dummy.h"
 #include "client/util.h"
-#ifndef DISABLE_MATERIAL
-#include <tr1/unordered_map>
-#include <sys/time.h>  // gettimeofday
-#include "client/Material.h"
-#endif
 
 
 namespace ca = cardinality;
@@ -45,10 +40,6 @@ static boost::asio::ip::address_v4 *g_addrs;
 static std::map<std::string, Table *> g_tables;
 static std::map<std::string, std::vector<ca::PartStats *> > g_stats;
 static boost::mutex g_stats_mutex;
-#ifndef DISABLE_MATERIAL
-static std::tr1::unordered_map<const Query *, ca::Operator::Ptr,
-                               ca::HashQuery, ca::EqualToQuery> g_materials;
-#endif
 
 // on both master and slave
 ca::IOManager *g_io_mgr;
@@ -283,13 +274,6 @@ static ca::Operator::Ptr buildQueryPlanNoPartition(const Query *q)
 
     if (q->nbTable > 1) {
         enumerate2wayJoins(q, scans, plans);
-#ifndef DISABLE_MATERIAL
-        std::tr1::unordered_map<const Query *, ca::Operator::Ptr>::iterator it
-            = g_materials.find(q);
-        if (it != g_materials.end()) {
-            plans.push_back(it->second);
-        }
-#endif
     } else {
         plans = scans;
     }
@@ -1035,11 +1019,6 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                              const Data *data, const Queries *preset)
 {
-#ifndef DISABLE_MATERIAL
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
-#endif
-
     g_addrs = new boost::asio::ip::address_v4[nodes->nbNodes];
 
     for (int n = 0; n < nodes->nbNodes; ++n) {
@@ -1107,44 +1086,6 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
         table_it->second.resize(++unique_part_it - table_it->second.begin());
     }
-
-#ifndef DISABLE_MATERIAL
-    // precompute queries without any constants
-    for (int i = 0; i < preset->nbQueries; ++i) {
-        Query *q = &preset->queries[i];
-        if (q->nbTable != 2
-            || q->nbRestrictionsEqual != 0
-            || q->nbRestrictionsGreaterThan != 0) {
-            continue;
-        }
-
-        bool partitioned = false;
-        for (int j = 0; j < q->nbTable; ++j) {
-            if (g_tables[std::string(q->tableNames[j])]->nbPartitions != 1) {
-                partitioned = true;
-                break;
-            }
-        }
-        if (partitioned) {
-            continue;
-        }
-
-        gettimeofday(&end, NULL);
-        if (end.tv_sec > start.tv_sec + nbSeconds
-            || (end.tv_sec == start.tv_sec + nbSeconds
-                && end.tv_usec > start.tv_usec)) {
-            break;
-        }
-
-        ca::Operator::Ptr root = buildQueryPlanNoPartition(q);
-
-        try {
-            g_materials.insert(
-                std::make_pair(q, boost::make_shared<ca::Material>(
-                                      MASTER_NODE_ID, root)));
-        } catch (std::runtime_error &e) {}
-    }
-#endif
 }
 
 void startSlave(const Node *masterNode, const Node *currentNode)

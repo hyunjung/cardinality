@@ -14,7 +14,6 @@ MYOBJS = objs/Operator.o \
 		 objs/NBJoin.o \
 		 objs/Remote.o \
 		 objs/Union.o \
-		 objs/Material.o \
 		 objs/Dummy.o \
 		 objs/PartStats.o \
 		 objs/IOManager.o \
