@@ -1,36 +1,28 @@
 CC = g++
-FLAGS = -fPIC -O3
-LIBS = -ldl -pthread
+FLAGS = -fPIC -O2
+LIBS = -ldl -lboost_system-mt -lboost_iostreams-mt -lboost_thread-mt -lboost_filesystem-mt -lprotobuf-lite -pthread
 OBJS = objs/Tools.o objs/clientCom.o objs/clientIndex.o objs/clientHelper.o objs/index.so
 
-MYFLAGS = -fno-strict-aliasing -Wall -Wno-sign-compare -I. -I/u/hyunjung/boost_1_42_0
-MYOBJS = objs/Operator.o \
-		 objs/Project.o \
-		 objs/Scan.o \
-		 objs/Join.o \
-		 objs/SeqScan.o \
-		 objs/IndexScan.o \
-		 objs/NLJoin.o \
-		 objs/NBJoin.o \
-		 objs/Remote.o \
-		 objs/Union.o \
-		 objs/Dummy.o \
-		 objs/PartStats.o \
-		 objs/IOManager.o \
-		 objs/Connection.o \
-		 objs/client.o
-MYLIBS = lib/thirdparty/libboost_system.a \
-		 lib/thirdparty/libboost_iostreams.a \
-		 lib/thirdparty/libboost_thread.a \
-		 lib/thirdparty/libboost_filesystem.a \
-		 lib/thirdparty/libprotobuf-lite.a \
-		 lib/thirdparty/libtcmalloc_minimal.a \
-		 lib/thirdparty/rawmemchr.os
-
-all: objs/mainClient objs/mainSlaveClient
+MYFLAGS = -fno-strict-aliasing -Wall -Wno-sign-compare -I.
+MYOBJS = \
+	objs/Operator.o \
+	objs/Project.o \
+	objs/Scan.o \
+	objs/Join.o \
+	objs/SeqScan.o \
+	objs/IndexScan.o \
+	objs/NLJoin.o \
+	objs/NBJoin.o \
+	objs/Remote.o \
+	objs/Union.o \
+	objs/Dummy.o \
+	objs/PartStats.o \
+	objs/IOManager.o \
+	objs/Connection.o \
+	objs/client.o
 
 objs/Client.so: $(MYOBJS)
-	$(CC) $(FLAGS) -shared $(MYOBJS) $(MYLIBS) -o $@
+	$(CC) $(FLAGS) -shared $(MYOBJS) -o $@
 
 -include $(MYOBJS:.o=.d)
 
@@ -43,10 +35,6 @@ objs/%.d: client/%.cpp
 
 $(MYOBJS): objs/%.o:
 	$(CC) $(FLAGS) $(MYFLAGS) -c $< -o $@
-
-zip: objs/Client.so
-	strip objs/Client.so -o submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.so
-	zip -r submit/`date -u +%F-%H%M`-`git log -1 --pretty=format:%h`.zip Makefile client google $(MYLIBS)
 
 buildLib: objs/Client.so $(OBJS)
 buildBench: objs/mainClient objs/mainSlaveClient
