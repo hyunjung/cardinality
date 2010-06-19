@@ -172,10 +172,8 @@ bool Join::execFilter(const Tuple &left_tuple,
         }
 
         if (!join_conds_[i].get<2>()) {  // INT
-            if (parseInt(left_tuple[join_conds_[i].get<0>()].first,
-                         left_tuple[join_conds_[i].get<0>()].second)
-                != parseInt(right_tuple[join_conds_[i].get<1>()].first,
-                            right_tuple[join_conds_[i].get<1>()].second)) {
+            if (parseInt(&left_tuple[join_conds_[i].get<0>()])
+                != parseInt(&right_tuple[join_conds_[i].get<1>()])) {
                 return false;
             }
         } else {  // STRING

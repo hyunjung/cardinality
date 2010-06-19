@@ -1178,8 +1178,7 @@ ErrCode fetchRow(Connection *conn, Value *values)
         ca::ColID cid = conn->output_col_ids[i];
         if (!conn->value_types[i]) {  // INT
             values[i].type = INT;
-            values[i].intVal = ca::Operator::parseInt(conn->tuple[cid].first,
-                                                      conn->tuple[cid].second);
+            values[i].intVal = ca::Operator::parseInt(&conn->tuple[cid]);
 #ifdef PRINT_TUPLES
             std::cout << values[i].intVal << "|";
 #endif

@@ -47,11 +47,11 @@ Operator::Ptr Dummy::clone() const
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
-void Dummy::Open(const char *left_ptr, const uint32_t left_len)
+void Dummy::Open(const Chunk *)
 {
 }
 
-void Dummy::ReOpen(const char *left_ptr, const uint32_t left_len)
+void Dummy::ReOpen(const Chunk *)
 {
 }
 

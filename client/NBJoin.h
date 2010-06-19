@@ -47,8 +47,8 @@ public:
     ~NBJoin();
     Operator::Ptr clone() const;
 
-    void Open(const char * = NULL, const uint32_t = 0);
-    void ReOpen(const char * = NULL, const uint32_t = 0);
+    void Open(const Chunk * = NULL);
+    void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 

@@ -87,10 +87,13 @@ NodeID Operator::node_id() const
     return node_id_;
 }
 
-uint32_t Operator::parseInt(const char *str, const uint32_t len)
+uint32_t Operator::parseInt(const Chunk *c)
 {
+    const char *ptr = c->first;
+
     uint32_t intval = 0;
-    boost::spirit::qi::parse(str, str + len, boost::spirit::uint_, intval);
+    boost::spirit::qi::parse(ptr, ptr + c->second,
+                             boost::spirit::uint_, intval);
     return intval;
 }
 

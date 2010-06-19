@@ -106,12 +106,12 @@ Operator::Ptr Union::clone() const
     return boost::make_shared<Union>(*this);
 }
 
-void Union::Open(const char *left_ptr, const uint32_t left_len)
+void Union::Open(const Chunk *join_value)
 {
     if (pivots_.empty()) {
         done_.resize(children_.size());
         for (std::size_t i = 0; i < children_.size(); ++i) {
-            children_[i]->Open(left_ptr, left_len);
+            children_[i]->Open(join_value);
             done_[i] = false;
         }
         it_ = 0;
@@ -120,12 +120,12 @@ void Union::Open(const char *left_ptr, const uint32_t left_len)
         Value val;
         if (pivots_[0].first->type == INT) {
             val.type = INT;
-            val.intVal = Operator::parseInt(left_ptr, left_len);
+            val.intVal = Operator::parseInt(join_value);
         } else {  // STRING
             val.type = STRING;
-            val.intVal = left_len;
-            std::memcpy(val.charVal, left_ptr, left_len);
-            val.charVal[left_len] = '\0';
+            val.intVal = join_value->second;
+            std::memcpy(val.charVal, join_value->first, join_value->second);
+            val.charVal[join_value->second] = '\0';
         }
 
         std::pair<const Value *, uint32_t> x = std::make_pair(&val, 0);
@@ -133,22 +133,22 @@ void Union::Open(const char *left_ptr, const uint32_t left_len)
             = std::upper_bound(pivots_.begin(), pivots_.end(), x, lessPivot);
         it_ = (it != pivots_.begin()) ? (it - 1)->second : 1;
 
-        children_[it_]->Open(left_ptr, left_len);
+        children_[it_]->Open(join_value);
     }
 }
 
-void Union::ReOpen(const char *left_ptr, const uint32_t left_len)
+void Union::ReOpen(const Chunk *join_value)
 {
     if (pivots_.empty()) {
         for (std::size_t i = 0; i < children_.size(); ++i) {
-            children_[i]->ReOpen(left_ptr, left_len);
+            children_[i]->ReOpen(join_value);
             done_[i] = false;
         }
         it_ = 0;
 
     } else {
         Close();
-        Open(left_ptr, left_len);
+        Open(join_value);
     }
 }
 

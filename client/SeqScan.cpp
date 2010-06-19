@@ -64,7 +64,7 @@ Operator::Ptr SeqScan::clone() const
     return boost::make_shared<SeqScan>(*this);
 }
 
-void SeqScan::Open(const char *, const uint32_t)
+void SeqScan::Open(const Chunk *)
 {
 #ifdef DISABLE_MEMORY_MAPPED_IO
     buffer_.reset(new char[4096]);
@@ -76,7 +76,7 @@ void SeqScan::Open(const char *, const uint32_t)
     input_tuple_.reserve(num_input_cols_);
 }
 
-void SeqScan::ReOpen(const char *, const uint32_t)
+void SeqScan::ReOpen(const Chunk *)
 {
 #ifdef DISABLE_MEMORY_MAPPED_IO
     file_.clear();

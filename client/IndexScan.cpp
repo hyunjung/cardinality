@@ -110,7 +110,7 @@ Operator::Ptr IndexScan::clone() const
     return boost::make_shared<IndexScan>(*this);
 }
 
-void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
+void IndexScan::Open(const Chunk *join_value)
 {
 #ifdef DISABLE_MEMORY_MAPPED_IO
     buffer_.reset(new char[4096]);
@@ -121,10 +121,10 @@ void IndexScan::Open(const char *left_ptr, const uint32_t left_len)
     input_tuple_.reserve(num_input_cols_);
     openIndex(index_col_.c_str(), &index_);
 
-    ReOpen(left_ptr, left_len);
+    ReOpen(join_value);
 }
 
-void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
+void IndexScan::ReOpen(const Chunk *join_value)
 {
     TxnState *txn;
     Record record;
@@ -134,16 +134,16 @@ void IndexScan::ReOpen(const char *left_ptr, const uint32_t left_len)
 
     record.val.type = index_col_type_;
     if (index_col_type_ == INT) {
-        if (left_ptr) {
-            key_intval = parseInt(left_ptr, left_len);
+        if (join_value) {
+            key_intval = parseInt(join_value);
         } else {
             key_intval = value_->intVal;
         }
         record.val.intVal = key_intval;
     } else {  // STRING
-        if (left_ptr) {
-            key_charval = left_ptr;
-            key_intval = left_len;
+        if (join_value) {
+            key_charval = join_value->first;
+            key_intval = join_value->second;
         } else {
             key_charval = value_->charVal;
             key_intval = value_->intVal;
@@ -346,7 +346,7 @@ void IndexScan::print(std::ostream &os, const int tab, const double lcard) const
     }
     os << index_col_ << ((comp_op_ == EQ) ? "=" : ">");
     if (!value_) {  // NLIJ
-        os << "leftValue";
+        os << "join value";
     } else if (value_->type == INT) {
         os << value_->intVal;
     } else {  // STRING

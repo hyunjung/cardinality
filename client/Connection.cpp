@@ -202,18 +202,19 @@ void Connection::handle_param_query()
 
     // receive parameters (a key for index lookup)
     boost::asio::read(socket_, boost::asio::buffer(header));
-    uint32_t left_len;
-    CodedInputStream::ReadLittleEndian32FromArray(&header[0], &left_len);
+    Chunk join_value;
+    CodedInputStream::ReadLittleEndian32FromArray(
+        &header[0], &join_value.second);
 
-    buf.resize(left_len);
+    buf.resize(join_value.second);
     boost::asio::read(socket_, boost::asio::buffer(buf));
-    const char *left_ptr = buf.data();
+    join_value.first = buf.data();
 
     // execute the query plan and transfer results
     boost::system::error_code error;
     Tuple tuple;
 
-    root->Open(left_ptr, left_len);
+    root->Open(&join_value);
     while (!root->GetNext(tuple)) {
         uint32_t tuple_len = 1;
         for (std::size_t i = 0; i < tuple.size(); i++) {

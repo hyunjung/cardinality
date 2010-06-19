@@ -68,7 +68,7 @@ Operator::Ptr NLJoin::clone() const
     return boost::make_shared<NLJoin>(*this);
 }
 
-void NLJoin::Open(const char *, const uint32_t)
+void NLJoin::Open(const Chunk *)
 {
     state_ = STATE_OPEN;
     left_tuple_.reserve(left_child_->numOutputCols());
@@ -76,7 +76,7 @@ void NLJoin::Open(const char *, const uint32_t)
     left_child_->Open();
 }
 
-void NLJoin::ReOpen(const char *, const uint32_t)
+void NLJoin::ReOpen(const Chunk *)
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
@@ -92,8 +92,7 @@ bool NLJoin::GetNext(Tuple &tuple)
             if (index_join_col_id_ == NOT_INDEX_JOIN) {
                 right_child_->Open();
             } else {
-                right_child_->Open(left_tuple_[index_join_col_id_].first,
-                                   left_tuple_[index_join_col_id_].second);
+                right_child_->Open(&left_tuple_[index_join_col_id_]);
             }
         } else if (state_ == STATE_REOPEN) {
             if (left_child_->GetNext(left_tuple_)) {
@@ -103,8 +102,7 @@ bool NLJoin::GetNext(Tuple &tuple)
             if (index_join_col_id_ == NOT_INDEX_JOIN) {
                 right_child_->ReOpen();
             } else {
-                right_child_->ReOpen(left_tuple_[index_join_col_id_].first,
-                                     left_tuple_[index_join_col_id_].second);
+                right_child_->ReOpen(&left_tuple_[index_join_col_id_]);
             }
         }
 

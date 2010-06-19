@@ -276,8 +276,7 @@ bool Scan::execFilter(const Tuple &tuple) const
     for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
         if (gteq_conds_[i].get<0>()->type == INT) {
             int cmp = gteq_conds_[i].get<0>()->intVal
-                      - parseInt(tuple[gteq_conds_[i].get<1>()].first,
-                                 tuple[gteq_conds_[i].get<1>()].second);
+                      - parseInt(&tuple[gteq_conds_[i].get<1>()]);
             if ((gteq_conds_[i].get<2>() == EQ && cmp != 0)
                 || (gteq_conds_[i].get<2>() == GT && cmp >= 0)) {
                 return false;
@@ -309,10 +308,8 @@ bool Scan::execFilter(const Tuple &tuple) const
 
     for (std::size_t i = 0; i < join_conds_.size(); ++i) {
         if (!join_conds_[i].get<2>()) {  // INT
-            if (parseInt(tuple[join_conds_[i].get<0>()].first,
-                         tuple[join_conds_[i].get<0>()].second)
-                != parseInt(tuple[join_conds_[i].get<1>()].first,
-                            tuple[join_conds_[i].get<1>()].second)) {
+            if (parseInt(&tuple[join_conds_[i].get<0>()])
+                != parseInt(&tuple[join_conds_[i].get<1>()])) {
                 return false;
             }
         } else {  // STRING

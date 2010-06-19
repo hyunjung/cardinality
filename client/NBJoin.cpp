@@ -78,7 +78,7 @@ Operator::Ptr NBJoin::clone() const
     return boost::make_shared<NBJoin>(*this);
 }
 
-void NBJoin::Open(const char *, const uint32_t)
+void NBJoin::Open(const Chunk *)
 {
     main_buffer_.reset(new char[NBJOIN_BUFSIZE]);
     left_tuples_.reset(new multimap());
@@ -89,7 +89,7 @@ void NBJoin::Open(const char *, const uint32_t)
     left_child_->Open();
 }
 
-void NBJoin::ReOpen(const char *, const uint32_t)
+void NBJoin::ReOpen(const Chunk *)
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
@@ -141,9 +141,7 @@ bool NBJoin::GetNext(Tuple &tuple)
                 } else {  // INT
                     ColID cid = join_conds_[0].get<0>();
                     left_tuples_->insert(std::pair<uint64_t, Tuple>(
-                        parseInt(left_tuple_[cid].first,
-                                 left_tuple_[cid].second),
-                        left_tuple_));
+                        parseInt(&left_tuple_[cid]), left_tuple_));
                 }
             }
 
@@ -185,9 +183,7 @@ bool NBJoin::GetNext(Tuple &tuple)
                 ColID cid = join_conds_[0].get<1>();
                 std::pair<multimap::const_iterator,
                           multimap::const_iterator> range
-                    = left_tuples_->equal_range(
-                          parseInt(right_tuple_[cid].first,
-                                   right_tuple_[cid].second));
+                    = left_tuples_->equal_range(parseInt(&right_tuple_[cid]));
                 left_tuples_it_ = range.first;
                 left_tuples_end_ = range.second;
             }

@@ -44,8 +44,9 @@ typedef uint16_t ColID;
 typedef const char * ColName;
 typedef uint32_t NodeID;
 
-// pointer and length for each value
-typedef std::vector<std::pair<const char *, uint32_t> > Tuple;
+// types for passing data between physical operators
+typedef std::pair<const char *, uint32_t> Chunk;
+typedef std::vector<Chunk> Tuple;
 
 class PartStats;
 
@@ -59,8 +60,8 @@ public:
     virtual ~Operator();
     virtual Operator::Ptr clone() const = 0;
 
-    virtual void Open(const char * = NULL, const uint32_t = 0) = 0;
-    virtual void ReOpen(const char * = NULL, const uint32_t = 0) = 0;
+    virtual void Open(const Chunk * = NULL) = 0;
+    virtual void ReOpen(const Chunk * = NULL) = 0;
     virtual bool GetNext(Tuple &) = 0;
     virtual void Close() = 0;
 
@@ -85,7 +86,7 @@ public:
 
     NodeID node_id() const;
 
-    static uint32_t parseInt(const char *, const uint32_t);
+    static uint32_t parseInt(const Chunk *);
     static Operator::Ptr parsePlan(google::protobuf::io::CodedInputStream *);
 
 protected:
