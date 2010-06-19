@@ -62,10 +62,10 @@ public:
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
-    bool hasCol(const char *) const;
-    ColID getInputColID(const char *) const;
+    bool hasCol(const ColName) const;
+    ColID getInputColID(const ColName) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
-    ValueType getColType(const char *) const;
+    ValueType getColType(const ColName) const;
 
     double estTupleLength() const;
     double estColLength(const ColID) const;

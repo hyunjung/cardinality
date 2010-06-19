@@ -41,6 +41,7 @@
 namespace cardinality {
 
 typedef uint16_t ColID;
+typedef const char * ColName;
 typedef uint32_t NodeID;
 
 // pointer and length for each value
@@ -70,12 +71,12 @@ public:
 #ifdef PRINT_PLAN
     virtual void print(std::ostream &, const int = 0, const double = 0.0) const = 0;
 #endif
-    virtual bool hasCol(const char *) const = 0;
-    virtual ColID getInputColID(const char *) const = 0;
+    virtual bool hasCol(const ColName) const = 0;
+    virtual ColID getInputColID(const ColName) const = 0;
     virtual std::pair<const PartStats *, ColID> getPartStats(const ColID) const = 0;
-    virtual ValueType getColType(const char *) const = 0;
+    virtual ValueType getColType(const ColName) const = 0;
     virtual ColID numOutputCols() const = 0;
-    virtual ColID getOutputColID(const char *) const = 0;
+    virtual ColID getOutputColID(const ColName) const = 0;
 
     virtual double estCost(const double = 0.0) const = 0;
     virtual double estCardinality(const bool = false) const = 0;

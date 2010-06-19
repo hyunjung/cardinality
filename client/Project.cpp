@@ -106,7 +106,7 @@ ColID Project::numOutputCols() const
     return static_cast<ColID>(selected_input_col_ids_.size());
 }
 
-ColID Project::getOutputColID(const char *col) const
+ColID Project::getOutputColID(const ColName col) const
 {
     return std::find(selected_input_col_ids_.begin(),
                      selected_input_col_ids_.end(),

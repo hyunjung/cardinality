@@ -217,12 +217,12 @@ void Remote::print(std::ostream &os, const int tab, const double lcard) const
 }
 #endif
 
-bool Remote::hasCol(const char *col) const
+bool Remote::hasCol(const ColName col) const
 {
     return child_->hasCol(col);
 }
 
-ColID Remote::getInputColID(const char *col) const
+ColID Remote::getInputColID(const ColName col) const
 {
     return child_->getOutputColID(col);
 }
@@ -232,7 +232,7 @@ std::pair<const PartStats *, ColID> Remote::getPartStats(const ColID cid) const
     return child_->getPartStats(cid);
 }
 
-ValueType Remote::getColType(const char *col) const
+ValueType Remote::getColType(const ColName col) const
 {
     return child_->getColType(col);
 }
@@ -242,7 +242,7 @@ ColID Remote::numOutputCols() const
     return child_->numOutputCols();
 }
 
-ColID Remote::getOutputColID(const char *col) const
+ColID Remote::getOutputColID(const ColName col) const
 {
     return child_->getOutputColID(col);
 }

@@ -297,12 +297,12 @@ void Union::print(std::ostream &os, const int tab, const double lcard) const
 }
 #endif
 
-bool Union::hasCol(const char *col) const
+bool Union::hasCol(const ColName col) const
 {
     return children_[0]->hasCol(col);
 }
 
-ColID Union::getInputColID(const char *col) const
+ColID Union::getInputColID(const ColName col) const
 {
     return children_[0]->getOutputColID(col);
 }
@@ -312,7 +312,7 @@ std::pair<const PartStats *, ColID> Union::getPartStats(const ColID cid) const
     return children_[0]->getPartStats(cid);
 }
 
-ValueType Union::getColType(const char *col) const
+ValueType Union::getColType(const ColName col) const
 {
     return children_[0]->getColType(col);
 }
@@ -322,7 +322,7 @@ ColID Union::numOutputCols() const
     return children_[0]->numOutputCols();
 }
 
-ColID Union::getOutputColID(const char *col) const
+ColID Union::getOutputColID(const ColName col) const
 {
     return children_[0]->getOutputColID(col);
 }

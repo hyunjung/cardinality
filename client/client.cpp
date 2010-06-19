@@ -74,7 +74,7 @@ static boost::mutex g_stats_mutex;
 ca::IOManager *g_io_mgr;
 
 
-static inline bool HASIDXCOL(const char *col, const char *alias)
+static inline bool HASIDXCOL(const ca::ColName col, const char *alias)
 {
     int aliasLen = std::strlen(alias);
     return col[aliasLen] == '.' && col[aliasLen + 1] == '_'
@@ -600,7 +600,7 @@ static void buildScans(const Query *q,
 static void buildIndexScans(const Query *q,
                             const std::string &table_name,
                             const char *alias_name,
-                            const char *right_join_col,
+                            const ca::ColName right_join_col,
                             Plan &right)
 {
     Table *table = g_tables[table_name];
@@ -633,7 +633,7 @@ static void buildIndexScans(const Query *q,
 }
 
 static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan,
-                                    const char *col = NULL)
+                                    const ca::ColName col = NULL)
 {
     std::vector<ca::Operator::Ptr> best_pps;
 
@@ -692,8 +692,8 @@ static ca::Operator::Ptr buildQueryPlanJoin(const Query *q,
         alias_name = q->aliasNames[table_order[i]];
         table_name = q->tableNames[table_order[i]];
 
-        const char *left_join_col = NULL;
-        const char *right_join_col = NULL;
+        ca::ColName left_join_col = NULL;
+        ca::ColName right_join_col = NULL;
         int join_cond = 0;
 
         // look for an index join condition

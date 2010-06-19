@@ -83,12 +83,12 @@ void Dummy::print(std::ostream &os, const int tab, const double) const
 }
 #endif
 
-bool Dummy::hasCol(const char *col) const
+bool Dummy::hasCol(const ColName col) const
 {
     return false;
 }
 
-ColID Dummy::getInputColID(const char *col) const
+ColID Dummy::getInputColID(const ColName col) const
 {
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
@@ -98,7 +98,7 @@ std::pair<const PartStats *, ColID> Dummy::getPartStats(const ColID) const
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
-ValueType Dummy::getColType(const char *col) const
+ValueType Dummy::getColType(const ColName col) const
 {
     return INT;
 }
@@ -108,7 +108,7 @@ ColID Dummy::numOutputCols() const
     return 0;
 }
 
-ColID Dummy::getOutputColID(const char *col) const
+ColID Dummy::getOutputColID(const ColName col) const
 {
     return 0;
 }

@@ -208,12 +208,12 @@ void Join::execProject(const Tuple &left_tuple,
     }
 }
 
-bool Join::hasCol(const char *col) const
+bool Join::hasCol(const ColName col) const
 {
     return right_child_->hasCol(col) || left_child_->hasCol(col);
 }
 
-ColID Join::getInputColID(const char *col) const
+ColID Join::getInputColID(const ColName col) const
 {
     if (right_child_->hasCol(col)) {
         return right_child_->getOutputColID(col) + left_child_->numOutputCols();
@@ -232,7 +232,7 @@ std::pair<const PartStats *, ColID> Join::getPartStats(const ColID cid) const
     }
 }
 
-ValueType Join::getColType(const char *col) const
+ValueType Join::getColType(const ColName col) const
 {
     if (right_child_->hasCol(col)) {
         return right_child_->getColType(col);

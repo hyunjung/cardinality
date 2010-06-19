@@ -48,7 +48,7 @@ public:
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
     ColID numOutputCols() const;
-    ColID getOutputColID(const char *) const;
+    ColID getOutputColID(const ColName) const;
 
 protected:
     void initProject(const Query *);

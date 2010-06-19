@@ -339,13 +339,13 @@ void Scan::execProject(const Tuple &input_tuple,
     }
 }
 
-bool Scan::hasCol(const char *col) const
+bool Scan::hasCol(const ColName col) const
 {
     return (col[alias_.size()] == '.' || col[alias_.size()] == '\0')
            && !std::memcmp(col, alias_.data(), alias_.size());
 }
 
-ColID Scan::getInputColID(const char *col) const
+ColID Scan::getInputColID(const ColName col) const
 {
     const char *dot = std::strchr(col, '.');
     if (dot == NULL) {
@@ -365,7 +365,7 @@ std::pair<const PartStats *, ColID> Scan::getPartStats(const ColID cid) const
     return std::make_pair(stats_, selected_input_col_ids_[cid]);
 }
 
-ValueType Scan::getColType(const char *col) const
+ValueType Scan::getColType(const ColName col) const
 {
     return table_->fieldsType[getInputColID(col)];
 }

@@ -52,12 +52,12 @@ public:
 #ifdef PRINT_PLAN
     void print(std::ostream &, const int, const double) const;
 #endif
-    bool hasCol(const char *) const;
-    ColID getInputColID(const char *) const;
+    bool hasCol(const ColName) const;
+    ColID getInputColID(const ColName) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
-    ValueType getColType(const char *) const;
+    ValueType getColType(const ColName) const;
     ColID numOutputCols() const;
-    ColID getOutputColID(const char *) const;
+    ColID getOutputColID(const ColName) const;
 
     double estCost(const double = 0.0) const;
     double estCardinality(const bool = false) const;
