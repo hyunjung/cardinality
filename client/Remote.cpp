@@ -34,8 +34,6 @@
 #include "client/IOManager.h"
 
 
-extern cardinality::IOManager *g_io_mgr;  // client.cpp
-
 namespace cardinality {
 
 Remote::Remote(const NodeID n, Operator::Ptr c,
@@ -81,7 +79,8 @@ Operator::Ptr Remote::clone() const
 
 void Remote::Open(const Chunk *join_value)
 {
-    socket_ = g_io_mgr->connectSocket(child_->node_id(), ip_address_);
+    socket_ = IOManager::instance()->connectSocket(
+                  child_->node_id(), ip_address_);
     buffer_.reset(new boost::asio::streambuf());
 
     ReOpen(join_value);
@@ -163,7 +162,7 @@ void Remote::Close()
     buffer_.reset();
 
     if (socket_reuse_) {
-        g_io_mgr->closeSocket(child_->node_id(), socket_);
+        IOManager::instance()->closeSocket(child_->node_id(), socket_);
     } else {
         socket_->close();
     }

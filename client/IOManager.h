@@ -47,33 +47,59 @@ typedef uint32_t NodeID;  // Operator.h
 typedef boost::shared_ptr<boost::asio::ip::tcp::socket> tcpsocket_ptr;
 typedef boost::shared_ptr<boost::iostreams::mapped_file_source> mapped_file_ptr;
 
+// Singleton class that manages file and network IO.
 class IOManager {
 public:
-    explicit IOManager(const NodeID);
-    ~IOManager();
+    // service management
+    static void start(const NodeID);
+    static void stop();
+    static IOManager *instance();
 
-    void run();
-
+    // Get a TCP connection to another node.
+    // Reuse a pooled connection if possible.
+    // Otherwise, establish a new TCP connection.
     tcpsocket_ptr connectSocket(const NodeID,
                                 const boost::asio::ip::address_v4 &);
+
+    // Keep a TCP connection for reuse.
     void closeSocket(const NodeID, tcpsocket_ptr);
 
+    // Open a file using memory-mapped IO.
+    // Return start and end addresses.
+    // Multiple calls to openFile return the same addresses.
     std::pair<const char *, const char *> openFile(const std::string &);
 
 private:
+    // constructor, destructor
+    explicit IOManager(const NodeID);
+    ~IOManager();
+
+    // non-copyable
     IOManager(const IOManager &);
     IOManager& operator=(const IOManager &);
 
+    // wrapper for io_service.run()
+    void run();
+
+    // Asynchronous callback for establishing an incoming TCP connection.
+    // Call Connection::start() to handle the connection in a new thread.
     void handle_accept(const boost::system::error_code &);
 
+    // boost::asio
     boost::asio::io_service io_service_;
     boost::asio::ip::tcp::acceptor acceptor_;
     Connection::Ptr new_connection_;
 
+    // connection pool
     std::tr1::unordered_multimap<NodeID, tcpsocket_ptr> connection_pool_;
     boost::mutex connpool_mutex_;
+
+    // open files
     std::tr1::unordered_map<std::string, mapped_file_ptr> files_;
     boost::mutex files_mutex_;
+
+    // singletone instance
+    static IOManager *instance_;
 };
 
 }  // namespace cardinality

@@ -28,11 +28,33 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "client/IOManager.h"
+#include <boost/thread/thread.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/asio/placeholders.hpp>
 
 
 namespace cardinality {
+
+IOManager *IOManager::instance_ = NULL;
+
+void IOManager::start(const NodeID n)
+{
+    if (instance_ == NULL) {
+        instance_ = new IOManager(n);
+        boost::thread t(boost::bind(&IOManager::run, instance_));
+    }
+}
+
+void IOManager::stop()
+{
+    delete instance_;
+    instance_ = NULL;
+}
+
+IOManager *IOManager::instance()
+{
+    return instance_;
+}
 
 IOManager::IOManager(const NodeID n)
     : io_service_(),
@@ -108,6 +130,7 @@ void IOManager::closeSocket(const NodeID node_id, tcpsocket_ptr sock)
     connpool_mutex_.lock();
     connection_pool_.insert(std::pair<NodeID, tcpsocket_ptr>(node_id, sock));
     connpool_mutex_.unlock();
+    // TODO: timeout for closing pooled connections
 }
 
 std::pair<const char *, const char *>

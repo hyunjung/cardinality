@@ -37,26 +37,43 @@
 
 namespace cardinality {
 
+// Represent a passive TCP connection handled by IOManager
 class Connection: public boost::enable_shared_from_this<Connection> {
 public:
     typedef boost::shared_ptr<Connection> Ptr;
 
+    // constructor, destructor
     explicit Connection(boost::asio::io_service &);
     ~Connection();
 
+    // Start waiting for a request.
     void start();
+
+    // accessor
     boost::asio::ip::tcp::socket & socket();
 
 private:
+    // non-copyable
     Connection(const Connection &);
     Connection& operator=(const Connection &);
 
+    // Asynchronous callback for a new request.
+    // Calls one of the next three methods to handle the request.
     void handle_read(const boost::system::error_code &, std::size_t);
+
+    // Receive a plan, execute it, and send the results back.
     void handle_query();
+
+    // handle_query() with a join value for nested-loop index join.
     void handle_param_query();
+
+    // Process a statistics gathering request.
     void handle_stats();
 
+    // boost::asio
     boost::asio::ip::tcp::socket socket_;
+
+    // buffer for receiving a request type
     char buffer_[1];
 };
 

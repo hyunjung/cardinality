@@ -35,8 +35,6 @@
 #include "client/IOManager.h"
 
 
-extern cardinality::IOManager *g_io_mgr;  // client.cpp
-
 namespace cardinality {
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
@@ -116,7 +114,7 @@ void IndexScan::Open(const Chunk *join_value)
     buffer_.reset(new char[4096]);
     file_.open(filename_.c_str(), std::ifstream::in | std::ifstream::binary);
 #else
-    file_ = g_io_mgr->openFile(filename_);
+    file_ = IOManager::instance()->openFile(filename_);
 #endif
     input_tuple_.reserve(num_input_cols_);
     openIndex(index_col_.c_str(), &index_);

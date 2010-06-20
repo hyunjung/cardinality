@@ -70,9 +70,6 @@ static std::map<std::string, Table *> g_tables;
 static std::map<std::string, std::vector<ca::PartStats *> > g_stats;
 static boost::mutex g_stats_mutex;
 
-// on both master and slave
-ca::IOManager *g_io_mgr;
-
 
 static inline bool HASIDXCOL(const ca::ColName col, const char *alias)
 {
@@ -936,7 +933,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     ca::tcpsocket_ptr socket;
     for (int attempt = 0; attempt < 20; ++attempt) {
         try {
-            socket = g_io_mgr->connectSocket(n, g_addrs[n]);
+            socket = ca::IOManager::instance()->connectSocket(n, g_addrs[n]);
             break;
         } catch (...) {}
 
@@ -1041,7 +1038,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     buf.commit(4);
     boost::asio::write(*socket, buf);
 
-    g_io_mgr->closeSocket(n, socket);
+    ca::IOManager::instance()->closeSocket(n, socket);
 }
 
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
@@ -1056,7 +1053,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
     usleep(50000);  // 0.05s
 
-    g_io_mgr = new ca::IOManager(MASTER_NODE_ID);
+    ca::IOManager::start(MASTER_NODE_ID);
 
     boost::thread_group threads;
     for (int n = 1; n < nodes->nbNodes; ++n) {
@@ -1080,8 +1077,6 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
             g_stats[table_name].push_back(stats);
         }
     }
-
-    boost::thread t(boost::bind(&ca::IOManager::run, g_io_mgr));
 
     threads.join_all();
 
@@ -1118,8 +1113,7 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 
 void startSlave(const Node *masterNode, const Node *currentNode)
 {
-    g_io_mgr = new ca::IOManager(currentNode->iNode);
-    boost::thread t(boost::bind(&ca::IOManager::run, g_io_mgr));
+    ca::IOManager::start(currentNode->iNode);
 }
 
 Connection *createConnection()

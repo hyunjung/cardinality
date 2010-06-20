@@ -38,19 +38,32 @@
 
 namespace cardinality {
 
+// Represent statistics information for a partition
 class PartStats {
 public:
-    PartStats(const std::string &, const std::string &,
-              const ValueType, const std::vector<std::string> &, const int = 0);
+    // constructor called by startPreTreatmentMaster() at the master
     PartStats(const Table *, const int);
+
+    // constructor called by Connection::handle_stats() at slaves
+    PartStats(const std::string &, const std::string &,
+              const ValueType, const std::vector<std::string> &);
+
+    // constructor called by startPreTreatmentSlave() at the master
     PartStats(google::protobuf::io::CodedInputStream *);
+
+    // constructor called by findPartStats() at the master
     PartStats();
+
+    // destructor
     ~PartStats();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *target) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+    // partition information
+    // TODO: make these variables private and add accessors
     int part_no_;
     std::size_t num_pages_;
     std::vector<double> num_distinct_values_;
@@ -60,10 +73,15 @@ public:
     const PartStats *next_;
 
 private:
+    // non-copyable
     PartStats(const PartStats &);
     PartStats& operator=(const PartStats &);
 
+    // Populate all partition infomation (listed above)
+    // by examining a first few pages in the file.
     void init(const std::string, const int, const ValueType);
+
+    // Get the number of distinct values by scanning indexes.
     void init2(const std::string, const std::vector<std::string> &);
 };
 

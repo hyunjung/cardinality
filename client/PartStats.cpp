@@ -37,32 +37,15 @@
 #include <google/protobuf/wire_format_lite_inl.h>
 #include "lib/index/include/server.h"
 
+
 namespace cardinality {
 
 static const int PAGE_SIZE = 4096;
 
-PartStats::PartStats(const std::string &tablename,
-                     const std::string &filename,
-                     const ValueType pkey_type,
-                     const std::vector<std::string> &fieldnames,
-                     const int part_no)
+PartStats::PartStats(const Table *table, const int part_no)
     : part_no_(part_no),
       num_pages_(),
-      num_distinct_values_(fieldnames.size(), 20.0),
-      col_lengths_(fieldnames.size()),
-      min_pkey_(),
-      max_pkey_(),
-      next_(NULL)
-{
-    init(filename, fieldnames.size(), pkey_type);
-//  init2(tablename, fieldnames);
-}
-
-PartStats::PartStats(const Table *table,
-                     const int part_no)
-    : part_no_(part_no),
-      num_pages_(),
-      num_distinct_values_(table->nbFields, 20.0),
+      num_distinct_values_(table->nbFields, 20.0),  // Scan::SELECTIVITY_EQ^-1
       col_lengths_(table->nbFields),
       min_pkey_(),
       max_pkey_(),
@@ -71,13 +54,32 @@ PartStats::PartStats(const Table *table,
     init(table->partitions[part_no].fileName,
          table->nbFields,
          table->fieldsType[0]);
-
+#ifdef ENABLE_NUM_DISTINCT_VALUES
     std::vector<std::string> fieldnames;
     fieldnames.reserve(table->nbFields);
     for (int i = 0; i < table->nbFields; ++i) {
         fieldnames.push_back(table->fieldsName[i]);
     }
-//  init2(table->tableName, fieldnames);
+    init2(table->tableName, fieldnames);
+#endif
+}
+
+PartStats::PartStats(const std::string &tablename,
+                     const std::string &filename,
+                     const ValueType pkey_type,
+                     const std::vector<std::string> &fieldnames)
+    : part_no_(0),
+      num_pages_(),
+      num_distinct_values_(fieldnames.size(), 20.0),
+      col_lengths_(fieldnames.size()),
+      min_pkey_(),
+      max_pkey_(),
+      next_(NULL)
+{
+    init(filename, fieldnames.size(), pkey_type);
+#ifdef ENABLE_NUM_DISTINCT_VALUES
+    init2(tablename, fieldnames);
+#endif
 }
 
 PartStats::PartStats(google::protobuf::io::CodedInputStream *input)
