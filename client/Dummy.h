@@ -37,21 +37,23 @@ namespace cardinality {
 
 class Dummy: public Operator {
 public:
+    // constructor, destructor
     explicit Dummy(const NodeID);
     ~Dummy();
     Operator::Ptr clone() const;
 
+    // query execution
     void Open(const Chunk * = NULL);
     void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
 
-#ifdef PRINT_PLAN
+    // plan exploration
     void print(std::ostream &, const int, const double) const;
-#endif
     bool hasCol(const ColName) const;
     ColID getInputColID(const ColName) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
@@ -59,10 +61,11 @@ public:
     ColID numOutputCols() const;
     ColID getOutputColID(const ColName) const;
 
+    // cost estimation
     double estCost(const double = 0.0) const;
     double estCardinality(const bool = false) const;
-    double estTupleLength() const;
-    double estColLength(const ColID) const;
+    double estTupleSize() const;
+    double estColSize(const ColID) const;
 
 private:
     Dummy& operator=(const Dummy &);

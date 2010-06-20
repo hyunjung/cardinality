@@ -251,30 +251,32 @@ double Join::estCardinality(const bool) const
         left_stats = left_child_->getPartStats(join_conds_[i].get<0>());
         right_stats = right_child_->getPartStats(join_conds_[i].get<1>());
 
-        card /= std::max(left_stats.first->num_distinct_values_[left_stats.second],
-                         right_stats.first->num_distinct_values_[right_stats.second]);
+        card /= std::max(left_stats.first
+                             ->num_distinct_values_[left_stats.second],
+                         right_stats.first
+                             ->num_distinct_values_[right_stats.second]);
     }
 
     return card;
 }
 
-double Join::estTupleLength() const
+double Join::estTupleSize() const
 {
     double length = 0.0;
     for (ColID i = 0; i < numOutputCols(); ++i) {
-        length += estColLength(i);
+        length += estColSize(i);
     }
 
     return length;
 }
 
-double Join::estColLength(const ColID cid) const
+double Join::estColSize(const ColID cid) const
 {
     if (selected_input_col_ids_[cid] < left_child_->numOutputCols()) {
-        return left_child_->estColLength(selected_input_col_ids_[cid]);
+        return left_child_->estColSize(selected_input_col_ids_[cid]);
     } else {
-        return right_child_->estColLength(selected_input_col_ids_[cid]
-                                          - left_child_->numOutputCols());
+        return right_child_->estColSize(selected_input_col_ids_[cid]
+                                        - left_child_->numOutputCols());
     }
 }
 

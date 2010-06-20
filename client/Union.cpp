@@ -282,7 +282,6 @@ void Union::Deserialize(google::protobuf::io::CodedInputStream *input)
     }
 }
 
-#ifdef PRINT_PLAN
 void Union::print(std::ostream &os, const int tab, const double lcard) const
 {
     os << std::string(4 * tab, ' ');
@@ -295,7 +294,6 @@ void Union::print(std::ostream &os, const int tab, const double lcard) const
         children_[i]->print(os, tab + 1, lcard);
     }
 }
-#endif
 
 bool Union::hasCol(const ColName col) const
 {
@@ -353,14 +351,14 @@ double Union::estCardinality(const bool) const
     return card;
 }
 
-double Union::estTupleLength() const
+double Union::estTupleSize() const
 {
-    return children_[0]->estTupleLength();
+    return children_[0]->estTupleSize();
 }
 
-double Union::estColLength(const ColID cid) const
+double Union::estColSize(const ColID cid) const
 {
-    return children_[0]->estColLength(cid);
+    return children_[0]->estColSize(cid);
 }
 
 }  // namespace cardinality

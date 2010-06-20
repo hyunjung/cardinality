@@ -38,24 +38,26 @@ namespace cardinality {
 
 class Union: public Operator {
 public:
+    // constructor, destructor
     Union(const NodeID, std::vector<Operator::Ptr>, const char * = NULL);
     explicit Union(google::protobuf::io::CodedInputStream *);
     Union(const Union &);
     ~Union();
     Operator::Ptr clone() const;
 
+    // query execution
     void Open(const Chunk * = NULL);
     void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
-#ifdef PRINT_PLAN
+    // plan exploration
     void print(std::ostream &, const int, const double) const;
-#endif
     bool hasCol(const ColName) const;
     ColID getInputColID(const ColName) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
@@ -63,15 +65,18 @@ public:
     ColID numOutputCols() const;
     ColID getOutputColID(const ColName) const;
 
+    // cost estimation
     double estCost(const double = 0.0) const;
     double estCardinality(const bool = false) const;
-    double estTupleLength() const;
-    double estColLength(const ColID) const;
+    double estTupleSize() const;
+    double estColSize(const ColID) const;
 
 protected:
+    // operator description
     std::vector<Operator::Ptr> children_;
     std::vector<std::pair<const Value *, uint32_t> > pivots_;
 
+    // execution states
     uint32_t it_;
     bool deserialized_;
     std::vector<bool> done_;

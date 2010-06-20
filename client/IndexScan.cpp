@@ -41,13 +41,13 @@ namespace cardinality {
 
 IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
                      const Table *t, const PartStats *p, const Query *q,
-                     const char *col)
+                     const ColName col)
     : Scan(n, f, a, t, p, q),
       index_col_(), index_col_type_(),
       comp_op_(), value_(NULL), index_col_id_(),
       index_(), addrs_(), i_()
 {
-    if (col) {  // NLIJ
+    if (col) {  // nested-loop index join
         const char *dot = std::strchr(col, '.');
         if (dot == NULL) {
             throw std::runtime_error("invalid column name");
@@ -60,7 +60,7 @@ IndexScan::IndexScan(const NodeID n, const char *f, const char *a,
         index_col_id_ = getInputColID(col);
     } else {
         for (std::size_t i = 0; i < gteq_conds_.size(); ++i) {
-            const char *col = table_->fieldsName[gteq_conds_[i].get<1>()];
+            ColName col = table_->fieldsName[gteq_conds_[i].get<1>()];
             if (col[0] == '_') {
                 index_col_ = table_->tableName;
                 index_col_ += '.';
@@ -336,7 +336,6 @@ void IndexScan::Deserialize(google::protobuf::io::CodedInputStream *input)
     }
 }
 
-#ifdef PRINT_PLAN
 void IndexScan::print(std::ostream &os, const int tab, const double lcard) const
 {
     os << std::string(4 * tab, ' ');
@@ -353,17 +352,15 @@ void IndexScan::print(std::ostream &os, const int tab, const double lcard) const
         os << "'" << value_->charVal << "'";
     }
     os << " #cols=" << numOutputCols();
-    os << " len=" << estTupleLength();
+    os << " len=" << estTupleSize();
     os << " card=" << estCardinality(lcard > 0.0);
     os << " cost=" << estCost(lcard);
     os << std::endl;
 }
-#endif
 
 // Mackert and Lohman,
 // Index Scans Using a Finite LRU Buffer: A Validated I/O Model,
 // ACM Transactions on Database Systems, Vol. 14, No. 3, September 1989, p.411
-//
 static double MACKERT_LOHMAN(double T, double D, double x = 1.0)
 {
     double Y;

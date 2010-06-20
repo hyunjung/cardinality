@@ -38,21 +38,26 @@ namespace cardinality {
 
 class Project: public Operator {
 public:
+    // constructor, destructor
     explicit Project(const NodeID);
     explicit Project(google::protobuf::io::CodedInputStream *);
     Project(const Project &);
     ~Project();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+    // plan exploration
     ColID numOutputCols() const;
     ColID getOutputColID(const ColName) const;
 
 protected:
+    // helper for the constructor
     void initProject(const Query *);
 
+    // operator description
     std::vector<ColID> selected_input_col_ids_;
 
 private:

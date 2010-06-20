@@ -157,13 +157,12 @@ void NLJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
     index_join_col_id_ = static_cast<ColID>(col_id);
 }
 
-#ifdef PRINT_PLAN
 void NLJoin::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "NLJoin@" << node_id();
     os << " #cols=" << numOutputCols();
-    os << " len=" << estTupleLength();
+    os << " len=" << estTupleSize();
     os << " card=" << estCardinality();
     os << " cost=" << estCost();
     os << std::endl;
@@ -171,7 +170,6 @@ void NLJoin::print(std::ostream &os, const int tab, const double) const
     left_child_->print(os, tab + 1);
     right_child_->print(os, tab + 1, left_child_->estCardinality());
 }
-#endif
 
 double NLJoin::estCost(const double) const
 {

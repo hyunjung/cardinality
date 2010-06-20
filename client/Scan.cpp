@@ -367,17 +367,17 @@ ValueType Scan::getColType(const ColName col) const
     return table_->fieldsType[getInputColID(col)];
 }
 
-double Scan::estTupleLength() const
+double Scan::estTupleSize() const
 {
     double length = 0;
     for (ColID i = 0; i < numOutputCols(); ++i) {
-        length += estColLength(i);
+        length += estColSize(i);
     }
 
     return length;
 }
 
-double Scan::estColLength(const ColID cid) const
+double Scan::estColSize(const ColID cid) const
 {
     return stats_->col_lengths_[selected_input_col_ids_[cid]];
 }

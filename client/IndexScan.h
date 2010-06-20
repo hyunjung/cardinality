@@ -40,37 +40,42 @@ namespace cardinality {
 
 class IndexScan: public Scan {
 public:
+    // constructor, destructor
     IndexScan(const NodeID, const char *, const char *,
               const Table *, const PartStats *, const Query *,
-              const char * = NULL);
+              const ColName = NULL);
     explicit IndexScan(google::protobuf::io::CodedInputStream *);
     IndexScan(const IndexScan &);
     ~IndexScan();
     Operator::Ptr clone() const;
 
+    // query execution
     void Open(const Chunk * = NULL);
     void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
-#ifdef PRINT_PLAN
+    // plan exploration
     void print(std::ostream &, const int, const double) const;
-#endif
 
+    // cost estimation
     double estCost(const double = 0.0) const;
     double estCardinality(const bool = false) const;
 
 protected:
+    // operator description
     std::string index_col_;
     ValueType index_col_type_;
     CompOp comp_op_;
     Value *value_;
     ColID index_col_id_;
 
+    // execution states
     Index *index_;
     std::vector<uint64_t> addrs_;
     std::size_t i_;

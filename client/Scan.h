@@ -52,35 +52,44 @@ enum CompOp {
 
 class Scan: public Project {
 public:
+    // constructor, destructor
     Scan(const NodeID, const char *, const char *,
          const Table *, const PartStats *, const Query *);
     explicit Scan(google::protobuf::io::CodedInputStream *);
     Scan(const Scan &);
     ~Scan();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+    // plan exploration
     bool hasCol(const ColName) const;
     ColID getInputColID(const ColName) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
     ValueType getColType(const ColName) const;
 
-    double estTupleLength() const;
-    double estColLength(const ColID) const;
+    // cost estimation
+    double estTupleSize() const;
+    double estColSize(const ColID) const;
 
 protected:
+    // helper for the constructor
     void initFilter(const Query *q);
+
+    // helpers for GetNext()
     bool execFilter(const Tuple &) const;
     void execProject(const Tuple &, Tuple &) const;
     const char *parseLine(const char *);
 
+    // operator description
     std::string filename_;
     std::vector<boost::tuple<Value *, ColID, CompOp> > gteq_conds_;
     std::vector<boost::tuple<ColID, ColID, bool> > join_conds_;
     uint32_t num_input_cols_;
 
+    // execution states
     const std::string alias_;
     const Table *table_;
     const PartStats *stats_;
@@ -92,6 +101,7 @@ protected:
 #endif
     Tuple input_tuple_;
 
+    // constants
     static const double COST_DISK_READ_PAGE = 1.0;
     static const double COST_DISK_SEEK_PAGE = 0.3;
     static const double SELECTIVITY_EQ = 0.05;

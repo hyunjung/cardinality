@@ -40,6 +40,7 @@ namespace cardinality {
 
 class NBJoin: public Join {
 public:
+    // constructor, destructor
     NBJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *);
     explicit NBJoin(google::protobuf::io::CodedInputStream *);
@@ -47,24 +48,28 @@ public:
     ~NBJoin();
     Operator::Ptr clone() const;
 
+    // query execution
     void Open(const Chunk * = NULL);
     void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
-#ifdef PRINT_PLAN
+    // plan exploration
     void print(std::ostream &, const int, const double) const;
-#endif
 
+    // cost estimation
     double estCost(const double = 0.0) const;
 
 protected:
-    static uint64_t hashString(const char *, const uint32_t);
+    // helper for GetNext()
+    static uint64_t hashString(const Chunk &);
 
+    // execution states
     enum { STATE_OPEN, STATE_REOPEN, STATE_GETNEXT, STATE_SWEEPBUFFER } state_;
     bool left_done_;
     typedef std::tr1::unordered_multimap<uint64_t, Tuple> multimap;
@@ -73,6 +78,9 @@ protected:
     multimap::const_iterator left_tuples_end_;
     boost::scoped_array<char> main_buffer_;
     boost::scoped_array<char> overflow_buffer_;
+
+    // constants
+    static const int NBJOIN_BUFSIZE = 262144;
 
 private:
     NBJoin& operator=(const NBJoin &);

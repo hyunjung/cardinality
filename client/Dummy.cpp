@@ -74,14 +74,12 @@ int Dummy::ByteSize() const
     throw std::runtime_error(BOOST_CURRENT_FUNCTION);
 }
 
-#ifdef PRINT_PLAN
 void Dummy::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "Dummy@" << node_id();
     os << std::endl;
 }
-#endif
 
 bool Dummy::hasCol(const ColName col) const
 {
@@ -123,12 +121,12 @@ double Dummy::estCardinality(const bool) const
     return 0.0;
 }
 
-double Dummy::estTupleLength() const
+double Dummy::estTupleSize() const
 {
     return 0.0;
 }
 
-double Dummy::estColLength(const ColID cid) const
+double Dummy::estColSize(const ColID cid) const
 {
     return 0.0;
 }

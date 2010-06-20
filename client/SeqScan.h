@@ -37,6 +37,7 @@ namespace cardinality {
 
 class SeqScan: public Scan {
 public:
+    // constructor, destructor
     SeqScan(const NodeID, const char *, const char *,
             const Table *, const PartStats *, const Query *);
     explicit SeqScan(google::protobuf::io::CodedInputStream *);
@@ -44,23 +45,26 @@ public:
     ~SeqScan();
     Operator::Ptr clone() const;
 
+    // query execution
     void Open(const Chunk * = NULL);
     void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
-#ifdef PRINT_PLAN
+    // plan exploration
     void print(std::ostream &, const int, const double) const;
-#endif
 
+    // cost estimation
     double estCost(const double = 0.0) const;
     double estCardinality(const bool = false) const;
 
 protected:
+    // execution states
     const char *pos_;
 
 private:

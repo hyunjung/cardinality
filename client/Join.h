@@ -39,34 +39,43 @@ namespace cardinality {
 
 class Join: public Project {
 public:
+    // constructor, destructor
     Join(const NodeID, Operator::Ptr, Operator::Ptr,
          const Query *, const int = -1);
     explicit Join(google::protobuf::io::CodedInputStream *);
     Join(const Join &);
     ~Join();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
+    // plan exploration
     bool hasCol(const ColName) const;
     ColID getInputColID(const ColName) const;
     std::pair<const PartStats *, ColID> getPartStats(const ColID) const;
     ValueType getColType(const ColName) const;
 
+    // cost estimation
     double estCardinality(const bool = false) const;
-    double estTupleLength() const;
-    double estColLength(const ColID) const;
+    double estTupleSize() const;
+    double estColSize(const ColID) const;
 
 protected:
+    // helper for the constructor
     void initFilter(const Query *q, const int);
+
+    // helpers for GetNext()
     bool execFilter(const Tuple &, const Tuple &) const;
     void execProject(const Tuple &, const Tuple &, Tuple &) const;
 
+    // operator description
     Operator::Ptr left_child_;
     Operator::Ptr right_child_;
     std::vector<boost::tuple<ColID, ColID, bool, bool> > join_conds_;
 
+    // execution states
     Tuple left_tuple_;
     Tuple right_tuple_;
 

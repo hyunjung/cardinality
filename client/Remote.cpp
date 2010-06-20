@@ -205,7 +205,6 @@ void Remote::Deserialize(google::protobuf::io::CodedInputStream *input)
     child_ = parsePlan(input);
 }
 
-#ifdef PRINT_PLAN
 void Remote::print(std::ostream &os, const int tab, const double lcard) const
 {
     os << std::string(4 * tab, ' ');
@@ -215,7 +214,6 @@ void Remote::print(std::ostream &os, const int tab, const double lcard) const
 
     child_->print(os, tab + 1, lcard);
 }
-#endif
 
 bool Remote::hasCol(const ColName col) const
 {
@@ -249,9 +247,10 @@ ColID Remote::getOutputColID(const ColName col) const
 
 double Remote::estCost(const double lcard) const
 {
+    // TODO: looking up a remote index should be penalized.
     return child_->estCost(lcard)
            + COST_NET_XFER_BYTE
-             * child_->estTupleLength()
+             * child_->estTupleSize()
              * child_->estCardinality(lcard > 0.0);
 }
 
@@ -260,14 +259,14 @@ double Remote::estCardinality(const bool) const
     return child_->estCardinality();
 }
 
-double Remote::estTupleLength() const
+double Remote::estTupleSize() const
 {
-    return child_->estTupleLength();
+    return child_->estTupleSize();
 }
 
-double Remote::estColLength(const ColID cid) const
+double Remote::estColSize(const ColID cid) const
 {
-    return child_->estColLength(cid);
+    return child_->estColSize(cid);
 }
 
 }  // namespace cardinality

@@ -37,6 +37,7 @@ namespace cardinality {
 
 class NLJoin: public Join {
 public:
+    // constructor, destructor
     NLJoin(const NodeID, Operator::Ptr, Operator::Ptr,
            const Query *, const int = -1, const char * = NULL);
     explicit NLJoin(google::protobuf::io::CodedInputStream *);
@@ -44,25 +45,29 @@ public:
     ~NLJoin();
     Operator::Ptr clone() const;
 
+    // query execution
     void Open(const Chunk * = NULL);
     void ReOpen(const Chunk * = NULL);
     bool GetNext(Tuple &);
     void Close();
 
+    // serialization
     uint8_t *SerializeToArray(uint8_t *) const;
     int ByteSize() const;
     void Deserialize(google::protobuf::io::CodedInputStream *);
 
-#ifdef PRINT_PLAN
+    // plan exploration
     void print(std::ostream &, const int, const double) const;
-#endif
 
+    // cost estimation
     double estCost(const double = 0.0) const;
 
 protected:
+    // operator description
     ColID index_join_col_id_;
     static const ColID NOT_INDEX_JOIN = 0xffff;
 
+    // execution states
     enum { STATE_OPEN, STATE_REOPEN, STATE_GETNEXT } state_;
 
 private:

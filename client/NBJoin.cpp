@@ -35,8 +35,6 @@
 
 namespace cardinality {
 
-static const int NBJOIN_BUFSIZE = 262144;
-
 NBJoin::NBJoin(const NodeID n, Operator::Ptr l, Operator::Ptr r,
                const Query *q)
     : Join(n, l, r, q),
@@ -135,9 +133,7 @@ bool NBJoin::GetNext(Tuple &tuple)
                 } else if (join_conds_[0].get<2>()) {  // STRING
                     ColID cid = join_conds_[0].get<0>();
                     left_tuples_->insert(std::pair<uint64_t, Tuple>(
-                        hashString(left_tuple_[cid].first,
-                                   left_tuple_[cid].second),
-                        left_tuple_));
+                        hashString(left_tuple_[cid]), left_tuple_));
                 } else {  // INT
                     ColID cid = join_conds_[0].get<0>();
                     left_tuples_->insert(std::pair<uint64_t, Tuple>(
@@ -174,9 +170,7 @@ bool NBJoin::GetNext(Tuple &tuple)
                 ColID cid = join_conds_[0].get<1>();
                 std::pair<multimap::const_iterator,
                           multimap::const_iterator> range
-                    = left_tuples_->equal_range(
-                          hashString(right_tuple_[cid].first,
-                                     right_tuple_[cid].second));
+                    = left_tuples_->equal_range(hashString(right_tuple_[cid]));
                 left_tuples_it_ = range.first;
                 left_tuples_end_ = range.second;
             } else {  // INT
@@ -239,13 +233,12 @@ void NBJoin::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
 }
 
-#ifdef PRINT_PLAN
 void NBJoin::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "NBJoin@" << node_id();
     os << " #cols=" << numOutputCols();
-    os << " len=" << estTupleLength();
+    os << " len=" << estTupleSize();
     os << " card=" << estCardinality();
     os << " cost=" << estCost();
     os << std::endl;
@@ -253,20 +246,19 @@ void NBJoin::print(std::ostream &os, const int tab, const double) const
     left_child_->print(os, tab + 1);
     right_child_->print(os, tab + 1);
 }
-#endif
 
 double NBJoin::estCost(const double) const
 {
     return left_child_->estCost()
            + std::max(1.0, left_child_->estCardinality()
-                           * left_child_->estTupleLength() / NBJOIN_BUFSIZE)
+                           * left_child_->estTupleSize() / NBJOIN_BUFSIZE)
              * right_child_->estCost();
 }
 
-uint64_t NBJoin::hashString(const char *str, const uint32_t len)
+uint64_t NBJoin::hashString(const Chunk &c)
 {
     uint64_t hash = 0;
-    std::memcpy(&hash, str, std::min(len, 8u));
+    std::memcpy(&hash, c.first, std::min(c.second, 8u));
     return hash;
 }
 

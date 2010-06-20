@@ -139,18 +139,16 @@ void SeqScan::Deserialize(google::protobuf::io::CodedInputStream *input)
 {
 }
 
-#ifdef PRINT_PLAN
 void SeqScan::print(std::ostream &os, const int tab, const double) const
 {
     os << std::string(4 * tab, ' ');
     os << "SeqScan@" << node_id() << " " << filename_;
     os << " #cols=" << numOutputCols();
-    os << " len=" << estTupleLength();
+    os << " len=" << estTupleSize();
     os << " card=" << estCardinality();
     os << " cost=" << estCost();
     os << std::endl;
 }
-#endif
 
 double SeqScan::estCost(const double) const
 {
