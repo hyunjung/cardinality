@@ -32,7 +32,8 @@
 #include <string>
 #include <cstring>
 #include <stdexcept>  // std::runtime_error
-#include <algorithm>  // std::sort, std::min
+#include <algorithm>  // std::sort, std::min, std::next_permutation,
+                      // std::random_shuffle
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -54,23 +55,33 @@
 
 namespace ca = cardinality;
 
+// declared in include/client.h
 struct Connection {
     const Query *q;
     ca::Operator::Ptr root;
     ca::Tuple tuple;
     std::vector<ca::ColID> output_col_ids;
-    std::vector<bool> value_types;
+    std::vector<bool> value_types;  // true for STRING, false for INT
 };
 
-// on master
 static const ca::NodeID MASTER_NODE_ID = 0;
 
+// node id to its IP address
 static boost::asio::ip::address_v4 *g_addrs;
+
+// table name to its corresponding Table structure
 static std::map<std::string, Table *> g_tables;
+
+// table name to its partition information
+// The vector contains all distinct partitions, and replicas are chained
+// using PartStats.next_ pointer.
 static std::map<std::string, std::vector<ca::PartStats *> > g_stats;
+
+// mutex for g_stats
 static boost::mutex g_stats_mutex;
 
 
+// Returns true if the given column is indexed.
 static inline bool HASIDXCOL(const ca::ColName col, const char *alias)
 {
     int aliasLen = std::strlen(alias);
@@ -78,6 +89,8 @@ static inline bool HASIDXCOL(const ca::ColName col, const char *alias)
            && !std::memcmp(col, alias, aliasLen);
 }
 
+// Returns true if the primary key range of two given partitions
+// do not overlap.
 static bool NO_PKEY_OVERLAP(const ca::PartStats *a,
                             const ca::PartStats *b)
 {
@@ -85,13 +98,16 @@ static bool NO_PKEY_OVERLAP(const ca::PartStats *a,
                       || ca::compareValue(&a->max_pkey_, &b->min_pkey_) < 0);
 }
 
+// Compare two given partitions based on their minimum primary keys.
 static bool lessPartStats(const ca::PartStats *a,
                           const ca::PartStats *b)
 {
     return ca::compareValue(&a->min_pkey_, &b->min_pkey_) < 0;
 }
 
-#ifndef DISABLE_QUERY_OPTIMIZER
+// Enumerate all single table scans.
+// IndexScan is preferred to SeqScan.
+// Called by buildQueryPlanNoPartition().
 static void enumerateScans(const Query *q,
                            std::vector<ca::Operator::Ptr> &scans)
 {
@@ -118,6 +134,9 @@ static void enumerateScans(const Query *q,
     }
 }
 
+// Enumerate all two way joins.
+// Nested-loop index join is preferred to nest-block join.
+// Called by buildQueryPlanNoPartition().
 static void enumerate2wayJoins(const Query *q,
                                const std::vector<ca::Operator::Ptr> &scans,
                                std::vector<ca::Operator::Ptr> &plans)
@@ -220,6 +239,8 @@ static void enumerate2wayJoins(const Query *q,
     }
 }
 
+// Enumerate all k-way joins.
+// Called by buildQueryPlanNoPartition().
 static void enumerateJoins(const Query *q,
                            const std::vector<ca::Operator::Ptr> &scans,
                            const std::vector<ca::Operator::Ptr> &subplans,
@@ -286,6 +307,9 @@ static void enumerateJoins(const Query *q,
     }
 }
 
+// Return the best query plan for executing the given query.
+// The caller should ensure that all tables in the FROM clause
+// have only one partition.
 static ca::Operator::Ptr buildQueryPlanNoPartition(const Query *q)
 {
     std::vector<ca::Operator::Ptr> scans;
@@ -334,108 +358,9 @@ static ca::Operator::Ptr buildQueryPlanNoPartition(const Query *q)
 
     return best_plan;
 }
-#else  // DISABLE_QUERY_OPTIMIZER
-static ca::Operator::Ptr buildQueryPlanNoPartition(const Query *q)
-{
-    ca::Operator::Ptr root;
-    ca::Operator::Ptr right;
 
-    std::string table_name(q->tableNames[0]);
-    Table *table = g_tables[table_name];
-    Partition *part = &table->partitions[0];
-
-    try {
-        root = boost::make_shared<ca::IndexScan>(
-                   part->iNode,
-                   part->fileName, q->aliasNames[0],
-                   table,
-                   static_cast<ca::PartStats *>(NULL), q);
-
-    } catch (std::runtime_error &e) {
-        root = boost::make_shared<ca::SeqScan>(
-                   part->iNode,
-                   part->fileName, q->aliasNames[0],
-                   table,
-                   static_cast<ca::PartStats *>(NULL), q);
-    }
-
-    for (int i = 1; i < q->nbTable; ++i) {
-        table_name = q->tableNames[i];
-        table = g_tables[table_name];
-        part = &table->partitions[0];
-
-        // add a Remote operator if needed
-        if (root->node_id() != static_cast<ca::NodeID>(part->iNode)) {
-            root = boost::make_shared<ca::Remote>(
-                       part->iNode, root,
-                       g_addrs[root->node_id()]);
-        }
-
-        int j;
-
-        // Nested Loop Index Join
-        for (j = 0; j < q->nbJoins; ++j) {
-            if (HASIDXCOL(q->joinFields1[j], q->aliasNames[i])
-                && root->hasCol(q->joinFields2[j])) {
-                root = boost::make_shared<ca::NLJoin>(
-                           part->iNode,
-                           root,
-                           boost::make_shared<ca::IndexScan>(
-                               part->iNode,
-                               part->fileName, q->aliasNames[i],
-                               table,
-                               static_cast<ca::PartStats *>(NULL), q,
-                               q->joinFields1[j]),
-                           q, j, q->joinFields2[j]);
-                break;
-            }
-            if (HASIDXCOL(q->joinFields2[j], q->aliasNames[i])
-                && root->hasCol(q->joinFields1[j])) {
-                root = boost::make_shared<ca::NLJoin>(
-                           part->iNode,
-                           root,
-                           boost::make_shared<ca::IndexScan>(
-                               part->iNode,
-                               part->fileName, q->aliasNames[i],
-                               table,
-                               static_cast<ca::PartStats *>(NULL), q,
-                               q->joinFields2[j]),
-                           q, j, q->joinFields1[j]);
-                break;
-            }
-        }
-
-        // Nested Block Join
-        if (j == q->nbJoins) {
-            try {
-                right = boost::make_shared<ca::IndexScan>(
-                            part->iNode,
-                            part->fileName, q->aliasNames[i],
-                            table,
-                            static_cast<ca::PartStats *>(NULL), q);
-
-            } catch (std::runtime_error &e) {
-                right = boost::make_shared<ca::SeqScan>(
-                            part->iNode,
-                            part->fileName, q->aliasNames[i],
-                            table,
-                            static_cast<ca::PartStats *>(NULL), q);
-            }
-            root = boost::make_shared<ca::NBJoin>(
-                       right->node_id(), root, right, q);
-        }
-    }
-
-    if (root->node_id() != MASTER_NODE_ID) {
-        root = boost::make_shared<ca::Remote>(
-                   MASTER_NODE_ID, root,
-                   g_addrs[root->node_id()]);
-    }
-
-    return root;
-}
-#endif
-
+// Find partitions to scan using a condition on the primary key.
+// If there is no such condition, all distinct partitions are found.
 static void
 findPartStats(const Query *q,
               const std::string &table_name,
@@ -506,7 +431,7 @@ findPartStats(const Query *q,
                         key.min_pkey_.intVal);
         }
 
-        // determine a partition to scan
+        // determine partitions to scan
         std::vector<ca::PartStats *>::const_iterator it
             = std::upper_bound(begin, end, &key, lessPartStats);
 
@@ -517,6 +442,11 @@ findPartStats(const Query *q,
     }
 }
 
+// Return the best query plan for executing the given query.
+// The caller should ensure that the query contains only one table
+// in its FROM clause.
+// The caller should check if the returned plan is valid. If not,
+// buildQueryPlanJoin() should be called.
 static ca::Operator::Ptr buildQueryPlanScan(const Query *q)
 {
     std::string table_name(q->tableNames[0]);
@@ -550,9 +480,14 @@ static ca::Operator::Ptr buildQueryPlanScan(const Query *q)
     return root;
 }
 
+// Represent equivalent (sub)plans using different replicas.
 typedef std::vector<ca::Operator::Ptr> PartPlan;
+// Represent a set of PartPlan's that cover the entire results.
 typedef std::vector<PartPlan> Plan;
 
+// Return a "Plan" for single table scan.
+// IndexScan is preferred to SeqScan.
+// Called by buildQueryPlanJoin().
 static void buildScans(const Query *q,
                        const std::string &table_name,
                        const char *alias_name,
@@ -594,6 +529,9 @@ static void buildScans(const Query *q,
     }
 }
 
+// Return a "Plan" for single table scan that will be used as
+// the right child of nested-loop index join.
+// Called by buildQueryPlanJoin().
 static void buildIndexScans(const Query *q,
                             const std::string &table_name,
                             const char *alias_name,
@@ -629,8 +567,10 @@ static void buildIndexScans(const Query *q,
     }
 }
 
-static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan,
-                                    const ca::ColName col = NULL)
+// Return the best query plan using the given "Plan".
+// Called by buildQueryPlanJoin().
+static ca::Operator::Ptr
+buildUnion(const ca::NodeID n, Plan &plan, const ca::ColName col = NULL)
 {
     std::vector<ca::Operator::Ptr> best_pps;
 
@@ -665,8 +605,10 @@ static ca::Operator::Ptr buildUnion(const ca::NodeID n, Plan &plan,
     }
 }
 
-static ca::Operator::Ptr buildQueryPlanJoin(const Query *q,
-                                            const std::vector<int> &table_order)
+// Return the best query plan for the given query and join order.
+// Nested-loop index join is preferred to nest-block join.
+static ca::Operator::Ptr
+buildQueryPlanJoin(const Query *q, const std::vector<int> &table_order)
 {
     std::vector<Plan> plans;
     std::vector<Plan> subplans;
@@ -885,6 +827,8 @@ static ca::Operator::Ptr buildQueryPlanJoin(const Query *q,
     return best_plan->clone();
 }
 
+// Return the best query plan for executing the given query.
+// Called by performQuery().
 static ca::Operator::Ptr buildQueryPlan(const Query *q)
 {
     bool partitioned = false;
@@ -925,6 +869,8 @@ static ca::Operator::Ptr buildQueryPlan(const Query *q)
     return root;
 }
 
+// Connect to a slave node and gather partition statistics.
+// Executed on the master node.
 static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
 {
     using google::protobuf::io::CodedInputStream;
@@ -1041,6 +987,7 @@ static void startPreTreatmentSlave(const ca::NodeID n, const Data *data)
     ca::IOManager::instance()->closeSocket(n, socket);
 }
 
+// Gather all partition statistics and find replicas.
 void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
                              const Data *data, const Queries *preset)
 {
@@ -1114,6 +1061,10 @@ void startPreTreatmentMaster(int nbSeconds, const Nodes *nodes,
 void startSlave(const Node *masterNode, const Node *currentNode)
 {
     ca::IOManager::start(currentNode->iNode);
+
+    // Once IOManager is started, startPreTreatmentSlave() on the master
+    // will send a request and Connection::handle_read() will process
+    // the request.
 }
 
 Connection *createConnection()
